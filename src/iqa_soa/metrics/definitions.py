@@ -153,6 +153,8 @@ PROTOCOL_TELEMETRY_FIELDS: tuple[str, ...] = (
     "queued_action_count",
     "tool_contract_policy",
     "tool_contract_regression_detected",
+    "multi_call_overflow",
+    "native_tool_adapter_version",
 )
 
 PILOT_RAW_FIELDS_V3: tuple[str, ...] = PILOT_RAW_FIELDS + PROTOCOL_TELEMETRY_FIELDS

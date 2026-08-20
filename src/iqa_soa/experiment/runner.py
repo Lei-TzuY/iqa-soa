@@ -24,7 +24,10 @@ from iqa_soa.agent import (
     OpenAICompatibleProvider,
 )
 from iqa_soa.agent.agent import AgentRun
-from iqa_soa.agent.providers import probe_runtime_provenance
+from iqa_soa.agent.providers import (
+    DEFAULT_TOOL_CONTRACT_POLICY,
+    probe_runtime_provenance,
+)
 from iqa_soa.benchmark import BenchmarkCase, FrozenPilotBenchmark, load_benchmark_cases
 from iqa_soa.evidence import EvidenceLogger
 from iqa_soa.experiment.treatments import Treatment, treatment_for
@@ -648,6 +651,8 @@ class ExperimentRunner:
             "tool_contract_regression_detected": (
                 agent_run.tool_contract_regression_detected
             ),
+            "multi_call_overflow": agent_run.multi_call_overflow,
+            "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
             "proposed_action_count": len(agent_run.proposed_action_bytes),
             "proposed_action_digest": _proposal_digest(
                 agent_run.proposed_action_bytes
@@ -780,7 +785,7 @@ def load_provider(
             protocol=_nonempty_string(raw.get("protocol", "native_tools"), "protocol"),
             timeout_seconds=float(raw.get("timeout_seconds", 60.0)),
             tool_contract_policy=_nonempty_string(
-                raw.get("tool_contract_policy", "trailing_user"),
+                raw.get("tool_contract_policy", DEFAULT_TOOL_CONTRACT_POLICY),
                 "tool_contract_policy",
             ),
         )

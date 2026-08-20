@@ -39,7 +39,7 @@ def load_real_pilot_records(
     seen_experiments: set[str] = set()
     seen_models: set[tuple[str, str]] = set()
     common_design: tuple[Any, ...] | None = None
-    common_instrument: str | None = None
+    common_instrument: tuple[str, str] | None = None
     for raw_source in sources:
         source = Path(raw_source).resolve()
         if not source.is_dir():
@@ -80,16 +80,20 @@ def load_real_pilot_records(
         # Instrument boundary: pre-repair and post-repair measurements are not
         # the same instrument and must never be pooled.  Frozen manifests
         # predate the field, so they default to the pre-repair version.
-        instrument = str(
-            manifest.get("instrument_version", PRE_REPAIR_INSTRUMENT_VERSION)
+        instrument = (
+            str(manifest.get("instrument_version", PRE_REPAIR_INSTRUMENT_VERSION)),
+            # The native-tool adapter shapes what the model actually sees, so a
+            # differing adapter is a differing instrument even at the same
+            # instrument_version.
+            str(manifest.get("native_tool_adapter_version", "")),
         )
         if common_instrument is None:
             common_instrument = instrument
         elif instrument != common_instrument:
             raise AnalysisError(
-                "real-pilot sources were produced by different instrument versions "
-                f"({common_instrument!r} vs {instrument!r}); pre-repair and "
-                "post-repair measurements must not be pooled"
+                "real-pilot sources were produced by different instrument "
+                f"versions ({common_instrument!r} vs {instrument!r}); pre-repair "
+                "and post-repair measurements must not be pooled"
             )
         design = (
             manifest.get("benchmark_version"),
@@ -151,6 +155,10 @@ def load_real_pilot_records(
         "failure_classification_sources": dict(sorted(failure_sources.items())),
         "historical_failure_taxonomy_inferred": "legacy_inferred_from_error" in failure_sources,
         "infrastructure_failures_allowed": allow_infrastructure_failures,
+        "instrument_version": common_instrument[0] if common_instrument else None,
+        "native_tool_adapter_version": (
+            (common_instrument[1] or None) if common_instrument else None
+        ),
     }
 
 
@@ -298,11 +306,44 @@ def _validate_pilot_manifest(
         for mode in ("off", "full")
     }
     seen: set[tuple[str, int, str]] = set()
+    post_repair = manifest.get("raw_schema_version") == RAW_SCHEMA_VERSION
     required_row_fields = (
-        set(PILOT_RAW_FIELDS_V3)
-        if manifest.get("raw_schema_version") == RAW_SCHEMA_VERSION
-        else set(PILOT_RAW_FIELDS)
+        set(PILOT_RAW_FIELDS_V3) if post_repair else set(PILOT_RAW_FIELDS)
     )
+    manifest_instrument = manifest.get("instrument_version")
+    manifest_adapter = manifest.get("native_tool_adapter_version")
+    if post_repair:
+        # A post-repair manifest must identify its instrument and its native
+        # tool adapter, and must agree with the provider descriptor it used.
+        if not isinstance(manifest_instrument, str) or not manifest_instrument:
+            raise AnalysisError(
+                "post-repair real-pilot manifest must record instrument_version"
+            )
+        if not isinstance(manifest_adapter, str) or not manifest_adapter:
+            raise AnalysisError(
+                "post-repair real-pilot manifest must record "
+                "native_tool_adapter_version"
+            )
+        provider_block = manifest.get("provider")
+        provider_adapter = (
+            provider_block.get("native_tool_adapter_version")
+            if isinstance(provider_block, Mapping)
+            else None
+        )
+        if provider_adapter is not None and provider_adapter != manifest_adapter:
+            raise AnalysisError(
+                "real-pilot manifest native_tool_adapter_version disagrees with "
+                f"its provider descriptor ({manifest_adapter!r} vs "
+                f"{provider_adapter!r})"
+            )
+    elif manifest_instrument is not None and str(manifest_instrument) != (
+        PRE_REPAIR_INSTRUMENT_VERSION
+    ):
+        raise AnalysisError(
+            "raw schema "
+            f"{PRE_REPAIR_RAW_SCHEMA_VERSION} cannot declare instrument_version "
+            f"{manifest_instrument!r}"
+        )
     for row in rows:
         missing_fields = required_row_fields - set(row)
         if missing_fields:
@@ -311,6 +352,19 @@ def _validate_pilot_manifest(
             )
         if row.get("experiment_id") != manifest.get("experiment_id"):
             raise AnalysisError("real-pilot row experiment_id differs from manifest")
+        if post_repair:
+            if row.get("instrument_version") != manifest_instrument:
+                raise AnalysisError(
+                    "real-pilot row instrument_version differs from manifest "
+                    f"({row.get('instrument_version')!r} vs "
+                    f"{manifest_instrument!r})"
+                )
+            if row.get("native_tool_adapter_version") != manifest_adapter:
+                raise AnalysisError(
+                    "real-pilot row native_tool_adapter_version differs from "
+                    f"manifest ({row.get('native_tool_adapter_version')!r} vs "
+                    f"{manifest_adapter!r})"
+                )
         if row.get("experiment_kind") != "real_model_pilot":
             raise AnalysisError("real-pilot row has an invalid provenance label")
         if row.get("benchmark_version") != manifest.get("benchmark_version"):

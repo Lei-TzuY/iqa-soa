@@ -46,6 +46,10 @@ class AgentRun:
     # signature of a provider/template dropping the tool contract from the
     # rendered prompt (Phase B).  Telemetry only; never fails the run.
     tool_contract_regression_detected: bool = False
+    # A provider turn emitted more actions than the remaining step budget could
+    # consume.  The turn was refused whole rather than partially executed, so no
+    # proposal is ever silently discarded.
+    multi_call_overflow: bool = False
 
 
 class ExperimentalAgent:
@@ -86,17 +90,24 @@ class ExperimentalAgent:
         # the gateway individually, so no action bypasses IQA-SOA and the run is
         # not destroyed merely because the model expressed several at once.
         pending: list[Action] = []
+        # Provider-turn index for each executed outcome, so grouped multi-call
+        # turns can be reproduced faithfully in later history.
+        outcome_turns: list[int] = []
+        pending_turn = 0
+        turn_index = -1
         queued_action_count = 0
         provider_multi_tool_call = False
         provider_max_tool_calls = 0
         tool_contract_regression_detected = False
+        multi_call_overflow = False
         previous_input_tokens: int | None = None
-        for _step in range(self.max_steps):
+        for step_index in range(self.max_steps):
             if pending:
                 # No model call is made for a queued action, so model-call
                 # budget accounting stays correct; the gateway still charges
                 # tool-call budget when it executes.
                 outcomes.append(self.executor.execute(pending.pop(0), context))
+                outcome_turns.append(pending_turn)
                 continue
             started = time.perf_counter()
             history = tuple(
@@ -109,8 +120,13 @@ class ExperimentalAgent:
                     ),
                     "output": outcome.tool_result.output if outcome.tool_result else None,
                     "error": outcome.error,
+                    # Which provider turn emitted this action.  Actions emitted
+                    # together in one multi-tool-call turn share a turn index so
+                    # the native history can reproduce the original grouped turn
+                    # instead of inventing one assistant turn per action.
+                    "turn": turn,
                 }
-                for outcome in outcomes
+                for outcome, turn in zip(outcomes, outcome_turns)
             )
             try:
                 response = self.provider.generate_action(
@@ -166,11 +182,40 @@ class ExperimentalAgent:
                 provider_multi_tool_call = True
             if response.action is None:
                 break
-            raw_actions.append(response.raw_response)
+            turn_index += 1
+            # A multi-call turn must be consumable in full.  Executing part of
+            # it and letting the remainder fall off the end of the step budget
+            # would silently discard proposals, so the whole turn is refused
+            # before anything runs and the condition is reported explicitly.
+            remaining_steps = self.max_steps - (step_index + 1)
+            if len(response.additional_actions) > remaining_steps:
+                multi_call_overflow = True
+                failure_class = "multi_call_overflow"
+                error = (
+                    "provider turn emitted "
+                    f"{len(response.emitted_actions())} actions but only "
+                    f"{remaining_steps + 1} agent steps remain; the turn was "
+                    "refused rather than partially executed"
+                )
+                break
+            raw_actions.extend(response.emitted_proposals())
             if response.additional_actions:
                 pending.extend(response.additional_actions)
+                pending_turn = turn_index
                 queued_action_count += len(response.additional_actions)
             outcomes.append(self.executor.execute(response.action, context))
+            outcome_turns.append(turn_index)
+        if pending:
+            # Unreachable while the overflow guard above holds: a turn is only
+            # enqueued when the remaining steps can consume it in full.  Assert
+            # it in data rather than trusting it, so a future change can never
+            # drop queued proposals silently.
+            multi_call_overflow = True
+            failure_class = "multi_call_overflow"
+            error = (
+                f"{len(pending)} queued action(s) remained unconsumed when the "
+                "agent step budget was exhausted"
+            )
         model_refusal = any(response.outcome == "model_refusal" for response in responses)
         terminal_no_action_attempts = sum(
             response.outcome == "no_action" for response in responses
@@ -179,7 +224,10 @@ class ExperimentalAgent:
         # Unchanged pre-repair definition, retained for backward compatibility.
         no_action = not outcomes and terminal_no_action
         no_action_after_actions = terminal_no_action and bool(outcomes)
-        if failure_class is None and model_refusal:
+        if multi_call_overflow:
+            # An explicit, deterministic instrument condition: keep it.
+            pass
+        elif failure_class is None and model_refusal:
             failure_class = "model_refusal"
         if failure_class is None:
             outcome_failure_class, outcome_error = classify_gateway_outcomes(outcomes)
@@ -203,4 +251,5 @@ class ExperimentalAgent:
             provider_max_tool_calls=provider_max_tool_calls,
             queued_action_count=queued_action_count,
             tool_contract_regression_detected=tool_contract_regression_detected,
+            multi_call_overflow=multi_call_overflow,
         )
