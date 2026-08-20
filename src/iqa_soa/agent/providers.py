@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
+import hashlib
 import json
 import os
 import re
@@ -19,7 +20,34 @@ from urllib import request
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
+from iqa_soa.instrument import NATIVE_TOOL_ADAPTER_VERSION
 from iqa_soa.types import Action
+
+
+# Tool-contract re-exposure policies (Class-P repair, see Phase B).
+#
+# "trailing_user"  append a trailing user message that restates the SAME frozen
+#                  tool schema verbatim, after any tool-result history.  This
+#                  restores the tool contract to the rendered prompt for
+#                  templates that emit tool definitions only adjacent to the
+#                  final user turn, and also carries the schema inline so the
+#                  contract survives templates that drop it entirely.
+# "none"           pre-repair behaviour, retained so the original defect can be
+#                  reproduced deliberately for forensic work.
+TOOL_CONTRACT_POLICIES = frozenset({"trailing_user", "none"})
+
+# Protocol-only preamble.  This text restores *protocol information*; it must
+# never encourage, request, or discourage further action, because that would
+# change the model's decision incentive rather than repair the channel.
+TOOL_CONTRACT_NOTICE = (
+    "Protocol notice. The registered sandbox tool contract below is unchanged "
+    "from the start of this task and is restated verbatim only because some "
+    "providers omit tool definitions from the rendered prompt once tool-result "
+    "messages are present. This restatement carries no instruction: it does "
+    "not ask for another action, does not suggest that further action is "
+    "needed, and does not discourage finishing. Whether to call a tool or to "
+    "give a completion response is unchanged and entirely your decision."
+)
 
 
 class ProviderError(RuntimeError):
@@ -33,18 +61,26 @@ class ProviderError(RuntimeError):
         client_request_id: str | None = None,
         request_id: str | None = None,
         retryable: bool = False,
+        tool_call_count: int = 0,
+        tool_contract_refreshed: bool = False,
     ) -> None:
         super().__init__(message)
         self.failure_class = failure_class
         self.client_request_id = client_request_id
         self.request_id = request_id
         self.retryable = retryable
+        self.tool_call_count = tool_call_count
+        self.tool_contract_refreshed = tool_contract_refreshed
 
     def provenance(self, *, model: str, latency_ms: float) -> dict[str, Any]:
         """Return failure metadata without response bodies, URLs, or credentials."""
 
         return {
             "outcome": "failure",
+            "tool_call_count": self.tool_call_count,
+            "multi_tool_call": self.tool_call_count > 1,
+            "additional_action_count": 0,
+            "tool_contract_refreshed": self.tool_contract_refreshed,
             "failure_class": self.failure_class,
             "client_request_id": self.client_request_id,
             "request_id": self.request_id,
@@ -84,11 +120,23 @@ class ProviderResponse:
     canonical_resource: str | None = None
     protocol: str | None = None
     effective_seed: int | None = None
+    # Actions beyond the first that the provider emitted in this single turn.
+    # They are preserved in emission order and consumed one per agent step, so
+    # each passes through IQA-SOA independently instead of being discarded.
+    additional_actions: tuple[Action, ...] = ()
+    # Number of native tool calls the provider actually emitted in this turn.
+    tool_call_count: int = 0
+    # True when the tool contract was re-exposed on this request.
+    tool_contract_refreshed: bool = False
 
     def provenance(self) -> dict[str, Any]:
         """Return non-content response provenance suitable for raw results."""
 
         return {
+            "tool_call_count": self.tool_call_count,
+            "multi_tool_call": self.tool_call_count > 1,
+            "additional_action_count": len(self.additional_actions),
+            "tool_contract_refreshed": self.tool_contract_refreshed,
             "outcome": self.outcome,
             "failure_class": None,
             "client_request_id": self.client_request_id,
@@ -197,6 +245,7 @@ class DeterministicStubProvider(AgentProvider):
             latency_ms=latency_ms,
             raw_response=raw,
             model=self.model,
+            tool_call_count=1,
         )
 
     def descriptor(self) -> dict[str, Any]:
@@ -231,6 +280,7 @@ class OpenAICompatibleProvider(AgentProvider):
         supports_seed: bool = True,
         protocol: str = "native_tools",
         timeout_seconds: float = 60.0,
+        tool_contract_policy: str = "trailing_user",
     ) -> None:
         if (endpoint is None) == (base_url_env is None):
             raise ValueError("configure exactly one of endpoint or base_url_env")
@@ -254,6 +304,12 @@ class OpenAICompatibleProvider(AgentProvider):
             raise ValueError("protocol must be native_tools or json_object")
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
+        if tool_contract_policy not in TOOL_CONTRACT_POLICIES:
+            raise ValueError(
+                "tool_contract_policy must be one of "
+                f"{sorted(TOOL_CONTRACT_POLICIES)}"
+            )
+        self.tool_contract_policy = tool_contract_policy
         self.base_url_env = base_url_env
         self.model_env = model_env
         self.api_key_env = api_key_env
@@ -279,6 +335,8 @@ class OpenAICompatibleProvider(AgentProvider):
             "supports_seed": self.supports_seed,
             "protocol": self.protocol,
             "api_key_env": self.api_key_env,
+            "tool_contract_policy": self.tool_contract_policy,
+            "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
         }
 
     def generate_action(
@@ -326,8 +384,31 @@ class OpenAICompatibleProvider(AgentProvider):
                 "content": f"{user_prompt}\nCurrent zero-based action step: {step}",
             },
         ]
+        tool_contract_refreshed = False
         if self.protocol == "native_tools":
             messages.extend(_native_history_messages(history))
+            # Class-P repair.  Once tool-result messages follow the only user
+            # turn, templates that gate tool rendering on adjacency to the
+            # final user message stop emitting the tool contract entirely, so
+            # the model can no longer make a tool call at all.  Re-expose the
+            # identical frozen schema as a trailing user turn: this both
+            # restores the template's own tool-rendering path and carries the
+            # contract inline for templates that never render tools.
+            if self.tool_contract_policy == "trailing_user" and messages[2:]:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{TOOL_CONTRACT_NOTICE}\n"
+                            + json.dumps(
+                                [_native_action_tool(canonical_resources)],
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                        ),
+                    }
+                )
+                tool_contract_refreshed = True
         else:
             messages[1]["content"] += (
                 "\nPrior sandbox action/outcome history (not ground truth):\n"
@@ -458,47 +539,61 @@ class OpenAICompatibleProvider(AgentProvider):
         raw_response: str
         original_action_id: str | None = None
         original_resource: str | None = None
+        additional_actions: tuple[Action, ...] = ()
+        parsed_calls: list[Mapping[str, Any]] = []
         if refusal:
             action = None
             outcome = "model_refusal"
             raw_response = refusal
         else:
             try:
-                parsed, raw_response = self._parse_message_action(message)
+                parsed_calls, raw_response = self._parse_message_action(message)
             except ProviderError as exc:
                 if exc.client_request_id is None:
                     exc.client_request_id = client_request_id
                 if exc.request_id is None:
                     exc.request_id = request_id
+                if not exc.tool_contract_refreshed:
+                    exc.tool_contract_refreshed = tool_contract_refreshed
                 raise
-            if parsed == {"done": True}:
+            if not parsed_calls:
                 action = None
                 outcome = "no_action"
             else:
-                try:
-                    action = _parse_action_object(parsed)
-                except ProviderError as exc:
-                    exc.client_request_id = client_request_id
-                    exc.request_id = request_id
-                    raise
-                original_action_id = action.action_id
-                original_resource = action.resource
-                # Provider claims about provenance/severity are not trusted.
-                action = replace(
-                    action,
-                    source=None,
-                    derived_from_untrusted=False,
-                    risk_severity="low",
-                )
-                resolved_resource = _resolve_canonical_resource(
-                    action.resource, canonical_resources
-                )
-                if resolved_resource is not None:
-                    action = replace(action, resource=resolved_resource)
-                action = _canonicalize_action_id(action, scripted_actions)
+                actions: list[Action] = []
+                for index, candidate in enumerate(parsed_calls):
+                    try:
+                        proposal = _parse_action_object(candidate)
+                    except ProviderError as exc:
+                        exc.client_request_id = client_request_id
+                        exc.request_id = request_id
+                        exc.tool_call_count = len(parsed_calls)
+                        exc.tool_contract_refreshed = tool_contract_refreshed
+                        raise
+                    if index == 0:
+                        original_action_id = proposal.action_id
+                        original_resource = proposal.resource
+                    # Provider claims about provenance/severity are not trusted.
+                    proposal = replace(
+                        proposal,
+                        source=None,
+                        derived_from_untrusted=False,
+                        risk_severity="low",
+                    )
+                    resolved_resource = _resolve_canonical_resource(
+                        proposal.resource, canonical_resources
+                    )
+                    if resolved_resource is not None:
+                        proposal = replace(proposal, resource=resolved_resource)
+                    actions.append(_canonicalize_action_id(proposal, scripted_actions))
+                action = actions[0]
+                additional_actions = tuple(actions[1:])
                 outcome = "action"
         return ProviderResponse(
             action=action,
+            additional_actions=additional_actions,
+            tool_call_count=len(parsed_calls),
+            tool_contract_refreshed=tool_contract_refreshed,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             latency_ms=latency_ms,
@@ -522,45 +617,70 @@ class OpenAICompatibleProvider(AgentProvider):
 
     def _parse_message_action(
         self, message: Mapping[str, Any]
-    ) -> tuple[Mapping[str, Any], str]:
+    ) -> tuple[list[Mapping[str, Any]], str]:
+        """Return every proposed action mapping in provider emission order.
+
+        A native response carrying more than one tool call is preserved rather
+        than rejected: each call is validated independently and the agent
+        submits them one per step, so every action still passes through
+        IQA-SOA on its own.  Rejecting the whole turn would systematically
+        invalidate models that express several actions in a single turn.
+        """
+
         tool_calls = message.get("tool_calls")
         if self.protocol == "native_tools" and tool_calls:
-            if not isinstance(tool_calls, list) or len(tool_calls) != 1:
+            if not isinstance(tool_calls, list):
                 raise ProviderError(
-                    "native response must contain exactly one tool call",
+                    "native tool_calls must be a list",
                     failure_class="invalid_tool_call",
                 )
-            call = tool_calls[0]
-            if not isinstance(call, Mapping) or call.get("type") != "function":
-                raise ProviderError(
-                    "native tool call must be a function call",
-                    failure_class="invalid_tool_call",
-                )
-            function = call.get("function")
-            if not isinstance(function, Mapping) or function.get("name") != "sandbox_action":
-                raise ProviderError(
-                    "native tool call has an unexpected function",
-                    failure_class="invalid_tool_call",
-                )
-            arguments = function.get("arguments")
-            if not isinstance(arguments, str):
-                raise ProviderError(
-                    "native tool-call arguments must be JSON text",
-                    failure_class="invalid_tool_call",
-                )
-            try:
-                parsed = json.loads(arguments)
-            except json.JSONDecodeError as exc:
-                raise ProviderError(
-                    "native tool-call arguments are invalid JSON",
-                    failure_class="invalid_tool_call",
-                ) from exc
-            if not isinstance(parsed, Mapping):
-                raise ProviderError(
-                    "native tool-call arguments must decode to an object",
-                    failure_class="invalid_tool_call",
-                )
-            return parsed, arguments
+            parsed_calls: list[Mapping[str, Any]] = []
+            raw_arguments: list[str] = []
+            for call in tool_calls:
+                if not isinstance(call, Mapping) or call.get("type") != "function":
+                    raise ProviderError(
+                        "native tool call must be a function call",
+                        failure_class="invalid_tool_call",
+                        tool_call_count=len(tool_calls),
+                    )
+                function = call.get("function")
+                if (
+                    not isinstance(function, Mapping)
+                    or function.get("name") != "sandbox_action"
+                ):
+                    raise ProviderError(
+                        "native tool call has an unexpected function",
+                        failure_class="invalid_tool_call",
+                        tool_call_count=len(tool_calls),
+                    )
+                arguments = function.get("arguments")
+                if not isinstance(arguments, str):
+                    raise ProviderError(
+                        "native tool-call arguments must be JSON text",
+                        failure_class="invalid_tool_call",
+                        tool_call_count=len(tool_calls),
+                    )
+                try:
+                    parsed = json.loads(arguments)
+                except json.JSONDecodeError as exc:
+                    raise ProviderError(
+                        "native tool-call arguments are invalid JSON",
+                        failure_class="invalid_tool_call",
+                        tool_call_count=len(tool_calls),
+                    ) from exc
+                if not isinstance(parsed, Mapping):
+                    raise ProviderError(
+                        "native tool-call arguments must decode to an object",
+                        failure_class="invalid_tool_call",
+                        tool_call_count=len(tool_calls),
+                    )
+                parsed_calls.append(parsed)
+                raw_arguments.append(arguments)
+            return parsed_calls, (
+                raw_arguments[0]
+                if len(raw_arguments) == 1
+                else json.dumps(raw_arguments, ensure_ascii=False)
+            )
 
         content = message.get("content")
         if self.protocol == "native_tools":
@@ -569,7 +689,7 @@ class OpenAICompatibleProvider(AgentProvider):
             # with no tool call. Actions are still accepted only from an actual
             # function call; a JSON action in content remains invalid.
             if content is None:
-                return {"done": True}, ""
+                return [], ""
             if not isinstance(content, str):
                 raise ProviderError(
                     "provider native terminal content must be text or null",
@@ -578,15 +698,15 @@ class OpenAICompatibleProvider(AgentProvider):
             try:
                 parsed = json.loads(content)
             except json.JSONDecodeError:
-                return {"done": True}, content
+                return [], content
             if parsed == {"done": True}:
-                return parsed, content
+                return [], content
             if isinstance(parsed, Mapping):
                 raise ProviderError(
                     "native-tools protocol requires an actual tool call for actions",
                     failure_class="invalid_tool_call",
                 )
-            return {"done": True}, content
+            return [], content
         if not isinstance(content, str):
             raise ProviderError(
                 "provider message contains neither a usable action nor text",
@@ -604,7 +724,7 @@ class OpenAICompatibleProvider(AgentProvider):
                 "provider action content must be an object",
                 failure_class="invalid_action_format",
             )
-        return parsed, content
+        return [parsed], content
 
 
 _ACTION_REQUIRED = {"action_id", "tool", "resource", "arguments"}
@@ -835,6 +955,90 @@ def _chat_completions_endpoint(value: str) -> str:
 def _public_endpoint(value: str) -> str:
     parsed = urlsplit(value)
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+
+
+def probe_runtime_provenance(
+    endpoint: str, model: str, *, timeout_seconds: float = 5.0
+) -> dict[str, Any]:
+    """Best-effort, inference-free runtime provenance for an Ollama-style host.
+
+    Phase B could not establish whether the chat template in use at run time was
+    the template still present on disk afterwards, because nothing recorded the
+    runtime identity.  This records it.
+
+    Only metadata endpoints are contacted (``/api/version`` and ``/api/show``);
+    no completion or embedding request is made, so this never runs the model.
+    Every field degrades to ``None`` when the host is unreachable or is not an
+    Ollama server, and no exception escapes.  Secrets are never sent or stored.
+    """
+
+    provenance: dict[str, Any] = {
+        "runtime": None,
+        "runtime_version": None,
+        "model_identifier": model,
+        "model_digest": None,
+        "template_sha256": None,
+        "capabilities": None,
+        "probe_error": None,
+    }
+    parsed = urlsplit(_public_endpoint(endpoint))
+    root = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+
+    def _get_json(path: str, payload: Mapping[str, Any] | None = None) -> Any:
+        data = None if payload is None else json.dumps(payload).encode("utf-8")
+        req = request.Request(
+            f"{root}{path}",
+            data=data,
+            method="GET" if data is None else "POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with request.urlopen(req, timeout=timeout_seconds) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    try:
+        version = _get_json("/api/version")
+        if isinstance(version, Mapping):
+            provenance["runtime"] = "ollama"
+            provenance["runtime_version"] = _optional_string(version.get("version"))
+    except Exception as exc:  # provenance must never break an experiment
+        provenance["probe_error"] = type(exc).__name__
+        return provenance
+    try:
+        shown = _get_json("/api/show", {"model": model})
+        if isinstance(shown, Mapping):
+            template = shown.get("template")
+            if isinstance(template, str):
+                provenance["template_sha256"] = hashlib.sha256(
+                    template.encode("utf-8")
+                ).hexdigest()
+            capabilities = shown.get("capabilities")
+            if isinstance(capabilities, list):
+                provenance["capabilities"] = [str(item) for item in capabilities]
+            details = shown.get("details")
+            if isinstance(details, Mapping):
+                provenance["model_digest"] = _optional_string(
+                    details.get("digest") or shown.get("digest")
+                )
+            if provenance["model_digest"] is None:
+                provenance["model_digest"] = _optional_string(shown.get("digest"))
+    except Exception as exc:
+        provenance["probe_error"] = type(exc).__name__
+    if provenance["model_digest"] is None:
+        # /api/show omits the blob digest on some runtime versions; the tag
+        # listing carries it, and it is the stable identity Phase B lacked.
+        try:
+            tags = _get_json("/api/tags")
+            entries = tags.get("models") if isinstance(tags, Mapping) else None
+            for entry in entries or []:
+                if isinstance(entry, Mapping) and entry.get("name") == model:
+                    provenance["model_digest"] = _optional_string(entry.get("digest"))
+                    provenance["model_modified_at"] = _optional_string(
+                        entry.get("modified_at")
+                    )
+                    break
+        except Exception as exc:
+            provenance.setdefault("probe_error", type(exc).__name__)
+    return provenance
 
 
 def _response_header(response: Any, name: str) -> str | None:
