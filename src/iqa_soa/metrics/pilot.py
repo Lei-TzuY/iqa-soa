@@ -15,7 +15,12 @@ from iqa_soa.failure_taxonomy import (
     SCIENTIFIC_FAILURE_CLASSES,
     infer_legacy_failure_class,
 )
-from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS
+from iqa_soa.instrument import (
+    PRE_REPAIR_INSTRUMENT_VERSION,
+    PRE_REPAIR_RAW_SCHEMA_VERSION,
+    RAW_SCHEMA_VERSION,
+)
+from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS, PILOT_RAW_FIELDS_V3
 from iqa_soa.metrics.statistics import AnalysisError, analyze_before_after, pair_before_after
 
 
@@ -34,6 +39,7 @@ def load_real_pilot_records(
     seen_experiments: set[str] = set()
     seen_models: set[tuple[str, str]] = set()
     common_design: tuple[Any, ...] | None = None
+    common_instrument: str | None = None
     for raw_source in sources:
         source = Path(raw_source).resolve()
         if not source.is_dir():
@@ -71,6 +77,20 @@ def load_real_pilot_records(
                 f"duplicate provider/model pilot source: {provider_model!r}"
             )
         seen_models.add(provider_model)
+        # Instrument boundary: pre-repair and post-repair measurements are not
+        # the same instrument and must never be pooled.  Frozen manifests
+        # predate the field, so they default to the pre-repair version.
+        instrument = str(
+            manifest.get("instrument_version", PRE_REPAIR_INSTRUMENT_VERSION)
+        )
+        if common_instrument is None:
+            common_instrument = instrument
+        elif instrument != common_instrument:
+            raise AnalysisError(
+                "real-pilot sources were produced by different instrument versions "
+                f"({common_instrument!r} vs {instrument!r}); pre-repair and "
+                "post-repair measurements must not be pooled"
+            )
         design = (
             manifest.get("benchmark_version"),
             _mapping(manifest.get("input_digests"), "manifest input_digests").get(
@@ -221,8 +241,15 @@ def _validate_pilot_manifest(
     missing = required - set(manifest)
     if missing:
         raise AnalysisError(f"real-pilot manifest is missing fields: {sorted(missing)}")
-    if manifest.get("schema_version") != 2 or manifest.get("raw_schema_version") != 2:
-        raise AnalysisError("real-pilot manifest/raw schema versions must both be 2")
+    raw_schema = manifest.get("raw_schema_version")
+    if manifest.get("schema_version") != 2 or raw_schema not in {
+        PRE_REPAIR_RAW_SCHEMA_VERSION,
+        RAW_SCHEMA_VERSION,
+    }:
+        raise AnalysisError(
+            "real-pilot manifest schema_version must be 2 and raw_schema_version "
+            f"must be {PRE_REPAIR_RAW_SCHEMA_VERSION} or {RAW_SCHEMA_VERSION}"
+        )
     if manifest.get("experiment_kind") != "real_model_pilot":
         raise AnalysisError(
             "pilot analysis accepts only experiment_kind=real_model_pilot; "
@@ -271,8 +298,13 @@ def _validate_pilot_manifest(
         for mode in ("off", "full")
     }
     seen: set[tuple[str, int, str]] = set()
+    required_row_fields = (
+        set(PILOT_RAW_FIELDS_V3)
+        if manifest.get("raw_schema_version") == RAW_SCHEMA_VERSION
+        else set(PILOT_RAW_FIELDS)
+    )
     for row in rows:
-        missing_fields = set(PILOT_RAW_FIELDS) - set(row)
+        missing_fields = required_row_fields - set(row)
         if missing_fields:
             raise AnalysisError(
                 f"real-pilot row lacks schema fields: {sorted(missing_fields)}"
