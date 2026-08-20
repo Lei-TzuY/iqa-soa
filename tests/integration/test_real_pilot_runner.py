@@ -16,7 +16,8 @@ from iqa_soa.experiment.runner import (
 )
 from iqa_soa.experiment.pilot import PilotConfigError, _validate_connectivity_smoke
 from iqa_soa.experiment.treatments import load_ablation_treatments
-from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS
+from iqa_soa.instrument import INSTRUMENT_VERSION, RAW_SCHEMA_VERSION
+from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS_V3
 from iqa_soa.types import Action
 
 
@@ -98,7 +99,7 @@ def test_frozen_real_pilot_contract_writes_schema_and_exact_pairs(tmp_path: Path
     )
     rows = [json.loads(line) for line in (output / "runs.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 4
-    assert all(set(PILOT_RAW_FIELDS) <= set(row) for row in rows)
+    assert all(set(PILOT_RAW_FIELDS_V3) <= set(row) for row in rows)
     assert all(row["benchmark_version"] == "pilot-v1" for row in rows)
     assert all(row["experiment_kind"] == "real_model_connectivity_smoke" for row in rows)
     assert all(row["provider_attempt_count"] == 1 for row in rows)
@@ -108,10 +109,11 @@ def test_frozen_real_pilot_contract_writes_schema_and_exact_pairs(tmp_path: Path
         assert len({row["pair_id"] for row in task_rows}) == 1
         assert len({row["controlled_input_digest"] for row in task_rows}) == 1
     with (output / "runs.csv").open(encoding="utf-8", newline="") as handle:
-        assert tuple(next(csv.reader(handle))) == PILOT_RAW_FIELDS
+        assert tuple(next(csv.reader(handle))) == PILOT_RAW_FIELDS_V3
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == 2
-    assert manifest["raw_schema_version"] == 2
+    assert manifest["raw_schema_version"] == RAW_SCHEMA_VERSION
+    assert manifest["instrument_version"] == INSTRUMENT_VERSION
     assert manifest["record_count"] == manifest["expected_record_count"] == 4
     assert manifest["input_digests"]["benchmark_manifest_sha256"] == frozen.manifest_sha256
 
