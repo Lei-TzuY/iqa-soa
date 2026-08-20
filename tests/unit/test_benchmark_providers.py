@@ -330,12 +330,16 @@ def test_native_tools_encode_prior_outcomes_as_tool_messages(
 
     assert response is not None and response.outcome == "no_action"
     messages = captured["payload"]["messages"]
+    # The trailing user turn is the Class-P tool-contract re-exposure: the
+    # assistant/tool history layout itself is unchanged.
     assert [message["role"] for message in messages] == [
         "system",
         "user",
         "assistant",
         "tool",
+        "user",
     ]
+    assert response.tool_contract_refreshed is True
     assert messages[2]["tool_calls"][0]["id"] == "iqa-history-0"
     assert json.loads(messages[2]["tool_calls"][0]["function"]["arguments"])[
         "action_id"
