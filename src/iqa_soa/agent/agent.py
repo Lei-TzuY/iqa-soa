@@ -183,6 +183,12 @@ class ExperimentalAgent:
             if response.action is None:
                 break
             turn_index += 1
+            # A proposal is a proposal whether or not the harness goes on to
+            # execute it, so every emitted proposal is recorded BEFORE the
+            # execution decision.  "Proposed" and "executed/adjudicated" are
+            # separate facts: proposed_action_count/digest cover the former,
+            # outcomes cover the latter.
+            raw_actions.extend(response.emitted_proposals())
             # A multi-call turn must be consumable in full.  Executing part of
             # it and letting the remainder fall off the end of the step budget
             # would silently discard proposals, so the whole turn is refused
@@ -198,7 +204,6 @@ class ExperimentalAgent:
                     "refused rather than partially executed"
                 )
                 break
-            raw_actions.extend(response.emitted_proposals())
             if response.additional_actions:
                 pending.extend(response.additional_actions)
                 pending_turn = turn_index

@@ -22,6 +22,7 @@ from iqa_soa.agent.providers import (
     _native_history_messages,
 )
 from iqa_soa.evidence import EvidenceLogger
+from iqa_soa.experiment.runner import _proposal_digest
 from iqa_soa.instrument import (
     INSTRUMENT_VERSION,
     PRE_REPAIR_INSTRUMENT_VERSION,
@@ -281,19 +282,98 @@ def test_multi_call_turn_exceeding_step_budget_is_refused_whole(
         provider, Executor(), system_prompt="system", max_steps=2
     ).run(user_prompt="user", scripted_actions=(), context=context)
 
-    # Refused whole: nothing partially executed, nothing silently dropped.
+    # Refused whole: ZERO actions executed or adjudicated.
     assert run.multi_call_overflow is True
     assert run.failure_class == "multi_call_overflow"
     assert run.error is not None and "refused rather than partially executed" in run.error
     assert run.outcomes == ()
-    assert run.proposed_action_bytes == ()
     assert context.usage.tool_calls == 0
-    # The emitted proposals remain reconstructable from raw provenance.
-    assert run.provider_attempts[-1]["emitted_action_ids"] == [
+
+    # ...but a proposal is still a proposal.  All four remain recorded, and
+    # "proposed" is not conflated with "executed/adjudicated".
+    assert len(run.proposed_action_bytes) == 4
+    digest = _proposal_digest(run.proposed_action_bytes)
+    assert digest != _proposal_digest(())
+    assert digest == _proposal_digest(run.proposed_action_bytes)  # deterministic
+
+    # The complete refused turn is reconstructable from raw provenance,
+    # including tool and arguments, not merely ids and resources.
+    attempt = run.provider_attempts[-1]
+    assert attempt["emitted_action_ids"] == ["read-0", "read-1", "read-2", "read-3"]
+    assert attempt["multi_tool_call"] is True
+    assert attempt["tool_call_count"] == 4
+    assert len(attempt["emitted_proposals"]) == 4
+    emitted = attempt["emitted_actions"]
+    assert [item["action_id"] for item in emitted] == [
         "read-0",
         "read-1",
         "read-2",
         "read-3",
+    ]
+    assert all(item["tool"] == "file.read" for item in emitted)
+    assert all(item["resource"] == "public/a.txt" for item in emitted)
+    assert all("arguments" in item for item in emitted)
+    # Every recorded proposal payload round-trips to a complete action.
+    for payload in attempt["emitted_proposals"]:
+        decoded = json.loads(payload)
+        assert {"action_id", "tool", "resource", "arguments"} <= set(decoded)
+
+
+def test_refused_turn_proposals_match_an_executed_turn(tmp_path: Path) -> None:
+    """Refusal changes what was executed, never what was proposed."""
+
+    actions = [
+        Action(action_id=f"read-{index}", tool="file.read", resource="public/a.txt")
+        for index in range(3)
+    ]
+
+    def run_with(max_steps: int, name: str) -> Any:
+        gateway, context = _harness(tmp_path, name)
+
+        class Executor:
+            def execute(self, action: Action, ctx: RuntimeContext) -> Any:
+                return gateway.execute(action, ctx)
+
+        return ExperimentalAgent(
+            ScriptedMultiCallProvider(actions),
+            Executor(),
+            system_prompt="system",
+            max_steps=max_steps,
+        ).run(user_prompt="user", scripted_actions=(), context=context)
+
+    refused = run_with(2, "refused")
+    executed = run_with(3, "executed")
+
+    assert refused.multi_call_overflow is True and refused.outcomes == ()
+    assert executed.multi_call_overflow is False and len(executed.outcomes) == 3
+    # Identical proposal provenance despite opposite execution outcomes.
+    assert refused.proposed_action_bytes == executed.proposed_action_bytes
+    assert _proposal_digest(refused.proposed_action_bytes) == _proposal_digest(
+        executed.proposed_action_bytes
+    )
+
+
+def test_original_provider_tool_call_ids_are_preserved_in_provenance(
+    tmp_path: Path,
+) -> None:
+    """Provider ids are kept verbatim for exact native-turn reconstruction."""
+
+    response = ProviderResponse(
+        action=Action(action_id="read-a", tool="file.read", resource="public/a.txt"),
+        additional_actions=(
+            Action(action_id="read-b", tool="file.read", resource="public/a.txt"),
+        ),
+        input_tokens=1,
+        output_tokens=1,
+        latency_ms=0.0,
+        raw_response="{}",
+        model="m",
+        tool_call_count=2,
+        tool_call_ids=("call_abc123", "call_def456"),
+    )
+    assert response.provenance()["emitted_tool_call_ids"] == [
+        "call_abc123",
+        "call_def456",
     ]
 
 
@@ -674,11 +754,14 @@ def test_no_proposal_is_ever_silently_lost(tmp_path: Path) -> None:
                 max_steps=max_steps,
             ).run(user_prompt="user", scripted_actions=(), context=context)
 
+            # Proposal provenance is invariant: every emitted proposal is
+            # recorded regardless of whether the turn was executed.
+            assert len(run.proposed_action_bytes) == emitted, (emitted, max_steps)
+
             if run.multi_call_overflow:
-                # Refused whole: nothing partially executed.
+                # Refused whole: nothing partially executed or adjudicated.
                 assert run.outcomes == ()
                 assert run.failure_class == "multi_call_overflow"
             else:
-                # Accepted: every emitted proposal was adjudicated and counted.
+                # Accepted: every emitted proposal was also adjudicated.
                 assert len(run.outcomes) == emitted, (emitted, max_steps)
-                assert len(run.proposed_action_bytes) == emitted, (emitted, max_steps)

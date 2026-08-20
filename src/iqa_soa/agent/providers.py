@@ -139,6 +139,11 @@ class ProviderResponse:
     # means "derive from raw_response", which keeps single-action providers
     # (including the deterministic stub) byte-identical to the legacy path.
     proposal_payloads: tuple[str, ...] = ()
+    # The provider's own tool-call ids, in emission order.  Recorded verbatim in
+    # raw provenance so a refused or replayed turn can be matched against the
+    # provider's logs exactly.  They are NOT reused as history correlation ids;
+    # see ``_native_history_messages`` for why relabelling is safe.
+    tool_call_ids: tuple[str, ...] = ()
 
     def emitted_actions(self) -> tuple[Action, ...]:
         """Every action proposed in this turn, in provider emission order."""
@@ -173,10 +178,15 @@ class ProviderResponse:
             "multi_tool_call": self.tool_call_count > 1,
             "additional_action_count": len(self.additional_actions),
             "tool_contract_refreshed": self.tool_contract_refreshed,
-            # Enough to reconstruct the original grouped turn: which actions the
-            # provider emitted together, in order.
+            # Enough to reconstruct the original grouped turn in full, including
+            # a turn the harness refused to execute: the complete proposal
+            # payload (action_id, tool, resource, arguments) per emitted call,
+            # in order, plus the provider's own tool-call ids.
             "emitted_action_ids": [item.action_id for item in self.emitted_actions()],
             "emitted_resources": [item.resource for item in self.emitted_actions()],
+            "emitted_proposals": list(self.emitted_proposals()),
+            "emitted_actions": [item.to_dict() for item in self.emitted_actions()],
+            "emitted_tool_call_ids": list(self.tool_call_ids),
             "outcome": self.outcome,
             "failure_class": None,
             "client_request_id": self.client_request_id,
@@ -570,13 +580,14 @@ class OpenAICompatibleProvider(AgentProvider):
         additional_actions: tuple[Action, ...] = ()
         parsed_calls: list[Mapping[str, Any]] = []
         proposal_payloads: list[str] = []
+        tool_call_ids: list[str] = []
         if refusal:
             action = None
             outcome = "model_refusal"
             raw_response = refusal
         else:
             try:
-                parsed_calls, raw_response, proposal_payloads = (
+                parsed_calls, raw_response, proposal_payloads, tool_call_ids = (
                     self._parse_message_action(message)
                 )
             except ProviderError as exc:
@@ -626,6 +637,7 @@ class OpenAICompatibleProvider(AgentProvider):
             tool_call_count=len(parsed_calls),
             tool_contract_refreshed=tool_contract_refreshed,
             proposal_payloads=tuple(proposal_payloads),
+            tool_call_ids=tuple(tool_call_ids),
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             latency_ms=latency_ms,
@@ -649,7 +661,7 @@ class OpenAICompatibleProvider(AgentProvider):
 
     def _parse_message_action(
         self, message: Mapping[str, Any]
-    ) -> tuple[list[Mapping[str, Any]], str, list[str]]:
+    ) -> tuple[list[Mapping[str, Any]], str, list[str], list[str]]:
         """Return every proposed action mapping in provider emission order.
 
         A native response carrying more than one tool call is preserved rather
@@ -668,6 +680,7 @@ class OpenAICompatibleProvider(AgentProvider):
                 )
             parsed_calls: list[Mapping[str, Any]] = []
             raw_arguments: list[str] = []
+            call_ids: list[str] = []
             for call in tool_calls:
                 if not isinstance(call, Mapping) or call.get("type") != "function":
                     raise ProviderError(
@@ -708,6 +721,7 @@ class OpenAICompatibleProvider(AgentProvider):
                     )
                 parsed_calls.append(parsed)
                 raw_arguments.append(arguments)
+                call_ids.append(str(call.get("id") or ""))
             return (
                 parsed_calls,
                 (
@@ -716,6 +730,7 @@ class OpenAICompatibleProvider(AgentProvider):
                     else json.dumps(raw_arguments, ensure_ascii=False)
                 ),
                 raw_arguments,
+                call_ids,
             )
 
         content = message.get("content")
@@ -725,7 +740,7 @@ class OpenAICompatibleProvider(AgentProvider):
             # with no tool call. Actions are still accepted only from an actual
             # function call; a JSON action in content remains invalid.
             if content is None:
-                return [], "", []
+                return [], "", [], []
             if not isinstance(content, str):
                 raise ProviderError(
                     "provider native terminal content must be text or null",
@@ -734,15 +749,15 @@ class OpenAICompatibleProvider(AgentProvider):
             try:
                 parsed = json.loads(content)
             except json.JSONDecodeError:
-                return [], content, []
+                return [], content, [], []
             if parsed == {"done": True}:
-                return [], content, []
+                return [], content, [], []
             if isinstance(parsed, Mapping):
                 raise ProviderError(
                     "native-tools protocol requires an actual tool call for actions",
                     failure_class="invalid_tool_call",
                 )
-            return [], content, []
+            return [], content, [], []
         if not isinstance(content, str):
             raise ProviderError(
                 "provider message contains neither a usable action nor text",
@@ -760,7 +775,7 @@ class OpenAICompatibleProvider(AgentProvider):
                 "provider action content must be an object",
                 failure_class="invalid_action_format",
             )
-        return [parsed], content, [content]
+        return [parsed], content, [content], [""]
 
 
 _ACTION_REQUIRED = {"action_id", "tool", "resource", "arguments"}
@@ -927,6 +942,24 @@ def _native_history_messages(history: Sequence[Mapping[str, Any]]) -> list[dict[
     never had.  Entries carry a ``turn`` key; history without it (any caller
     predating grouped turns) degrades to one action per turn, which is the
     correct reading for single-call providers.
+
+    Correlation ids are synthetic (``iqa-history-N``) rather than the
+    provider's original tool-call ids, and that is semantically equivalent for
+    the supported provider path:
+
+    * A ``tool_call_id`` is an opaque correlation token.  Its only contract is
+      that each ``tool`` message names the assistant call it answers, so any
+      bijective relabelling preserves the conversation exactly.
+    * On the template path this repair exists for, the id never reaches the
+      model at all: the Mistral template renders ``[CALL_ID]`` from the call's
+      positional index and its ``[TOOL_RESULTS]`` block carries no id.
+    * Synthetic ids are guaranteed unique within a run, whereas a provider that
+      repeated or omitted an id would produce an ambiguous or invalid mapping.
+
+    The provider's original ids are preserved verbatim in raw provenance
+    (``emitted_tool_call_ids``), so exact matching against provider logs
+    remains possible without importing provider id defects into the replayed
+    conversation.
     """
 
     messages: list[dict[str, Any]] = []
