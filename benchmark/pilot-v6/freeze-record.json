@@ -1,0 +1,41 @@
+{
+  "benchmark_version": "pilot-v6",
+  "manifest_sha256": "75c1917c1d72d7f8eb5388bdb10c7c5bd2f65b2b2e4d116c99fda5e9fd1d94e3",
+  "preregistration_file": "docs\\preregistration_coverage_extension_v1.md",
+  "preregistration_sha256": "2fcdecbd81de4b94834c4f44a42b4dbb2500b362e4b571aab9a403d7cade622b",
+  "task_count": 21,
+  "inherited_from_pilot_v5": 12,
+  "new_task_clusters": 9,
+  "category_counts": {
+    "benign": 2,
+    "budget": 4,
+    "fault_injection": 1,
+    "knowledge_poisoning": 1,
+    "privacy": 6,
+    "prompt_injection": 5,
+    "unauthorized_action": 2
+  },
+  "case_sha256": {
+    "BEN-001": "92fd385789a5493421eb87977091f2f7b6c0e0966b183c5e06ac982171750487",
+    "BEN-002": "8a9e65a918f604358b065ca8c009fc1dca3a584cf2a1ae998de349fb8612fc84",
+    "BUD-001": "54749dc8bfd9e2683c5d7bf80347882a63f1448dfe1a3a761e8b982a15aecaaa",
+    "FAULT-002": "73296e19cddf531154dd80d9ea0c3373fea74d7afa80584ac86ad221030f5e9a",
+    "KP-001": "772a0156d9fd7637a902410b73623deb52bbba3aee22147712b28c3348fb80bd",
+    "PI-001": "7bb572347146f7ffecce5b85fd16a1528f53c2603b619a1d045da761fd082065",
+    "PI-002": "d6bd1179fe2ea3eb4fb922fcb883772fa3d895ce75b1dd008440af01cec0c61f",
+    "PRIV-001": "617671ee251ac95201d9611ddd29185eaea19eb43d0bd56d1a80254b38a9075a",
+    "PRIV-002": "21bb4d6eee5c028ec4322fd7ae3885269e62b40dcfff5cfea972e44f7e1aaffd",
+    "PRIV-003": "a367bb6aa01e613b623bb25b81dbe069f4cc680808f29d61209419f7066dd1af",
+    "UA-001": "b15aab874ac9d68a896bf3afa204a7cb2a05801f06c851d072948f96f46d8d88",
+    "UA-003": "b57b3b11e42960f7440c96688eddf747bb36991e67ac63c4a7ffb3c61cf04148",
+    "PI-003": "8322c8731100fb4e194ef0dfb0884dbf0d81d19f224a68785e63da14d846e11e",
+    "PI-004": "503c8f50cf1a4a51ba494e29dfe397477844231172cd6552d495f246f46f49ea",
+    "PI-005": "e4d341ebf8edb5e3c3590d5038a105c7938bd692413edd2cd00b10e0cacdc056",
+    "PRIV-004": "d31ef8a4519bd612038bcd121e2e4c5820c031fee812b39c542273036f8fc5bf",
+    "PRIV-005": "531e976079c11cf373adb54a40d5e8becd420a4a8885107c1beddc8538190d9a",
+    "PRIV-006": "e51b47a4591e3e705f4f6d0401a0fef057f82c4ac09f55458e736810e2d0d2ea",
+    "BUD-002": "4033ba52495a8fccd2724ec724506b9a9de34a92a21fe631ad153a6cb6f50145",
+    "BUD-003": "489336ea8204a87871fc30befb884bbd1a41eb3efe8094530d9215816b51706a",
+    "BUD-004": "02cc75625993d7b8986c9f479d3063de32e35017468c0fc317945c49305bc219"
+  }
+}

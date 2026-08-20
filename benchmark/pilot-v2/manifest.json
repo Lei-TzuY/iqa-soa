@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "pilot-v2",
+  "created_at": "2026-08-14T10:55:05.1819157Z",
+  "frozen": true,
+  "selection_policy": "Pre-outcome successor to pilot-v1. It preserves the same 12-case category coverage but replaces UA-002 with an explicit adversarial authorization request (UA-003), because protocol review found that pilot-v1 could not reliably exercise QA interception during the required connectivity smoke. No model or QA outcome was observed before this version was frozen.",
+  "selected_task_ids": [
+    "BEN-001",
+    "BEN-002",
+    "BUD-001",
+    "FAULT-001",
+    "KP-001",
+    "PI-001",
+    "PI-002",
+    "PRIV-001",
+    "PRIV-002",
+    "PRIV-003",
+    "UA-001",
+    "UA-003"
+  ],
+  "cases": [
+    {
+      "task_id": "BEN-001",
+      "path": "benign/BEN-001.yaml",
+      "sha256": "92fd385789a5493421eb87977091f2f7b6c0e0966b183c5e06ac982171750487",
+      "selection_rationale": "Benign file-read utility control and connectivity-smoke task."
+    },
+    {
+      "task_id": "BEN-002",
+      "path": "benign/BEN-002.yaml",
+      "sha256": "8a9e65a918f604358b065ca8c009fc1dca3a584cf2a1ae998de349fb8612fc84",
+      "selection_rationale": "Benign database-query control broadens tool and output coverage."
+    },
+    {
+      "task_id": "BUD-001",
+      "path": "budget/BUD-001.yaml",
+      "sha256": "54749dc8bfd9e2683c5d7bf80347882a63f1448dfe1a3a761e8b982a15aecaaa",
+      "selection_rationale": "Required budget-abuse scenario with a legitimate two-action task."
+    },
+    {
+      "task_id": "FAULT-001",
+      "path": "fault_injection/FAULT-001.yaml",
+      "sha256": "fd4b283681dcf0f028ceef939ea13fbac39bce87cdeef4b53263e6a3540d612e",
+      "selection_rationale": "Required malformed-output fault-containment scenario."
+    },
+    {
+      "task_id": "KP-001",
+      "path": "knowledge_poisoning/KP-001.yaml",
+      "sha256": "772a0156d9fd7637a902410b73623deb52bbba3aee22147712b28c3348fb80bd",
+      "selection_rationale": "Required poisoned-retrieval scenario and database-update attack surface."
+    },
+    {
+      "task_id": "PI-001",
+      "path": "prompt_injection/PI-001.yaml",
+      "sha256": "7bb572347146f7ffecce5b85fd16a1528f53c2603b619a1d045da761fd082065",
+      "selection_rationale": "Untrusted-file prompt injection targeting outbound messaging."
+    },
+    {
+      "task_id": "PI-002",
+      "path": "prompt_injection/PI-002.yaml",
+      "sha256": "d6bd1179fe2ea3eb4fb922fcb883772fa3d895ce75b1dd008440af01cec0c61f",
+      "selection_rationale": "Second injection mechanism targets a simulated shell action rather than messaging."
+    },
+    {
+      "task_id": "PRIV-001",
+      "path": "privacy/PRIV-001.yaml",
+      "sha256": "617671ee251ac95201d9611ddd29185eaea19eb43d0bd56d1a80254b38a9075a",
+      "selection_rationale": "Protected-file access scenario."
+    },
+    {
+      "task_id": "PRIV-002",
+      "path": "privacy/PRIV-002.yaml",
+      "sha256": "21bb4d6eee5c028ec4322fd7ae3885269e62b40dcfff5cfea972e44f7e1aaffd",
+      "selection_rationale": "Protected database-resource access broadens privacy modality."
+    },
+    {
+      "task_id": "PRIV-003",
+      "path": "privacy/PRIV-003.yaml",
+      "sha256": "a367bb6aa01e613b623bb25b81dbe069f4cc680808f29d61209419f7066dd1af",
+      "selection_rationale": "Sensitive-value outbound-disclosure path tests both access and sink protection."
+    },
+    {
+      "task_id": "UA-001",
+      "path": "unauthorized_action/UA-001.yaml",
+      "sha256": "b15aab874ac9d68a896bf3afa204a7cb2a05801f06c851d072948f96f46d8d88",
+      "selection_rationale": "Unauthorized restricted-file read under an explicit non-access instruction."
+    },
+    {
+      "task_id": "UA-003",
+      "path": "unauthorized_action/UA-003.yaml",
+      "sha256": "b57b3b11e42960f7440c96688eddf747bb36991e67ac63c4a7ffb3c61cf04148",
+      "selection_rationale": "Explicit unauthorized request ensures the four-cell connectivity smoke can exercise the permission-interception path without scripted proposals."
+    }
+  ]
+}

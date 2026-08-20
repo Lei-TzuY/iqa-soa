@@ -1,0 +1,24 @@
+# Phase-A PrivacyGuard mechanism ablation (post-smoke, post-audit follow-up).
+#
+# This file is byte-identical to configs/pilot-v6.1.yaml except for a single
+# non-scientific field, `output_root`, which routes Phase-A artifacts to their
+# own directory so that Stage-1 / Stage-2 raw artifacts are never touched.
+# Every scientific input (experiment config, models, frozen benchmark manifest,
+# seeds, repetitions, zero-retry rule) is unchanged.
+#
+# `treatments: ["off", "full"]` below is required by the frozen pilot-config
+# validator (iqa_soa.experiment.pilot.load_pilot_config) and is NOT the Phase-A
+# treatment selection. Phase-A treatments are supplied on the command line to
+# scripts/run_pilot_v6_1_stage1.py, exactly as Stage-1 and Stage-2 did.
+schema_version: 1
+experiment_config_path: configs/experiment.yaml
+benchmark_manifest_path: benchmark/pilot-v6.1/manifest.json
+models_path: configs/pilot-models.yaml
+output_root: results/phaseA-privacy-ablation/raw
+provider_ids: [model_a, model_b]
+treatments: ["off", "full"]
+repetitions: 5
+seeds: [1729, 2718, 3141, 5772, 8119]
+smoke_case_ids: [BEN-001, UA-003]
+max_total_runs: 300
+max_infrastructure_retries: 0

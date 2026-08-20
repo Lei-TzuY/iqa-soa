@@ -1,0 +1,72 @@
+schema_version: 1
+treatments:
+  - name: full
+    qa_mode: full
+    ablation: null
+    guards:
+      injection: true
+      permission: true
+      privacy: true
+      budget: true
+      output_validation: true
+      evidence: true
+  - name: full_minus_injection
+    qa_mode: ablation
+    ablation: injection
+    guards:
+      injection: false
+      permission: true
+      privacy: true
+      budget: true
+      output_validation: true
+      evidence: true
+  - name: full_minus_permission
+    qa_mode: ablation
+    ablation: permission
+    guards:
+      injection: true
+      permission: false
+      privacy: true
+      budget: true
+      output_validation: true
+      evidence: true
+  - name: full_minus_privacy
+    qa_mode: ablation
+    ablation: privacy
+    guards:
+      injection: true
+      permission: true
+      privacy: false
+      budget: true
+      output_validation: true
+      evidence: true
+  - name: full_minus_budget
+    qa_mode: ablation
+    ablation: budget
+    guards:
+      injection: true
+      permission: true
+      privacy: true
+      budget: false
+      output_validation: true
+      evidence: true
+  - name: full_minus_output_validation
+    qa_mode: ablation
+    ablation: output_validation
+    guards:
+      injection: true
+      permission: true
+      privacy: true
+      budget: true
+      output_validation: false
+      evidence: true
+  - name: full_minus_evidence
+    qa_mode: ablation
+    ablation: evidence
+    guards:
+      injection: true
+      permission: true
+      privacy: true
+      budget: true
+      output_validation: true
+      evidence: false

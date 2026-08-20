@@ -1,0 +1,34 @@
+"""Run OFF/PARTIAL/FULL with explicit paired OFF/FULL observations."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from iqa_soa.experiment.runner import ExperimentRunner, load_experiment_config
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default=str(PROJECT_ROOT / "configs" / "experiment.yaml"))
+    parser.add_argument("--output-root")
+    parser.add_argument("--repetitions", type=int)
+    args = parser.parse_args()
+    config = load_experiment_config(args.config).with_overrides(
+        output_root=args.output_root, repetitions=args.repetitions
+    )
+    # The main protocol always includes all three named baselines. Explicit
+    # OFF/FULL pair keys remain task/repetition/seed/provider/model.
+    output = ExperimentRunner(config).run(
+        treatments=["off", "partial", "full"], repetitions=config.repetitions
+    )
+    print(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools==75.8.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iqa-soa-fse"
+version = "0.2.0"
+description = "Reproducible IQA-SOA before/after runtime-governance experiment"
+requires-python = ">=3.11"
+dependencies = [
+  "lxml==5.3.0",
+  "matplotlib==3.10.0",
+  "numpy==2.1.3",
+  "PyYAML==6.0.2",
+  "scipy==1.15.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy==1.14.1",
+  "pytest==8.3.4",
+  "pytest-cov==6.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"schemas" = ["schemas/qa-policy.xsd"]
+"configs/policies" = ["configs/policies/default.xml"]
+"configs" = ["configs/ablations.yaml", "configs/experiment.yaml", "configs/models.yaml", "configs/pilot.yaml", "configs/pilot-models.yaml"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["iqa_soa"]
+strict = true
+warn_unused_ignores = true
+
+[tool.coverage.run]
+source = ["iqa_soa"]

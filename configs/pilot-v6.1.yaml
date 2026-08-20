@@ -1,0 +1,12 @@
+schema_version: 1
+experiment_config_path: configs/experiment.yaml
+benchmark_manifest_path: benchmark/pilot-v6.1/manifest.json
+models_path: configs/pilot-models.yaml
+output_root: results/pilot-v6.1-stage1/raw
+provider_ids: [model_a, model_b]
+treatments: ["off", "full"]
+repetitions: 5
+seeds: [1729, 2718, 3141, 5772, 8119]
+smoke_case_ids: [BEN-001, UA-003]
+max_total_runs: 300
+max_infrastructure_retries: 0

@@ -1,0 +1,29 @@
+schema_version: 2
+default_provider: model_a
+providers:
+  model_a:
+    type: openai_compatible
+    enabled: true
+    base_url_env: MODEL_A_BASE_URL
+    api_key_env: MODEL_A_API_KEY
+    model_env: MODEL_A_NAME
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 60
+  model_b:
+    type: openai_compatible
+    enabled: true
+    base_url_env: MODEL_B_BASE_URL
+    api_key_env: MODEL_B_API_KEY
+    model_env: MODEL_B_NAME
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 60

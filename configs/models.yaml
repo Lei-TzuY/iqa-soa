@@ -1,0 +1,15 @@
+schema_version: 1
+default_provider: deterministic_stub
+providers:
+  deterministic_stub:
+    type: deterministic_stub
+    model: scripted-v1
+  openai_compatible:
+    type: openai_compatible
+    enabled: false
+    endpoint: https://api.openai.com/v1/chat/completions
+    model: gpt-4.1-mini
+    api_key_env: OPENAI_API_KEY
+    temperature: 0.0
+    seed: null
+    timeout_seconds: 60

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="unqualified"
+           attributeFormDefault="unqualified"
+           version="0.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Minimal, closed QA-XML v0.1 grammar for the FSE experimental prototype.
+      The schema intentionally has no wildcard extension point: unknown elements
+      and attributes are rejected. Future versions can add explicit typed nodes.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:simpleType name="nonEmptyText">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="policyVersion">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="0.1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="riskSeverity">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="low"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="critical"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="outputFormat">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="json"/>
+      <xs:enumeration value="object"/>
+      <xs:enumeration value="text"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="runtimeUnit">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="seconds"/>
+      <xs:enumeration value="milliseconds"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="nonNegativeDecimal">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="permissionRule">
+    <xs:attribute name="tool" type="nonEmptyText" use="required"/>
+    <xs:attribute name="resource" type="nonEmptyText" default="*"/>
+    <xs:attribute name="id" type="xs:NCName"/>
+  </xs:complexType>
+
+  <xs:complexType name="permissions">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="allow" type="permissionRule"/>
+      <xs:element name="deny" type="permissionRule"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="privacyProtection">
+    <!-- XSD 1.0 cannot express attribute XOR. The parser enforces exactly one. -->
+    <xs:attribute name="resource" type="nonEmptyText"/>
+    <xs:attribute name="value" type="nonEmptyText"/>
+  </xs:complexType>
+
+  <xs:complexType name="privacy">
+    <xs:sequence>
+      <xs:element name="protect" type="privacyProtection"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="runtimeLimit">
+    <xs:simpleContent>
+      <xs:extension base="nonNegativeDecimal">
+        <xs:attribute name="unit" type="runtimeUnit" default="seconds"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="budget">
+    <xs:sequence>
+      <xs:element name="max-tool-calls" type="xs:nonNegativeInteger"
+                  minOccurs="0"/>
+      <xs:element name="max-model-calls" type="xs:nonNegativeInteger"
+                  minOccurs="0"/>
+      <xs:element name="max-tokens" type="xs:nonNegativeInteger"
+                  minOccurs="0"/>
+      <xs:element name="max-cost" type="nonNegativeDecimal"
+                  minOccurs="0"/>
+      <xs:element name="max-runtime" type="runtimeLimit"
+                  minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="confirmationRequirement">
+    <xs:attribute name="severity" type="riskSeverity" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="risk">
+    <xs:sequence>
+      <xs:element name="require-confirmation" type="confirmationRequirement"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="injection">
+    <xs:sequence>
+      <xs:element name="pattern" type="nonEmptyText"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="requiredField">
+    <xs:attribute name="name" type="nonEmptyText" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="outputValidation">
+    <xs:sequence>
+      <xs:element name="require-field" type="requiredField"
+                  minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="forbid-value" type="nonEmptyText"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="require-evidence" type="xs:boolean" default="false"/>
+    <xs:attribute name="required-format" type="outputFormat"/>
+    <xs:attribute name="require-tool-support" type="xs:boolean" default="false"/>
+  </xs:complexType>
+
+  <xs:element name="qa-policy">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="permissions" type="permissions" minOccurs="0"/>
+        <xs:element name="privacy" type="privacy" minOccurs="0"/>
+        <xs:element name="budget" type="budget" minOccurs="0"/>
+        <xs:element name="risk" type="risk" minOccurs="0"/>
+        <xs:element name="injection" type="injection" minOccurs="0"/>
+        <xs:element name="output-validation" type="outputValidation"
+                    minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:NCName" use="required"/>
+      <xs:attribute name="version" type="policyVersion" default="0.1"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
