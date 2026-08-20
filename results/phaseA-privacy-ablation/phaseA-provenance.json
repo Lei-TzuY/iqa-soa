@@ -1,0 +1,171 @@
+{
+  "design": {
+    "model": "qwen3.5:27b",
+    "models_excluded": [
+      "mistral-small3.2:24b"
+    ],
+    "repetitions": 5,
+    "seeds": [
+      1729,
+      2718,
+      3141,
+      5772,
+      8119
+    ],
+    "silent_retries": 0,
+    "tasks": [
+      "PRIV-007",
+      "PRIV-009"
+    ],
+    "total_measured_runs": 30,
+    "treatments": [
+      "full",
+      "full_minus_privacy",
+      "full_minus_permission"
+    ]
+  },
+  "execution": {
+    "anomalies": {
+      "errors": 0,
+      "evidence_complete": "30/30",
+      "failure_class_non_null": 0,
+      "finish_reason": "stop (30/30)",
+      "infrastructure_failures": 0,
+      "invalid_action_format": 0,
+      "model_refusal": 0,
+      "no_action": 0,
+      "pairing_mismatches": 0,
+      "silent_retries": 0,
+      "tool_call_parse_failure": 0
+    },
+    "case_ids": [
+      "PRIV-007",
+      "PRIV-009"
+    ],
+    "evidence_file_count": 30,
+    "executed_at_utc": "2026-08-20T10:08:56.434503+00:00",
+    "expected_record_count": 30,
+    "experiment_dir": "results/phaseA-privacy-ablation/raw/exp-20260820T100106.868305Z-2a56f983cd5643418d02bd51ffbaff0d",
+    "experiment_id": "exp-20260820T100106.868305Z-2a56f983cd5643418d02bd51ffbaff0d",
+    "experiment_kind": "real_model_ablation_smoke",
+    "experiment_kind_note": "The harness validates experiment_kind against a closed whitelist (deterministic_mechanism_validation, real_model_connectivity_smoke, real_model_pilot, real_model_ablation_smoke). Phase A therefore reuses the Stage-1/Stage-2 label rather than editing the frozen harness. Phase-A identity is carried by output_root, this provenance file, and the plan hash.",
+    "infrastructure_retry_limit": 0,
+    "input_digest_comparison_vs_stage1_stage2": {
+      "ablation_config_sha256": {
+        "identical": true,
+        "phaseA": "78e5ecb22ca8dcee1a72370d716956e1163873e9914a0c80fb1ceee2ecf62495",
+        "stage1_stage2": "78e5ecb22ca8dcee1a72370d716956e1163873e9914a0c80fb1ceee2ecf62495"
+      },
+      "benchmark_manifest_sha256": {
+        "identical": true,
+        "phaseA": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+        "stage1_stage2": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34"
+      },
+      "benchmark_sha256": {
+        "identical": true,
+        "phaseA": "3c4539e0a0c995b036af2353389590d2478f4ea0f778d4a0bced60ca6b8325c1",
+        "stage1_stage2": "3c4539e0a0c995b036af2353389590d2478f4ea0f778d4a0bced60ca6b8325c1"
+      },
+      "experiment_config_sha256": {
+        "identical": false,
+        "phaseA": "fec1109c85f8073bf7ec39fd4d35cfd5b5ed5796ae59e50dde8641c5f6c35bda",
+        "stage1_stage2": "d9a38ad515633d876f61dbd93f990ac3a6dfb5ffc1338c0938ce65129e369e97"
+      },
+      "model_config_sha256": {
+        "identical": true,
+        "phaseA": "d18e6cc4686be49e7028e3e905d96b7f0bec52101203197cb99e873fe167f456",
+        "stage1_stage2": "d18e6cc4686be49e7028e3e905d96b7f0bec52101203197cb99e873fe167f456"
+      },
+      "qa_xml_policy_sha256": {
+        "identical": true,
+        "phaseA": "b04bec81ab961aa06b2e8e52ddbd2c5e25b6b2d366b47fda3ee60690a7275982",
+        "stage1_stage2": "b04bec81ab961aa06b2e8e52ddbd2c5e25b6b2d366b47fda3ee60690a7275982"
+      },
+      "qa_xml_schema_sha256": {
+        "identical": true,
+        "phaseA": "424662b471d844b489971ae882af5f21f8ebe49387a00c4af0cccc21a0df2240",
+        "stage1_stage2": "424662b471d844b489971ae882af5f21f8ebe49387a00c4af0cccc21a0df2240"
+      },
+      "resource_budget_policy_sha256": {
+        "identical": true,
+        "phaseA": "e80cbf51bb75c1691a5a934fa261fd87bd6e02597214080480eae984aaba8a3b",
+        "stage1_stage2": "e80cbf51bb75c1691a5a934fa261fd87bd6e02597214080480eae984aaba8a3b"
+      },
+      "selected_case_set_sha256": {
+        "identical": true,
+        "phaseA": "44b1bf32ef678d2595eb9771df1381b5aca232c22882096c741a2eac087b699f",
+        "stage1_stage2": "44b1bf32ef678d2595eb9771df1381b5aca232c22882096c741a2eac087b699f"
+      }
+    },
+    "input_digest_note": "experiment_config_sha256 is _path_digest(pilot config file) = sha256 over the file NAME plus its bytes. Phase A deliberately uses a different pilot config file (configs/phaseA-privacy-ablation.yaml) that differs from configs/pilot-v6.1.yaml in exactly one line, output_root. The mismatch is fully reproduced offline and is attributable solely to that deliberate output-routing change; it is NOT a scientific-input change. All eight other digests, covering every scientific input, are byte-identical to Stage-1/Stage-2.",
+    "post_run_frozen_hash_recheck": {
+      "all_unchanged": true,
+      "phaseA_plan_sha256": "d6f69b82f9cbd112d1f2492c36b751d8f24ba8e057d978b9e15d0cd5afdba9be",
+      "pilot-v6.1_manifest_sha256": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+      "preregistration_v3_sha256": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1"
+    },
+    "raw_manifest_sha256": "762b4bac2a0e4d5656a5ff9699887ef1c00192e5ccf45aa2b4b979a82b3accf8",
+    "raw_runs_csv_sha256": "4a56f290d7539fe3300698e6aed8c238ecc561de23607b8dc4da29184fd9e3e6",
+    "raw_runs_jsonl_sha256": "57c3371db4adf027f8f02b8680409d1003d421feeb8d085f749fc508a175e245",
+    "record_count": 30,
+    "status": "complete",
+    "treatments": [
+      "full",
+      "full_minus_privacy",
+      "full_minus_permission"
+    ],
+    "unmeasured_warmup": {
+      "command": "ollama run qwen3.5:27b 'Reply with exactly OK.'",
+      "elapsed_ms": 13748,
+      "excluded_from_all_tables_figures_denominators_tokens_latency": true
+    }
+  },
+  "frozen_at_utc": "2026-08-20T10:00:23.544562+00:00",
+  "input_sha256": {
+    "benchmark/pilot-v6.1/freeze-record.json": "b10b7c431ae32e468577863a112f729884cfe416c0050b3297c151357d2903d8",
+    "benchmark/pilot-v6.1/manifest.json": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+    "benchmark/privacy/PRIV-007.yaml": "fb417787c5010a72224a7f2776333a05740546edb330b365baf69172cd301c07",
+    "benchmark/privacy/PRIV-009.yaml": "ebd80d16a1cec2725f0e0d51785d883ec278e5414ebca27e353f33f626e612e5",
+    "configs/ablations.yaml": "660f220017dc0060157fa0714904c334e91760f54d528ddf1a540d31b3cd0ff3",
+    "configs/experiment.yaml": "ed34054c0554922f247225446b7f947b2f3bd6127cdf4ed3412a8f03cda09d1a",
+    "configs/phaseA-privacy-ablation.yaml": "b3f3f364ba7967ec7568b853c3192b0f33a16cf9ad2feb3d426c3aba93eeee17",
+    "configs/pilot-models.yaml": "059d827ae897e1a0994fad0f8dbe0bc1ee45e51a36ffa8ebb690717f9216add7",
+    "configs/pilot-v6.1.yaml": "9b6390cd013a394271cd5b436d4bf5a4f3a87a14103d14aac50eb13819ac471d",
+    "configs/policies/default.xml": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5",
+    "docs/phaseA_privacy_ablation_plan.md": "d6f69b82f9cbd112d1f2492c36b751d8f24ba8e057d978b9e15d0cd5afdba9be",
+    "docs/preregistration_coverage_extension_v3.md": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1",
+    "scripts/run_pilot_v6_1_stage1.py": "5f6577138947b06300e2d009a736f1fa110e2e2f58b984650d22586d7df0f7f7",
+    "src/iqa_soa/agent/providers.py": "7d9658118d375a78974b9db9e8603d3d92487e1d24194c997e759849ff9eaf5b",
+    "src/iqa_soa/experiment/runner.py": "561d4e3f713a175f1f42f2ed41b60f468212a4832a16dbe7f4c0176ba8315b95",
+    "src/iqa_soa/experiment/treatments.py": "2f2343473ead286d0a5618ab2cdb2abf21e6477c0f44747c09ffef9e8db39638",
+    "src/iqa_soa/failure_taxonomy.py": "6520b9e36c4c25dc2430879fb0dbb8f4d90296bc7d97628cef741c164cef32dd",
+    "src/iqa_soa/iqa/guards/permission.py": "124188354af49b916b91978f107fbd37d0a532797e711796de0bceea149aeb44",
+    "src/iqa_soa/iqa/guards/privacy.py": "b9a804d405d23c0da2979aebf70e6ec4e627ef6a387cb80d8cacc2770b3a3507",
+    "src/iqa_soa/metrics/collector.py": "668022ee7635f0c991ab4c9fe62e02c1c0e7b6e06f6ad9375d7c253825dd710d",
+    "src/iqa_soa/metrics/definitions.py": "068560b2baa2aab0216975dd34ab4a05f2e8655f9471701994b355e730b0487e"
+  },
+  "methodological_status": {
+    "label": "post-smoke, post-audit focused follow-up experiment; design prospectively frozen before any Phase-A measured run",
+    "mistral_exclusion_basis": "informed by prior observed data: 0/27 pilot-v6.1 Stage-1 runs with >=2 sequential actions",
+    "mistral_exclusion_outcome_independent": false,
+    "preregistered": false,
+    "preregistration_v3_amended": false
+  },
+  "phase": "A",
+  "phase_a_measured_data_existed_at_freeze": false,
+  "phase_a_output_root_existed_at_freeze": false,
+  "plan_document": "docs/phaseA_privacy_ablation_plan.md",
+  "plan_document_sha256": "d6f69b82f9cbd112d1f2492c36b751d8f24ba8e057d978b9e15d0cd5afdba9be",
+  "repository_integrity_at_freeze": {
+    "pytest": "208 passed"
+  },
+  "reverified_frozen_hashes": {
+    "pilot-v6.1_manifest_expected": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+    "pilot-v6.1_manifest_sha256": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+    "pilot-v6.1_match": true,
+    "preregistration_v3_expected": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1",
+    "preregistration_v3_match": true,
+    "preregistration_v3_sha256": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1"
+  },
+  "title": "Focused PrivacyGuard mechanism ablation"
+}

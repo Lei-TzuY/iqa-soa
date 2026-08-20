@@ -1,0 +1,80 @@
+{
+  "ablations_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\ablations.yaml",
+  "benchmark_manifest_path": "C:\\Users\\User\\Desktop\\FSE\\benchmark\\pilot-v6.1\\manifest.json",
+  "benchmark_path": "C:\\Users\\User\\Desktop\\FSE\\benchmark",
+  "benchmark_version": "pilot-v6.1",
+  "case_ids": [
+    "PRIV-007",
+    "PRIV-009"
+  ],
+  "completed_at": "2026-08-20T10:06:10.697372+00:00",
+  "config_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\phaseA-privacy-ablation.yaml",
+  "created_at": "2026-08-20T10:01:06.868818+00:00",
+  "expected_record_count": 30,
+  "experiment_id": "exp-20260820T100106.868305Z-2a56f983cd5643418d02bd51ffbaff0d",
+  "experiment_kind": "real_model_ablation_smoke",
+  "infrastructure_retry_limit": 0,
+  "input_digests": {
+    "ablation_config_sha256": "78e5ecb22ca8dcee1a72370d716956e1163873e9914a0c80fb1ceee2ecf62495",
+    "benchmark_manifest_sha256": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+    "benchmark_sha256": "3c4539e0a0c995b036af2353389590d2478f4ea0f778d4a0bced60ca6b8325c1",
+    "experiment_config_sha256": "fec1109c85f8073bf7ec39fd4d35cfd5b5ed5796ae59e50dde8641c5f6c35bda",
+    "model_config_sha256": "d18e6cc4686be49e7028e3e905d96b7f0bec52101203197cb99e873fe167f456",
+    "qa_xml_policy_sha256": "b04bec81ab961aa06b2e8e52ddbd2c5e25b6b2d366b47fda3ee60690a7275982",
+    "qa_xml_schema_sha256": "424662b471d844b489971ae882af5f21f8ebe49387a00c4af0cccc21a0df2240",
+    "resource_budget_policy_sha256": "e80cbf51bb75c1691a5a934fa261fd87bd6e02597214080480eae984aaba8a3b",
+    "selected_case_set_sha256": "44b1bf32ef678d2595eb9771df1381b5aca232c22882096c741a2eac087b699f"
+  },
+  "max_total_runs": 30,
+  "policy_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\policies\\default.xml",
+  "provider": {
+    "api_key_env": "MODEL_A_API_KEY",
+    "base_url_env": "MODEL_A_BASE_URL",
+    "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+    "max_output_tokens": 1024,
+    "model": "qwen3.5:27b",
+    "model_env": "MODEL_A_NAME",
+    "protocol": "native_tools",
+    "provider": "openai_compatible",
+    "seed": null,
+    "supports_seed": true,
+    "temperature": 0.2,
+    "top_p": 1.0
+  },
+  "raw_csv": "runs.csv",
+  "raw_jsonl": "runs.jsonl",
+  "raw_schema_version": 2,
+  "record_count": 30,
+  "repetitions": 5,
+  "resource_budget_policy": {
+    "policy_id": "ordinary-provider-resource-telemetry-v1",
+    "strict_budget_categories": [
+      "budget"
+    ],
+    "telemetry_only_limits": [
+      "max_cost",
+      "max_runtime_ms",
+      "max_tokens"
+    ]
+  },
+  "schema_version": 2,
+  "seeds": [
+    1729,
+    2718,
+    3141,
+    5772,
+    8119
+  ],
+  "shuffle_treatments": true,
+  "software": {
+    "artifact_version": "0.2.0",
+    "package_source_sha256": "6bc745c87267e64642895a6895f1ada64abf250d7a501dc1a808020546646a52",
+    "python_version": "3.13.5"
+  },
+  "status": "complete",
+  "treatments": [
+    "full",
+    "full_minus_privacy",
+    "full_minus_permission"
+  ]
+}
