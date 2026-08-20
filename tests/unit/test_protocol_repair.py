@@ -320,7 +320,17 @@ def test_multiple_tool_calls_are_preserved_in_order(
     assert response.tool_call_count == 2
     assert response.action is not None and response.action.action_id == "read-a"
     assert [item.action_id for item in response.additional_actions] == ["read-b"]
-    assert response.provenance()["multi_tool_call"] is True
+    provenance = response.provenance()
+    assert provenance["multi_tool_call"] is True
+    # The provider's own call ids are kept verbatim for exact reconstruction.
+    assert provenance["emitted_tool_call_ids"] == ["call-read-a", "call-read-b"]
+    # Each emitted proposal is recorded in full, not just its id/resource.
+    assert len(provenance["emitted_proposals"]) == 2
+    for payload, expected in zip(provenance["emitted_proposals"], ("read-a", "read-b")):
+        decoded = json.loads(payload)
+        assert decoded["action_id"] == expected
+        assert decoded["tool"] == "file.read"
+        assert "arguments" in decoded
 
 
 def test_runtime_provenance_degrades_without_raising() -> None:
