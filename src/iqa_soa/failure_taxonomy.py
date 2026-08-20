@@ -16,6 +16,11 @@ SCIENTIFIC_FAILURE_CLASSES = frozenset(
         "invalid_json",
         "invalid_action_format",
         "invalid_tool_call",
+        # The model emitted more tool calls in one turn than the
+        # remaining agent-step budget could consume.  It arises from the
+        # model's response, and the turn is refused whole rather than
+        # partially executed, so no proposal is silently discarded.
+        "multi_call_overflow",
         "invalid_resource",
         "tool_failure",
         "tool_timeout",

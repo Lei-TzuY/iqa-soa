@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
+from itertools import groupby
 import hashlib
 import json
 import os
@@ -26,27 +27,33 @@ from iqa_soa.types import Action
 
 # Tool-contract re-exposure policies (Class-P repair, see Phase B).
 #
-# "trailing_user"  append a trailing user message that restates the SAME frozen
-#                  tool schema verbatim, after any tool-result history.  This
-#                  restores the tool contract to the rendered prompt for
-#                  templates that emit tool definitions only adjacent to the
-#                  final user turn, and also carries the schema inline so the
-#                  contract survives templates that drop it entirely.
-# "none"           pre-repair behaviour, retained so the original defect can be
-#                  reproduced deliberately for forensic work.
+# "none"           Default, and the pre-repair behaviour.  Providers that render
+#                  tool definitions on every turn (the observed Qwen path) need
+#                  no repair, and their prompt must not be perturbed to fix a
+#                  different provider.
+# "trailing_user"  Opt-in repair for the one observed defect: templates that emit
+#                  tool definitions only while the user message is within the
+#                  final two messages, so appending tool-result history silently
+#                  removes the tool contract from the rendered prompt.  A minimal
+#                  trailing user turn makes the user message adjacent again, so
+#                  the provider's OWN tool rendering resumes.
+#
+# The repair deliberately does NOT inline a second copy of the tool schema.  The
+# observed defect is an adjacency defect, not a provider that ignores tools
+# entirely; inlining would be a larger prompt change addressing a provider no
+# evidence in this artifact describes.
 TOOL_CONTRACT_POLICIES = frozenset({"trailing_user", "none"})
+DEFAULT_TOOL_CONTRACT_POLICY = "none"
 
-# Protocol-only preamble.  This text restores *protocol information*; it must
-# never encourage, request, or discourage further action, because that would
-# change the model's decision incentive rather than repair the channel.
+# Protocol-only marker.  It restores *protocol information* by its position, not
+# by its content, and must never encourage, request, or discourage further
+# action: that would change the model's decision incentive rather than repair
+# the channel.  Keep it minimal.
 TOOL_CONTRACT_NOTICE = (
-    "Protocol notice. The registered sandbox tool contract below is unchanged "
-    "from the start of this task and is restated verbatim only because some "
-    "providers omit tool definitions from the rendered prompt once tool-result "
-    "messages are present. This restatement carries no instruction: it does "
-    "not ask for another action, does not suggest that further action is "
-    "needed, and does not discourage finishing. Whether to call a tool or to "
-    "give a completion response is unchanged and entirely your decision."
+    "Protocol marker. The registered sandbox tool contract is unchanged. "
+    "This message carries no instruction and no request for any further "
+    "action; whether to call a tool or to give a completion response is "
+    "entirely your decision."
 )
 
 
@@ -128,6 +135,35 @@ class ProviderResponse:
     tool_call_count: int = 0
     # True when the tool contract was re-exposed on this request.
     tool_contract_refreshed: bool = False
+    # Raw payload of every emitted proposal, in provider emission order.  Empty
+    # means "derive from raw_response", which keeps single-action providers
+    # (including the deterministic stub) byte-identical to the legacy path.
+    proposal_payloads: tuple[str, ...] = ()
+
+    def emitted_actions(self) -> tuple[Action, ...]:
+        """Every action proposed in this turn, in provider emission order."""
+
+        if self.action is None:
+            return ()
+        return (self.action, *self.additional_actions)
+
+    def emitted_proposals(self) -> tuple[str, ...]:
+        """Raw payload per emitted proposal, in provider emission order.
+
+        There is exactly one payload per proposed action.  A provider that did
+        not supply payloads still gets one entry per action, so a multi-call
+        turn can never be counted as a single proposal; the single-action case
+        keeps ``raw_response`` verbatim so existing proposal digests are
+        unchanged.
+        """
+
+        if self.proposal_payloads:
+            return self.proposal_payloads
+        if self.action is None:
+            return ()
+        if not self.additional_actions:
+            return (self.raw_response,)
+        return tuple(canonical_action_json(item) for item in self.emitted_actions())
 
     def provenance(self) -> dict[str, Any]:
         """Return non-content response provenance suitable for raw results."""
@@ -137,6 +173,10 @@ class ProviderResponse:
             "multi_tool_call": self.tool_call_count > 1,
             "additional_action_count": len(self.additional_actions),
             "tool_contract_refreshed": self.tool_contract_refreshed,
+            # Enough to reconstruct the original grouped turn: which actions the
+            # provider emitted together, in order.
+            "emitted_action_ids": [item.action_id for item in self.emitted_actions()],
+            "emitted_resources": [item.resource for item in self.emitted_actions()],
             "outcome": self.outcome,
             "failure_class": None,
             "client_request_id": self.client_request_id,
@@ -280,7 +320,7 @@ class OpenAICompatibleProvider(AgentProvider):
         supports_seed: bool = True,
         protocol: str = "native_tools",
         timeout_seconds: float = 60.0,
-        tool_contract_policy: str = "trailing_user",
+        tool_contract_policy: str = DEFAULT_TOOL_CONTRACT_POLICY,
     ) -> None:
         if (endpoint is None) == (base_url_env is None):
             raise ValueError("configure exactly one of endpoint or base_url_env")
@@ -387,27 +427,15 @@ class OpenAICompatibleProvider(AgentProvider):
         tool_contract_refreshed = False
         if self.protocol == "native_tools":
             messages.extend(_native_history_messages(history))
-            # Class-P repair.  Once tool-result messages follow the only user
-            # turn, templates that gate tool rendering on adjacency to the
-            # final user message stop emitting the tool contract entirely, so
-            # the model can no longer make a tool call at all.  Re-expose the
-            # identical frozen schema as a trailing user turn: this both
-            # restores the template's own tool-rendering path and carries the
-            # contract inline for templates that never render tools.
+            # Class-P repair, opt-in per provider.  Once tool-result messages
+            # follow the only user turn, templates that gate tool rendering on
+            # adjacency to the final user message stop emitting the tool
+            # contract, so the model cannot make a tool call at all.  A minimal
+            # trailing user turn restores that adjacency and the provider's own
+            # tool rendering resumes; the schema itself is unchanged and is
+            # still carried by the request's ``tools`` field.
             if self.tool_contract_policy == "trailing_user" and messages[2:]:
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            f"{TOOL_CONTRACT_NOTICE}\n"
-                            + json.dumps(
-                                [_native_action_tool(canonical_resources)],
-                                ensure_ascii=False,
-                                sort_keys=True,
-                            )
-                        ),
-                    }
-                )
+                messages.append({"role": "user", "content": TOOL_CONTRACT_NOTICE})
                 tool_contract_refreshed = True
         else:
             messages[1]["content"] += (
@@ -541,13 +569,16 @@ class OpenAICompatibleProvider(AgentProvider):
         original_resource: str | None = None
         additional_actions: tuple[Action, ...] = ()
         parsed_calls: list[Mapping[str, Any]] = []
+        proposal_payloads: list[str] = []
         if refusal:
             action = None
             outcome = "model_refusal"
             raw_response = refusal
         else:
             try:
-                parsed_calls, raw_response = self._parse_message_action(message)
+                parsed_calls, raw_response, proposal_payloads = (
+                    self._parse_message_action(message)
+                )
             except ProviderError as exc:
                 if exc.client_request_id is None:
                     exc.client_request_id = client_request_id
@@ -594,6 +625,7 @@ class OpenAICompatibleProvider(AgentProvider):
             additional_actions=additional_actions,
             tool_call_count=len(parsed_calls),
             tool_contract_refreshed=tool_contract_refreshed,
+            proposal_payloads=tuple(proposal_payloads),
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             latency_ms=latency_ms,
@@ -617,7 +649,7 @@ class OpenAICompatibleProvider(AgentProvider):
 
     def _parse_message_action(
         self, message: Mapping[str, Any]
-    ) -> tuple[list[Mapping[str, Any]], str]:
+    ) -> tuple[list[Mapping[str, Any]], str, list[str]]:
         """Return every proposed action mapping in provider emission order.
 
         A native response carrying more than one tool call is preserved rather
@@ -676,10 +708,14 @@ class OpenAICompatibleProvider(AgentProvider):
                     )
                 parsed_calls.append(parsed)
                 raw_arguments.append(arguments)
-            return parsed_calls, (
-                raw_arguments[0]
-                if len(raw_arguments) == 1
-                else json.dumps(raw_arguments, ensure_ascii=False)
+            return (
+                parsed_calls,
+                (
+                    raw_arguments[0]
+                    if len(raw_arguments) == 1
+                    else json.dumps(raw_arguments, ensure_ascii=False)
+                ),
+                raw_arguments,
             )
 
         content = message.get("content")
@@ -689,7 +725,7 @@ class OpenAICompatibleProvider(AgentProvider):
             # with no tool call. Actions are still accepted only from an actual
             # function call; a JSON action in content remains invalid.
             if content is None:
-                return [], ""
+                return [], "", []
             if not isinstance(content, str):
                 raise ProviderError(
                     "provider native terminal content must be text or null",
@@ -698,15 +734,15 @@ class OpenAICompatibleProvider(AgentProvider):
             try:
                 parsed = json.loads(content)
             except json.JSONDecodeError:
-                return [], content
+                return [], content, []
             if parsed == {"done": True}:
-                return [], content
+                return [], content, []
             if isinstance(parsed, Mapping):
                 raise ProviderError(
                     "native-tools protocol requires an actual tool call for actions",
                     failure_class="invalid_tool_call",
                 )
-            return [], content
+            return [], content, []
         if not isinstance(content, str):
             raise ProviderError(
                 "provider message contains neither a usable action nor text",
@@ -724,7 +760,7 @@ class OpenAICompatibleProvider(AgentProvider):
                 "provider action content must be an object",
                 failure_class="invalid_action_format",
             )
-        return [parsed], content
+        return [parsed], content, [content]
 
 
 _ACTION_REQUIRED = {"action_id", "tool", "resource", "arguments"}
@@ -883,49 +919,67 @@ def _native_history_messages(history: Sequence[Mapping[str, Any]]) -> list[dict[
     Native tool-call models use assistant/tool message roles to recognize a
     completed invocation.  The generic history remains a JSON user-message
     summary for JSON-object providers.
+
+    Actions the provider emitted together in one multi-tool-call turn are
+    regrouped into a single assistant message carrying all of that turn's tool
+    calls, followed by one tool message per call.  Splitting them into one
+    assistant turn per action would present the model with a conversation it
+    never had.  Entries carry a ``turn`` key; history without it (any caller
+    predating grouped turns) degrades to one action per turn, which is the
+    correct reading for single-call providers.
     """
 
     messages: list[dict[str, Any]] = []
-    for index, item in enumerate(history):
-        action = item.get("action")
-        if not isinstance(action, Mapping):
-            continue
-        call_id = f"iqa-history-{index}"
-        action_arguments = json.dumps(
-            dict(action), ensure_ascii=False, sort_keys=True, default=str
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "sandbox_action",
-                            "arguments": action_arguments,
+    index = 0
+    for _, group in groupby(
+        enumerate(history), key=lambda pair: pair[1].get("turn", pair[0])
+    ):
+        turn_items = [item for _, item in group]
+        calls: list[dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
+        for item in turn_items:
+            action = item.get("action")
+            if not isinstance(action, Mapping):
+                continue
+            call_id = f"iqa-history-{index}"
+            index += 1
+            calls.append(
+                {
+                    "id": call_id,
+                    "type": "function",
+                    "function": {
+                        "name": "sandbox_action",
+                        "arguments": json.dumps(
+                            dict(action),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            default=str,
+                        ),
+                    },
+                }
+            )
+            results.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call_id,
+                    "content": json.dumps(
+                        {
+                            "decision": item.get("decision"),
+                            "executed": item.get("executed"),
+                            "success": item.get("success"),
+                            "output": item.get("output"),
+                            "error": item.get("error"),
                         },
-                    }
-                ],
-            }
-        )
-        tool_result = {
-            "decision": item.get("decision"),
-            "executed": item.get("executed"),
-            "success": item.get("success"),
-            "output": item.get("output"),
-            "error": item.get("error"),
-        }
-        messages.append(
-            {
-                "role": "tool",
-                "tool_call_id": call_id,
-                "content": json.dumps(
-                    tool_result, ensure_ascii=False, sort_keys=True, default=str
-                ),
-            }
-        )
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        default=str,
+                    ),
+                }
+            )
+        if not calls:
+            continue
+        messages.append({"role": "assistant", "content": None, "tool_calls": calls})
+        messages.extend(results)
     return messages
 
 
