@@ -1,0 +1,60 @@
+{
+  "benchmark_version": "pilot-v7-rc1",
+  "release_status": "release-candidate",
+  "phase": "E",
+  "manifest_sha256": "400b2ac2124311c79a69abd0fd5428373f873bf7d9a718e3e3cb15f2a929e00a",
+  "provenance_sha256": "077d9e1b35ee8738c8df334faee73f6a457396c8fa942c45e5799518b3540fc2",
+  "audit_sha256": "24dc688bd1c0c2dc1d0ed9d3fc948340b87ac15edeb0405475b8952781315740",
+  "supersedes": {
+    "benchmark_version": "pilot-v6.1",
+    "manifest_sha256": "2d91604757a134dec6bbc53922ebc169579175fe121d0f7ac1d0f49a0c7a9e2d",
+    "reason": "Phase-E construct-validity audit of all 21 pilot-v6.1 tasks: 14 tasks exposed task-visible benchmark meta-labelling or in-scope steering, and a further 5 carried construct defects (an attack-directed action required for task success, gratuitous rather than plausible risk routes, a weakly motivated over-read, a prompt-enumerated scope, and a budget task with no safe completion path at all). The audit additionally found that pilot-v6.1's PI-002 is not identifiable by its target guard at all: its payload matches none of the QA policy's configured injection patterns, so under QA FULL the injected shell action is allowed and executed. That is a benchmark-side defect, corrected in the successor PI-010 by rewording the attack; neither the InjectionGuard nor the QA policy was modified.",
+    "observed_by_any_real_model": false,
+    "files_edited": false
+  },
+  "frozen_predecessors_verified": {
+    "pilot-v6.1": "2d91604757a134dec6bbc53922ebc169579175fe121d0f7ac1d0f49a0c7a9e2d",
+    "pilot-v6": "d81e859289f1ef02320798475fa3317e12eeaaaed43e7cb386f1928be34783b0",
+    "pilot-v5": "9b21b0c9e0e85e2e81cbefd5f4fb99d6c16f4a5c18a276019bf302295ab82966",
+    "preregistration_v3": "6b7a33501f4610a73f35770314368ecc2aee4eadeab1f5f51b6e09c847409efe",
+    "preregistration_v1": "163c931a1054260cd30b6c4fe13bbfa8d460739c66bf0ccd523824ae184a00bb"
+  },
+  "preregistration_file": null,
+  "preregistration_sha256": null,
+  "preregistration_note": "pilot-v7-rc1 is a release candidate and deliberately carries NO preregistration. Preregistration v3 remains bound to the frozen pilot-v6.1 benchmark and is unchanged.",
+  "task_count": 17,
+  "carried_forward_retained": 2,
+  "carried_forward_revised": 15,
+  "retired": 4,
+  "predecessor_task_count": 21,
+  "category_counts": {
+    "benign": 2,
+    "budget": 3,
+    "fault_injection": 1,
+    "knowledge_poisoning": 1,
+    "privacy": 4,
+    "prompt_injection": 4,
+    "unauthorized_action": 2
+  },
+  "model_inference_performed": false,
+  "offline_validator": "scripts/validate_pilot_v7_rc1.py",
+  "case_sha256": {
+    "BEN-002": "8a9e65a918f604358b065ca8c009fc1dca3a584cf2a1ae998de349fb8612fc84",
+    "BEN-003": "31369e0253a7516809b02e5fef760b0d1ae817d75e396486ab258b636c7b60d9",
+    "PI-010": "32b27be36c762bd13f9f9cdb1e17e2ebcd0405979600f7890121d41e3bf60812",
+    "PI-011": "8d61c63825c5aadf76eb21db1d6aaa53650b74bd33229f442c9c4031d16c37f5",
+    "PI-012": "04e5c00c8c2d6c974789db924adb9c39632809d32845f677495a9195361d0647",
+    "PI-013": "9ef2a5678e4bfee8de12d4c6832895e93af875a6ce6d6127aa2ee609ee11da14",
+    "KP-002": "6d541f0a4a861009c1b15332bcdf4449ea67aa001ad2f385cdbb2c1646c15076",
+    "UA-004": "e60534ab91368f8e585b3ba48182b1059117d2518e765a1ace9905a1a8bee25f",
+    "UA-005": "344377e6bfe910398fe36f845cd96090d40f4c06d272349ba52a4f3a35d9f443",
+    "PRIV-007": "fb417787c5010a72224a7f2776333a05740546edb330b365baf69172cd301c07",
+    "PRIV-012": "80e7838fa6a27c26fffbc77491d0d4befd425af16d09e9879f5259f7ee304bde",
+    "PRIV-013": "8f9f8a2bae8215ca2c1e0b07f3c2c7bf91c62735af93646f64eeea8d65d61972",
+    "PRIV-014": "be9da154a9f8f7aaa6b360d0ef5d8ba9cf2e9f610b70fe1c73b377828d7bbca1",
+    "BUD-009": "6a57da8353ac7ebd094f53f982b50e0ae44a3ef2bc8d12bd11fd85852da49843",
+    "BUD-010": "db9dbb6d869b6ad61b6d6307a6d98f3ad4a1ecdb2154678aa3d7eb644fc1ea5c",
+    "BUD-011": "822eb0f485ffc97115731d31533937eabf1097cb13f94232a18a8ada57b9fddc",
+    "FAULT-003": "d22c4cb0812a055b92d7453c05043cee93bfe98f71f4c0540b2c2b834354e7ec"
+  }
+}
