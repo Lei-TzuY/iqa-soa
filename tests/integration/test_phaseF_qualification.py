@@ -342,18 +342,63 @@ def test_no_src_iqa_soa_file_differs_from_canonical_main() -> None:
     assert diff == "", f"src/iqa_soa must not change in Phase F: {diff}"
 
 
+PROTECTED_PATHS = (
+    "benchmark", "results/phaseD-qualification", "results/pilot-v6.1-stage1",
+    "docs/phaseD_instrument_qualification_plan.md",
+    "docs/phaseD_instrument_qualification_plan.sha256",
+    "docs/preregistration_coverage_extension_v1.md",
+    "docs/preregistration_coverage_extension_v3.md",
+    "configs/pilot.yaml", "configs/pilot-models.yaml",
+    "configs/pilot-v6.1.yaml", "configs/experiment.yaml",
+    "configs/policies/default.xml",
+)
+
+
 @requires_git
 def test_no_historical_result_or_frozen_benchmark_differs_from_canonical_main() -> None:
-    protected = ("benchmark", "results/phaseD-qualification", "results/pilot-v6.1-stage1",
-                 "docs/phaseD_instrument_qualification_plan.md",
-                 "docs/phaseD_instrument_qualification_plan.sha256",
-                 "docs/preregistration_coverage_extension_v1.md",
-                 "docs/preregistration_coverage_extension_v3.md",
-                 "configs/pilot.yaml", "configs/pilot-models.yaml",
-                 "configs/pilot-v6.1.yaml", "configs/experiment.yaml",
-                 "configs/policies/default.xml")
-    diff = _git("diff", "--name-only", CANONICAL_BASE, "--", *protected)
+    """Nothing historical may MOVE.  Additions are a different question.
+
+    The invariant this test protects is immutability: no committed benchmark
+    case, frozen manifest, historical result, preregistration or governance
+    config may be edited, deleted, renamed or retyped.  It is deliberately
+    restricted to those change kinds (``--diff-filter=MDRT``) rather than to any
+    diff at all, because a later benchmark-construction phase publishes its
+    successor selection by ADDING new task IDs and a new version namespace under
+    ``benchmark/`` -- an all-inclusive predicate would forbid additive work while
+    protecting nothing extra.  Additions inside an already-frozen version
+    namespace remain forbidden, by the companion test below.
+    """
+
+    diff = _git(
+        "diff", "--name-only", "--diff-filter=MDRT", CANONICAL_BASE, "--", *PROTECTED_PATHS
+    )
     assert diff.decode("utf-8").strip() == "", diff.decode("utf-8")
+
+
+@requires_git
+def test_no_frozen_benchmark_version_namespace_gains_or_loses_a_file() -> None:
+    """A frozen selection namespace is closed: it may not even gain a file.
+
+    ``benchmark/pilot-*`` directories that exist at the canonical base are
+    hash-pinned selections.  Adding a file inside one would change what the
+    version denotes without changing any single pinned byte, so additions are
+    checked here with no diff filter at all.  Version namespaces created after
+    the canonical base are not in this set and are therefore unconstrained.
+    """
+
+    listing = _git("ls-tree", "-r", "--name-only", CANONICAL_BASE).decode("utf-8")
+    frozen_namespaces = sorted(
+        {
+            line.rsplit("/", 1)[0]
+            for line in listing.splitlines()
+            if line.startswith("benchmark/pilot-")
+        }
+    )
+    assert frozen_namespaces, "canonical main must contain frozen benchmark versions"
+    diff = _git(
+        "diff", "--name-only", CANONICAL_BASE, "--", *frozen_namespaces
+    ).decode("utf-8").strip()
+    assert diff == "", f"a frozen benchmark namespace changed: {diff}"
 
 
 def test_release_status_is_release_candidate_without_preregistration() -> None:
