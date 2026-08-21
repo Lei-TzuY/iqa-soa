@@ -583,14 +583,19 @@ def check_run_criteria(result: Verification) -> None:
             )
         if row.get("error") and not failure_class:
             result.fail("H3", f"H3 violated: {label} recorded an unclassified failure")
+        # multi_call_overflow is the instrument's explicit proposal-loss
+        # condition: a turn was refused whole rather than partially executed.
+        #
+        # queued_action_count is NOT a loss signal and is deliberately not
+        # checked here.  The agent increments it when a multi-call turn is
+        # enqueued on the success path, after the overflow guard has already
+        # confirmed the remaining steps can consume the turn in full, and never
+        # decrements it.  A value greater than zero therefore records a
+        # legitimately consumed multi-call turn, which the frozen plan (6.2)
+        # treats as valid so long as proposals are preserved and adjudicated
+        # without overflow.  It is telemetry describing queue usage.
         if row.get("multi_call_overflow"):
             result.fail("H3", f"H3 violated: {label} reported multi-call overflow")
-        if row.get("queued_action_count"):
-            result.fail(
-                "H3",
-                f"H3 violated: {label} left {row.get('queued_action_count')!r} "
-                "queued action(s) unaccounted for",
-            )
 
         # H5: instrument identity on every row and every manifest.
         if row.get("instrument_version") != INSTRUMENT_VERSION:
@@ -742,6 +747,7 @@ def print_report(result: Verification) -> None:
             f"terminal_no_action={row.get('terminal_no_action')} "
             f"multi_tool={row.get('provider_multi_tool_call')} "
             f"max_tool_calls={row.get('provider_max_tool_calls')} "
+            f"queued={row.get('queued_action_count')} "
             f"overflow={row.get('multi_call_overflow')} "
             f"regression_flag={row.get('tool_contract_regression_detected')}"
         )

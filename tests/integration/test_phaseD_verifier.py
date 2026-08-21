@@ -430,12 +430,70 @@ def test_refuses_unclassified_failure(artifacts: Fixture) -> None:
     assert_refused(artifacts.verify(), "unclassified failure")
 
 
-def test_refuses_silent_pending_action_loss(artifacts: Fixture) -> None:
+def test_refuses_multi_call_overflow(artifacts: Fixture) -> None:
+    """Overflow is the instrument's explicit proposal-loss condition."""
+
     directory = artifacts.dir_for_arm("B")
     rows = artifacts.rows(directory)
-    rows[0]["queued_action_count"] = 2
+    rows[0]["multi_call_overflow"] = True
     artifacts.write_rows(directory, rows)
-    assert_refused(artifacts.verify(), "queued action")
+    result = artifacts.verify()
+    assert_refused(result, "multi-call overflow")
+    assert result.criteria["H3"] is False
+
+
+def test_refuses_multi_call_overflow_failure_class(artifacts: Fixture) -> None:
+    directory = artifacts.dir_for_arm("C")
+    rows = artifacts.rows(directory)
+    rows[0]["failure_class"] = "multi_call_overflow"
+    artifacts.write_rows(directory, rows)
+    assert_refused(artifacts.verify(), "H3 violated")
+
+
+def test_consumed_multi_call_turn_does_not_fail_h3(artifacts: Fixture) -> None:
+    """A queued, fully consumed multi-call turn is valid, not a loss.
+
+    ``queued_action_count`` is incremented when a multi-call turn is enqueued on
+    the success path -- after the overflow guard has confirmed the remaining
+    steps can consume it in full -- and is never decremented.  A nonzero value
+    therefore records legitimate queue usage.  Reading it as "actions left
+    pending" would fail exactly the runs the Phase-C repair exists to support.
+    """
+
+    directory = artifacts.dir_for_arm("B")
+    rows = artifacts.rows(directory)
+    rows[0].update(
+        {
+            "queued_action_count": 2,
+            "provider_multi_tool_call": True,
+            "provider_max_tool_calls": 2,
+            "multi_call_overflow": False,
+        }
+    )
+    artifacts.write_rows(directory, rows)
+
+    result = artifacts.verify()
+    assert result.failures == [], f"unexpected violations: {result.failures}"
+    assert result.criteria["H3"] is True
+    assert result.verdict == "PASS"
+    assert result.exit_code == 0
+    assert result.multi_call_runs == 1
+
+
+def test_queued_actions_alone_never_fail_any_arm(artifacts: Fixture) -> None:
+    """The field is telemetry: nonzero in every run still verifies clean."""
+
+    for arm in verifier.EXPECTED_ARMS:
+        directory = artifacts.dir_for_arm(arm)
+        rows = artifacts.rows(directory)
+        for row in rows:
+            row["queued_action_count"] = 3
+        artifacts.write_rows(directory, rows)
+
+    result = artifacts.verify()
+    assert result.failures == []
+    assert result.verdict == "PASS"
+    assert result.exit_code == 0
 
 
 def test_refuses_diverging_diagnostic_input(artifacts: Fixture) -> None:
