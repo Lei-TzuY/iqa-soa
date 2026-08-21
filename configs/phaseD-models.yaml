@@ -1,0 +1,59 @@
+# Phase-D instrument-qualification providers ONLY.
+#
+# Not a scientific model configuration.  These slots exist to compare the
+# native-tools tool-contract policy on the two locally configured models used
+# in Phase B, and must never be used for a confirmatory measurement.
+#
+# Model identities were resolved from the frozen Stage-1 manifests
+# (results/pilot-v6.1-stage1/raw/*/manifest.json) and confirmed present in the
+# local Ollama tag listing; they are not guessed.  Sampling settings are copied
+# verbatim from configs/pilot-models.yaml so the diagnostic exercises the same
+# provider configuration Phase B diagnosed.
+#
+# timeout_seconds is raised to 600 only because a cold local model load must not
+# be misreported as a provider timeout; no retry is permitted either way.
+schema_version: 2
+default_provider: qwen_none
+providers:
+  mistral_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: PHASED_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none
+  mistral_trailing_user:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: PHASED_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: trailing_user
+  qwen_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: qwen3.5:27b
+    api_key_env: PHASED_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none

@@ -139,6 +139,27 @@ PILOT_RAW_FIELDS: tuple[str, ...] = REQUIRED_RAW_FIELDS + (
 )
 
 
+# Protocol/instrumentation telemetry added by the post-repair instrument.  These
+# are a strict superset of PILOT_RAW_FIELDS: frozen pre-repair artifacts do not
+# contain them and must never be required to, so they live in their own tuple
+# and are demanded only of raw_schema_version 3 rows.
+PROTOCOL_TELEMETRY_FIELDS: tuple[str, ...] = (
+    "instrument_version",
+    "terminal_no_action",
+    "terminal_no_action_attempts",
+    "no_action_after_actions",
+    "provider_multi_tool_call",
+    "provider_max_tool_calls",
+    "queued_action_count",
+    "tool_contract_policy",
+    "tool_contract_regression_detected",
+    "multi_call_overflow",
+    "native_tool_adapter_version",
+)
+
+PILOT_RAW_FIELDS_V3: tuple[str, ...] = PILOT_RAW_FIELDS + PROTOCOL_TELEMETRY_FIELDS
+
+
 METRIC_BY_NAME = {item.name: item for item in METRIC_DEFINITIONS}
 
 __all__ = [
@@ -146,5 +167,7 @@ __all__ = [
     "METRIC_DEFINITIONS",
     "MetricDefinition",
     "PILOT_RAW_FIELDS",
+    "PILOT_RAW_FIELDS_V3",
+    "PROTOCOL_TELEMETRY_FIELDS",
     "REQUIRED_RAW_FIELDS",
 ]

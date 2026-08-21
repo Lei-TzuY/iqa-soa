@@ -1,0 +1,24 @@
+# Phase-D instrument-qualification experiment configuration ONLY.
+#
+# Separate benchmark path, separate models path, separate output root.  It
+# touches no frozen scientific artifact and must never be pooled with Stage-1,
+# Stage-2, Phase-A, or any future confirmatory measurement.
+#
+# A single treatment arm ("off") is used deliberately: the qualification asks
+# whether the native tool contract survives sequential tool results, and no
+# privacy/injection/permission/budget guard construct may confound that.
+schema_version: 1
+benchmark_path: benchmark/phaseD-diagnostic
+policy_path: configs/policies/default.xml
+models_path: configs/phaseD-models.yaml
+ablations_path: configs/ablations.yaml
+output_root: results/phaseD-qualification/raw
+repetitions: 3
+seeds: [1729, 2718, 3141]
+max_agent_steps: 6
+shuffle_treatments: false
+treatments: ["off"]
+smoke_case_ids: [DIAG-001]
+raw_jsonl: runs.jsonl
+raw_csv: runs.csv
+evidence_subdir: evidence

@@ -330,12 +330,15 @@ def test_native_tools_encode_prior_outcomes_as_tool_messages(
 
     assert response is not None and response.outcome == "no_action"
     messages = captured["payload"]["messages"]
+    # Default providers are untouched by the Class-P repair: it is opt-in, so a
+    # provider that never showed the adjacency defect keeps its exact prompt.
     assert [message["role"] for message in messages] == [
         "system",
         "user",
         "assistant",
         "tool",
     ]
+    assert response.tool_contract_refreshed is False
     assert messages[2]["tool_calls"][0]["id"] == "iqa-history-0"
     assert json.loads(messages[2]["tool_calls"][0]["function"]["arguments"])[
         "action_id"

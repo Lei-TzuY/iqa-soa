@@ -24,6 +24,10 @@ from iqa_soa.agent import (
     OpenAICompatibleProvider,
 )
 from iqa_soa.agent.agent import AgentRun
+from iqa_soa.agent.providers import (
+    DEFAULT_TOOL_CONTRACT_POLICY,
+    probe_runtime_provenance,
+)
 from iqa_soa.benchmark import BenchmarkCase, FrozenPilotBenchmark, load_benchmark_cases
 from iqa_soa.evidence import EvidenceLogger
 from iqa_soa.experiment.treatments import Treatment, treatment_for
@@ -32,7 +36,15 @@ from iqa_soa.iqa.gateway import ServiceGateway
 from iqa_soa.iqa.policy import Policy
 from iqa_soa.iqa.qa_xml import DEFAULT_SCHEMA_PATH
 from iqa_soa.metrics.collector import collect_run_metrics, load_evidence_events
-from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS, REQUIRED_RAW_FIELDS
+from iqa_soa.instrument import (
+    INSTRUMENT_VERSION,
+    NATIVE_TOOL_ADAPTER_VERSION,
+    RAW_SCHEMA_VERSION,
+)
+from iqa_soa.metrics.definitions import (
+    PILOT_RAW_FIELDS_V3,
+    REQUIRED_RAW_FIELDS,
+)
 from iqa_soa.tools import SandboxState, ToolRegistry
 from iqa_soa.types import QAMode, RuntimeContext
 
@@ -274,7 +286,7 @@ class ExperimentRunner:
                 "a deterministic provider cannot be labeled as a real-model experiment"
             )
         pilot_schema = frozen_benchmark is not None
-        raw_fields = PILOT_RAW_FIELDS if pilot_schema else REQUIRED_RAW_FIELDS
+        raw_fields = PILOT_RAW_FIELDS_V3 if pilot_schema else REQUIRED_RAW_FIELDS
 
         experiment_id, experiment_dir = create_experiment_directory(self.config.output_root)
         jsonl_path = experiment_dir / self.config.raw_jsonl
@@ -284,7 +296,11 @@ class ExperimentRunner:
         evidence_root.mkdir(parents=True, exist_ok=False)
         manifest = {
             "schema_version": 2 if pilot_schema else 1,
-            "raw_schema_version": 2 if pilot_schema else 1,
+            "raw_schema_version": RAW_SCHEMA_VERSION if pilot_schema else 1,
+            # Instrument boundary: see iqa_soa.instrument.  Sources carrying
+            # different values must never be pooled analytically.
+            "instrument_version": INSTRUMENT_VERSION,
+            "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
             "experiment_id": experiment_id,
             "experiment_kind": resolved_kind,
             "created_at": _now(),
@@ -294,6 +310,7 @@ class ExperimentRunner:
             "policy_path": str(self.config.policy_path),
             "ablations_path": str(self.config.ablations_path),
             "provider": self.provider.descriptor(),
+            "provider_runtime": self._provider_runtime_provenance(),
             "benchmark_version": (
                 frozen_benchmark.benchmark_version if frozen_benchmark else None
             ),
@@ -623,6 +640,19 @@ class ExperimentRunner:
             "invalid_action_format": agent_run.failure_class
             in {"invalid_json", "invalid_action_format", "invalid_tool_call"},
             "tool_call_parse_failure": agent_run.failure_class == "invalid_tool_call",
+            "instrument_version": INSTRUMENT_VERSION,
+            "terminal_no_action": agent_run.terminal_no_action,
+            "terminal_no_action_attempts": agent_run.terminal_no_action_attempts,
+            "no_action_after_actions": agent_run.no_action_after_actions,
+            "provider_multi_tool_call": agent_run.provider_multi_tool_call,
+            "provider_max_tool_calls": agent_run.provider_max_tool_calls,
+            "queued_action_count": agent_run.queued_action_count,
+            "tool_contract_policy": provider_descriptor.get("tool_contract_policy"),
+            "tool_contract_regression_detected": (
+                agent_run.tool_contract_regression_detected
+            ),
+            "multi_call_overflow": agent_run.multi_call_overflow,
+            "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
             "proposed_action_count": len(agent_run.proposed_action_bytes),
             "proposed_action_digest": _proposal_digest(
                 agent_run.proposed_action_bytes
@@ -632,6 +662,18 @@ class ExperimentRunner:
             "_proposed_action_bytes": agent_run.proposed_action_bytes,
             **metrics,
         }
+
+    def _provider_runtime_provenance(self) -> dict[str, Any] | None:
+        """Record inference-free provider runtime identity, or None when N/A.
+
+        Phase B could not prove which chat template rendered the frozen runs,
+        because nothing captured the runtime's identity.  This closes that gap
+        without ever invoking the model, and never fails an experiment.
+        """
+
+        if not isinstance(self.provider, OpenAICompatibleProvider):
+            return None
+        return probe_runtime_provenance(self.provider.endpoint, self.provider.model)
 
     def _seed_for(self, repetition: int) -> int:
         if repetition < len(self.config.seeds):
@@ -704,6 +746,7 @@ def load_provider(
             "supports_seed",
             "protocol",
             "timeout_seconds",
+            "tool_contract_policy",
         }
         if unknown:
             raise ExperimentConfigError(f"unknown HTTP provider fields: {sorted(unknown)}")
@@ -741,6 +784,10 @@ def load_provider(
             supports_seed=_boolean(raw.get("supports_seed", True), "supports_seed"),
             protocol=_nonempty_string(raw.get("protocol", "native_tools"), "protocol"),
             timeout_seconds=float(raw.get("timeout_seconds", 60.0)),
+            tool_contract_policy=_nonempty_string(
+                raw.get("tool_contract_policy", DEFAULT_TOOL_CONTRACT_POLICY),
+                "tool_contract_policy",
+            ),
         )
     raise ExperimentConfigError(f"unsupported provider type: {provider_type!r}")
 
