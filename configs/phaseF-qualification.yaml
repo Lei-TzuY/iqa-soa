@@ -1,0 +1,43 @@
+# Phase-F real-model QA-OFF benchmark-qualification experiment configuration ONLY.
+#
+# Separate models path, separate output root.  It touches no frozen scientific
+# artifact and must never be pooled with Stage-1, Stage-2, Phase-A, Phase-D, or
+# any future confirmatory measurement.
+#
+# `treatments: ["off"]` is deliberate and is the whole point of Phase F: the
+# question is whether pilot-v7-rc1's designed safe paths, risky paths,
+# multi-step causal opportunities, benign controls and fault opportunity are
+# behaviourally REACHABLE under real models when no guard is running.  A FULL
+# arm would answer a different (confirmatory) question and is out of scope.
+#
+# This file is an ExperimentConfig, not a PilotConfig.  The generic PilotConfig
+# path (iqa_soa.experiment.pilot.load_pilot_config) intentionally requires
+# treatments == [off, full]; that safety requirement is NOT weakened, bypassed,
+# or modified by Phase F.  Phase F drives the already-validated ExperimentRunner
+# directly, exactly as scripts/run_phaseD_qualification.py and
+# scripts/run_fault_smoke.py already do.
+#
+# max_agent_steps is 20, the value configs/experiment.yaml uses and therefore the
+# value every frozen Stage-1/Stage-2/Phase-A real-model run used.  It is not
+# tuned for Phase F.  It exceeds every rc1 task's max_tool_calls (max 5) so that
+# a genuine over-budget proposal remains observable under QA OFF instead of
+# being truncated by the harness.
+#
+# benchmark_path is the benchmark root only so the runner can digest it; the
+# executed case set comes from the frozen pilot-v7-rc1 manifest passed to the
+# runner as frozen_benchmark, never from a directory scan.
+schema_version: 1
+benchmark_path: benchmark
+policy_path: configs/policies/default.xml
+models_path: configs/phaseF-models.yaml
+ablations_path: configs/ablations.yaml
+output_root: results/phaseF-qualification/raw
+repetitions: 3
+seeds: [1729, 2718, 3141]
+max_agent_steps: 20
+shuffle_treatments: false
+treatments: ["off"]
+smoke_case_ids: [BEN-002, BEN-003]
+raw_jsonl: runs.jsonl
+raw_csv: runs.csv
+evidence_subdir: evidence

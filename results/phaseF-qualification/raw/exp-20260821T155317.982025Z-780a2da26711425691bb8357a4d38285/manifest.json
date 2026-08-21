@@ -1,0 +1,109 @@
+{
+  "ablations_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\ablations.yaml",
+  "benchmark_manifest_path": "C:\\Users\\User\\Desktop\\FSE\\benchmark\\pilot-v7-rc1\\manifest.json",
+  "benchmark_path": "C:\\Users\\User\\Desktop\\FSE\\benchmark",
+  "benchmark_version": "pilot-v7-rc1",
+  "case_ids": [
+    "BEN-002",
+    "BEN-003",
+    "PI-010",
+    "PI-011",
+    "PI-012",
+    "PI-013",
+    "KP-002",
+    "UA-004",
+    "UA-005",
+    "PRIV-007",
+    "PRIV-012",
+    "PRIV-013",
+    "PRIV-014",
+    "BUD-009",
+    "BUD-010",
+    "BUD-011",
+    "FAULT-003"
+  ],
+  "completed_at": "2026-08-21T15:54:48.584538+00:00",
+  "config_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\phaseF-qualification.yaml",
+  "created_at": "2026-08-21T15:53:17.982680+00:00",
+  "expected_record_count": 51,
+  "experiment_id": "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285",
+  "experiment_kind": "real_model_connectivity_smoke",
+  "infrastructure_retry_limit": 0,
+  "input_digests": {
+    "ablation_config_sha256": "78e5ecb22ca8dcee1a72370d716956e1163873e9914a0c80fb1ceee2ecf62495",
+    "benchmark_manifest_sha256": "400b2ac2124311c79a69abd0fd5428373f873bf7d9a718e3e3cb15f2a929e00a",
+    "benchmark_sha256": "210b1976f7da7616ce86906656535cc2184c6eee5f747110b3b92fd8e792acc6",
+    "experiment_config_sha256": "16cad53251c373031a4dfff4288f11b974dec308ca6c575bf052a12a5915bb05",
+    "model_config_sha256": "8dc495f71caa421112526f5df6a147c8154d0db06eec3d2992eac581e1cb3aec",
+    "qa_xml_policy_sha256": "b04bec81ab961aa06b2e8e52ddbd2c5e25b6b2d366b47fda3ee60690a7275982",
+    "qa_xml_schema_sha256": "424662b471d844b489971ae882af5f21f8ebe49387a00c4af0cccc21a0df2240",
+    "resource_budget_policy_sha256": "e80cbf51bb75c1691a5a934fa261fd87bd6e02597214080480eae984aaba8a3b",
+    "selected_case_set_sha256": "d2a710a15603a4cc389acc2b96a6da486f1d8aed571b959af985f7e18d00ca17"
+  },
+  "instrument_version": "2",
+  "max_total_runs": 51,
+  "native_tool_adapter_version": "native-tools-adapter-2",
+  "policy_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\policies\\default.xml",
+  "provider": {
+    "api_key_env": "PHASEF_OLLAMA_API_KEY",
+    "base_url_env": null,
+    "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+    "max_output_tokens": 1024,
+    "model": "mistral-small3.2:24b",
+    "model_env": null,
+    "native_tool_adapter_version": "native-tools-adapter-2",
+    "protocol": "native_tools",
+    "provider": "openai_compatible",
+    "seed": null,
+    "supports_seed": true,
+    "temperature": 0.2,
+    "tool_contract_policy": "trailing_user",
+    "top_p": 1.0
+  },
+  "provider_runtime": {
+    "capabilities": [
+      "completion",
+      "vision",
+      "tools"
+    ],
+    "model_digest": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+    "model_identifier": "mistral-small3.2:24b",
+    "model_modified_at": "2026-08-16T22:23:58.6334879+08:00",
+    "probe_error": null,
+    "runtime": "ollama",
+    "runtime_version": "0.32.13",
+    "template_sha256": "706c4d1164f7f1bbce2a852f2bc9cfa66b98d24f79300b9034388e07fcda98c8"
+  },
+  "raw_csv": "runs.csv",
+  "raw_jsonl": "runs.jsonl",
+  "raw_schema_version": 3,
+  "record_count": 51,
+  "repetitions": 3,
+  "resource_budget_policy": {
+    "policy_id": "ordinary-provider-resource-telemetry-v1",
+    "strict_budget_categories": [
+      "budget"
+    ],
+    "telemetry_only_limits": [
+      "max_cost",
+      "max_runtime_ms",
+      "max_tokens"
+    ]
+  },
+  "schema_version": 2,
+  "seeds": [
+    1729,
+    2718,
+    3141
+  ],
+  "shuffle_treatments": false,
+  "software": {
+    "artifact_version": "0.2.0",
+    "package_source_sha256": "22192d1fe962f9e32b25c9eeeeafcc61e56703667d9f16b8c316834edbe79d88",
+    "python_version": "3.13.5"
+  },
+  "status": "complete",
+  "treatments": [
+    "off"
+  ]
+}
