@@ -1,0 +1,250 @@
+{
+  "amendment_id": "hash-basis-amendment-v1",
+  "schema_version": 1,
+  "applies_to_commit": "47e237c339f62640ab52edc95d5bf09f22c62c36",
+  "governing_policy": "docs/hash_basis_policy.md",
+  "human_readable_record": "docs/hash_basis_amendment_v1.md",
+  "additive_only": true,
+  "historical_records_modified": false,
+  "experimental_results_changed": false,
+  "scientific_metrics_changed": false,
+  "benchmark_semantics_changed": false,
+  "canonical_basis": {
+    "representation": "LF",
+    "enforced_by": ".gitattributes",
+    "policy_line": "* text=auto eol=lf",
+    "hashing_basis": "raw working-tree bytes (unchanged)",
+    "hash_time_normalization": false,
+    "blob_only_hashing": false
+  },
+  "recorded_hash_basis_survey": {
+    "digest_references_surveyed": 164,
+    "canonical_lf_basis": 128,
+    "non_lf_local_materialization_basis": 16,
+    "derived_or_unbound": 20,
+    "distinct_artifacts_amended": 5
+  },
+  "amended_artifacts": [
+    {
+      "artifact": "docs/preregistration_coverage_extension_v3.md",
+      "historical_recorded_sha256": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1",
+      "historical_observed": {
+        "bytes": 34016,
+        "crlf_terminators": 518,
+        "bare_lf_terminators": 50,
+        "eol_form": "MIXED",
+        "sha256_recomputed_from_observed_bytes": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1",
+        "matches_historical_record": true
+      },
+      "canonical_lf": {
+        "bytes": 33498,
+        "sha256": "6b7a33501f4610a73f35770314368ecc2aee4eadeab1f5f51b6e09c847409efe",
+        "source": "git cat-file blob 47e237c:docs/preregistration_coverage_extension_v3.md"
+      },
+      "crlf_to_lf_normalization_yields_committed_blob_bytes": true,
+      "uniform_crlf_materialization_reproduces_historical_bytes": false,
+      "content_difference_beyond_line_endings": false,
+      "note": "Primary subject. MIXED EOL form; not reproduced by any clone under any core.autocrlf setting.",
+      "fresh_clone_autocrlf_true_materialization": {
+        "bytes": 34066,
+        "crlf_terminators": 568,
+        "bare_lf_terminators": 0,
+        "sha256": "1a4c6ce72730d27975b18a5e9b827d8e329dff3aee6824190666e69f6841620a",
+        "equals_historical_record": false,
+        "note": "A third distinct value; the historical MIXED form is not clone-reproducible."
+      },
+      "historical_eol_reconstruction": {
+        "convention": "eol-mask-v1",
+        "purpose": "Preserve the exact byte representation of the historical mixed-EOL materialization so it remains reconstructible after the working tree is refreshed to canonical LF.",
+        "canonical_source": "docs/preregistration_coverage_extension_v3.md",
+        "canonical_source_sha256": "6b7a33501f4610a73f35770314368ecc2aee4eadeab1f5f51b6e09c847409efe",
+        "canonical_source_bytes": 33498,
+        "total_lf_terminators": 568,
+        "index_basis": "0-based LF-terminator ordinal in canonical LF byte stream",
+        "bare_lf_terminator_indices": [
+          518,
+          519,
+          520,
+          521,
+          522,
+          523,
+          524,
+          525,
+          526,
+          527,
+          528,
+          529,
+          530,
+          531,
+          532,
+          533,
+          534,
+          535,
+          536,
+          537,
+          538,
+          539,
+          540,
+          541,
+          542,
+          543,
+          544,
+          545,
+          546,
+          547,
+          548,
+          549,
+          550,
+          551,
+          552,
+          553,
+          554,
+          555,
+          556,
+          557,
+          558,
+          559,
+          560,
+          561,
+          562,
+          563,
+          564,
+          565,
+          566,
+          567
+        ],
+        "bare_lf_terminator_count": 50,
+        "all_other_lf_terminators_are_crlf": true,
+        "reconstruction_procedure": "Starting from the canonical LF blob, enumerate its LF terminators in stream order as ordinals 0 through 567. Leave every ordinal listed in bare_lf_terminator_indices as a bare LF (0x0A). Replace every other LF terminator with CRLF (0x0D 0x0A). No other byte is altered.",
+        "reconstructed_byte_length": 34016,
+        "reconstructed_crlf_count": 518,
+        "reconstructed_bare_lf_count": 50,
+        "reconstructed_sha256": "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1",
+        "capture_verified_against_original_worktree": true,
+        "capture_verified_date": "2026-08-21",
+        "capture_canonical_source_commit": "47e237c339f62640ab52edc95d5bf09f22c62c36",
+        "capture_context_note": "The exact mixed-EOL working-tree bytes were observed locally and verified byte-for-byte against a reconstruction whose canonical committed source is anchored at 47e237c. The mixed materialization itself is not a Git blob.",
+        "mask_is_lossless_because": {
+          "canonical_blob_contains_no_cr_byte": true,
+          "original_contains_no_cr_outside_crlf_pairs": true,
+          "note": "Every LF terminator is therefore either bare LF or CRLF, and no other byte differs, so the mask fully determines the original byte sequence."
+        },
+        "structural_observation": "The bare-LF ordinals form a single contiguous terminal run (518 through 567): the first 518 line terminators are CRLF and the final 50 are bare LF. This is reported as an observation about the recorded bytes only.",
+        "scope_limitation": "This records the observed final byte pattern only. It does not reconstruct, and makes no claim about, the historical sequence of edits, checkouts, or freeze mechanics that produced that pattern."
+      }
+    },
+    {
+      "artifact": "benchmark/pilot-v6.1/manifest.json",
+      "historical_recorded_sha256": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+      "historical_observed": {
+        "bytes": 10931,
+        "crlf_terminators": 169,
+        "bare_lf_terminators": 0,
+        "eol_form": "CRLF",
+        "sha256_recomputed_from_observed_bytes": "e622a1335bf8b37aaa43ca269449ee4997d09b541c5a27ef182e8005c4105b34",
+        "matches_historical_record": true
+      },
+      "canonical_lf": {
+        "bytes": 10762,
+        "sha256": "2d91604757a134dec6bbc53922ebc169579175fe121d0f7ac1d0f49a0c7a9e2d",
+        "source": "git cat-file blob 47e237c:benchmark/pilot-v6.1/manifest.json"
+      },
+      "crlf_to_lf_normalization_yields_committed_blob_bytes": true,
+      "uniform_crlf_materialization_reproduces_historical_bytes": true,
+      "content_difference_beyond_line_endings": false,
+      "note": "Uniform CRLF. Recorded as manifest_sha256 in pilot-v6.1 freeze-record, AUDIT, Phase-A plan/provenance, findings.md."
+    },
+    {
+      "artifact": "benchmark/pilot-v6/manifest.json",
+      "historical_recorded_sha256": "75c1917c1d72d7f8eb5388bdb10c7c5bd2f65b2b2e4d116c99fda5e9fd1d94e3",
+      "historical_observed": {
+        "bytes": 10129,
+        "crlf_terminators": 169,
+        "bare_lf_terminators": 0,
+        "eol_form": "CRLF",
+        "sha256_recomputed_from_observed_bytes": "75c1917c1d72d7f8eb5388bdb10c7c5bd2f65b2b2e4d116c99fda5e9fd1d94e3",
+        "matches_historical_record": true
+      },
+      "canonical_lf": {
+        "bytes": 9960,
+        "sha256": "d81e859289f1ef02320798475fa3317e12eeaaaed43e7cb386f1928be34783b0",
+        "source": "git cat-file blob 47e237c:benchmark/pilot-v6/manifest.json"
+      },
+      "crlf_to_lf_normalization_yields_committed_blob_bytes": true,
+      "uniform_crlf_materialization_reproduces_historical_bytes": true,
+      "content_difference_beyond_line_endings": false,
+      "note": "Uniform CRLF. Recorded as superseded manifest_sha256 in pilot-v6/pilot-v6.1 freeze-records."
+    },
+    {
+      "artifact": "benchmark/pilot-v6.1/freeze-record.json",
+      "historical_recorded_sha256": "b10b7c431ae32e468577863a112f729884cfe416c0050b3297c151357d2903d8",
+      "historical_observed": {
+        "bytes": 2932,
+        "crlf_terminators": 53,
+        "bare_lf_terminators": 0,
+        "eol_form": "CRLF",
+        "sha256_recomputed_from_observed_bytes": "b10b7c431ae32e468577863a112f729884cfe416c0050b3297c151357d2903d8",
+        "matches_historical_record": true
+      },
+      "canonical_lf": {
+        "bytes": 2879,
+        "sha256": "ff9256b8f59d2c223dd62f84b51b16673e17a54bba924ab66e6dbbafbe99d894",
+        "source": "git cat-file blob 47e237c:benchmark/pilot-v6.1/freeze-record.json"
+      },
+      "crlf_to_lf_normalization_yields_committed_blob_bytes": true,
+      "uniform_crlf_materialization_reproduces_historical_bytes": true,
+      "content_difference_beyond_line_endings": false,
+      "note": "Uniform CRLF. Recorded in Phase-A ablation plan and Phase-A provenance."
+    },
+    {
+      "artifact": "docs/preregistration_coverage_extension_v1.md",
+      "historical_recorded_sha256": "2fcdecbd81de4b94834c4f44a42b4dbb2500b362e4b571aab9a403d7cade622b",
+      "historical_observed": {
+        "bytes": 23968,
+        "crlf_terminators": 404,
+        "bare_lf_terminators": 0,
+        "eol_form": "CRLF",
+        "sha256_recomputed_from_observed_bytes": "2fcdecbd81de4b94834c4f44a42b4dbb2500b362e4b571aab9a403d7cade622b",
+        "matches_historical_record": true
+      },
+      "canonical_lf": {
+        "bytes": 23564,
+        "sha256": "163c931a1054260cd30b6c4fe13bbfa8d460739c66bf0ccd523824ae184a00bb",
+        "source": "git cat-file blob 47e237c:docs/preregistration_coverage_extension_v1.md"
+      },
+      "crlf_to_lf_normalization_yields_committed_blob_bytes": true,
+      "uniform_crlf_materialization_reproduces_historical_bytes": true,
+      "content_difference_beyond_line_endings": false,
+      "note": "Uniform CRLF. Recorded in pilot-v6 freeze-record, pilot-v6 execution plan, findings.md."
+    }
+  ],
+  "already_canonical_lf_examples": [
+    {
+      "artifact": "docs/phaseD_instrument_qualification_plan.md",
+      "frozen_sha256": "2896f0e0263a36ab8eb240ccfbeb2ace35057cec16e3f0fe943ed13adf5fcc2a",
+      "basis": "canonical LF",
+      "crlf_materialization_sha256": "bd6ce851362e417edc5f41b69ce90b6ccec2e32ddcada945247ebbb62eb2edeb",
+      "runtime_enforced_by": "Phase-D verifier plan-boundary check",
+      "note": "Frozen digest was correct; CRLF checkout caused 5 suite failures on canonical main."
+    }
+  ],
+  "historical_record_locations_left_unchanged": [
+    "benchmark/pilot-v6.1/freeze-record.json",
+    "benchmark/pilot-v6/freeze-record.json",
+    "benchmark/pilot-v6.1/AUDIT.md",
+    "docs/phaseA_privacy_ablation_plan.md",
+    "docs/pilot_v6_1_execution_plan.md",
+    "docs/pilot_v6_execution_plan.md",
+    "results/phaseA-privacy-ablation/phaseA-provenance.json",
+    "findings.md"
+  ],
+  "statements_of_record": [
+    "d9d5f6aad993b9b106d22f06e9e9a347f74c4f5b571449f48ab512bf0c2589a1 was a valid digest of an actual local working-tree byte sequence.",
+    "It does not represent different semantic or content data.",
+    "CRLF->LF applied to those bytes produces bytes identical to the committed artifact, verified by byte comparison.",
+    "The original historical records remain unchanged; no historical digest has been overwritten.",
+    "This amendment supplies the portable canonical hash basis for future reproducibility checks.",
+    "No experimental result, scientific evidence, metric, or benchmark semantic is changed.",
+    "No claim is made about the exact historical freeze mechanics beyond what the byte evidence proves."
+  ]
+}
