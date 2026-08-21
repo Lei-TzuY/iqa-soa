@@ -39,6 +39,7 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -75,21 +76,56 @@ def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def tree_digest(root: Path) -> str:
-    """Order-independent digest of every tracked file beneath *root*.
+class TreeEnumerationError(RuntimeError):
+    """The set of tracked files under a directory could not be determined."""
 
-    ``__pycache__`` is skipped because it is generated, untracked build output.
-    Paths are hashed alongside contents so a renamed or deleted file changes the
+
+def tracked_files(relative_root: str) -> list[str]:
+    """Repository-relative paths of the *tracked* files beneath a directory.
+
+    Git is used only to ENUMERATE which paths are committed artifacts; the bytes
+    are still read from the working tree.  That distinction matters: hashing
+    ``git cat-file`` blobs instead of working-tree bytes is explicitly prohibited
+    by ``docs/hash_basis_policy.md`` because it would attest what was committed
+    rather than what a run actually reads, and a tampered working tree would
+    silently validate.  Enumerating tracked paths keeps that tamper-detection
+    property intact while excluding local run output.
+
+    The exclusion is not cosmetic.  ``results/phaseA-privacy-ablation/`` is
+    gitignored as a whole and only a handful of files inside it were force-added,
+    so a developer who re-runs that ablation locally leaves untracked evidence
+    files beside the committed ones.  A digest over ``rglob`` would then differ
+    between that working tree and a fresh checkout of the identical commit.
+    """
+
+    result = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", relative_root],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise TreeEnumerationError(
+            f"git ls-files failed for {relative_root}: "
+            f"{result.stderr.decode('utf-8', 'replace').strip()}"
+        )
+    entries = [item for item in result.stdout.decode("utf-8").split("\0") if item]
+    if not entries:
+        raise TreeEnumerationError(f"no tracked files found under {relative_root}")
+    return sorted(entries)
+
+
+def tree_digest(relative_root: str) -> str:
+    """Order-independent digest of every tracked file beneath *relative_root*.
+
+    Paths are hashed alongside contents, so a renamed or deleted file changes the
     digest as surely as an edited one does.
     """
 
     digest = hashlib.sha256()
-    for path in sorted(root.rglob("*")):
-        if path.is_dir() or "__pycache__" in path.parts:
-            continue
-        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+    for relative in tracked_files(relative_root):
+        digest.update(relative.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(sha256_of(path).encode("ascii"))
+        digest.update(sha256_of(REPO_ROOT / relative).encode("ascii"))
         digest.update(b"\n")
     return digest.hexdigest()
 
@@ -101,12 +137,12 @@ def tree_digest(root: Path) -> str:
 # Pinned from canonical main HEAD da6ccdc552c2e085cf6a3d0131c108f86bd32a7e.
 # Phase H is additive: none of these bytes may move.
 FROZEN_TREES: Mapping[str, str] = {
-    "src/iqa_soa": "b75b477b74998a24c1dea9a226d5de85116f4c5f758d7ae098dfaf6b103ae541",
-    "benchmark/pilot-v7-rc1": "b08f5f2b6629ea4ddd1f9d236b6c88e089d1d84f9c30f286208bd48b04e71e02",
-    "benchmark/pilot-v6.1": "f217de6c3997e8626425f4dd5fa5933c07e3b98935e53d324a89efd9642a4ab5",
-    "results/phaseF-qualification": "87f241afe6974ab11f30eecbd7556586f9c99357b67c93a1bf6f77ac92aa5dde",
-    "results/phaseD-qualification": "c09386863305aea2f9104ddabdbf25b78a9ab4ee52dba4788c400995a76ab714",
-    "results/phaseA-privacy-ablation": "d1d05a86d7137083ee0bd56fff9827c8abcb96c4dcbcada087801b4881d550bd",
+    "src/iqa_soa": "1825ca11de6723c10fa557d641b4c3585b20c2f9a1c634e9247d46821a53c4d3",
+    "benchmark/pilot-v7-rc1": "025a7c2d962759e622efa286a80bf512e956cd50ebef03d636352782a041eb30",
+    "benchmark/pilot-v6.1": "ebf27513105e2dbae73a71b529f954c3ee2a562446e6cfe8284acef065b9ff48",
+    "results/phaseF-qualification": "4b4ea6309028f22d75264a9350ce6f66850daf163fcfe910ada4c1a91e353040",
+    "results/phaseD-qualification": "8eff6744d8dbe79b5d3cace21d1f6ce1124818f2d8f014d7b58e28b72c118995",
+    "results/phaseA-privacy-ablation": "48b6294b58e8805220fe02104f9a118ae5728352dfcbc3873c6d908d22e9b6c8",
 }
 
 FROZEN_FILES: Mapping[str, str] = {
@@ -199,11 +235,14 @@ RC2_NEW_CASE_FILES: Mapping[str, str] = {
 def check_historical_immutability() -> list[str]:
     failures: list[str] = []
     for relative, expected in FROZEN_TREES.items():
-        root = REPO_ROOT / relative
-        if not root.is_dir():
+        if not (REPO_ROOT / relative).is_dir():
             failures.append(f"A: frozen tree is missing: {relative}")
             continue
-        actual = tree_digest(root)
+        try:
+            actual = tree_digest(relative)
+        except TreeEnumerationError as exc:
+            failures.append(f"A: cannot enumerate frozen tree {relative}: {exc}")
+            continue
         if actual != expected:
             failures.append(
                 f"A: frozen tree changed: {relative} expected {expected} got {actual}"

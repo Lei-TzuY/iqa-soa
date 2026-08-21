@@ -157,12 +157,12 @@ rc2, and should be revisited only in a dedicated architecture phase.
 |---|---|
 | pilot-v7-rc1 manifest | `400b2ac2124311c79a69abd0fd5428373f873bf7d9a718e3e3cb15f2a929e00a` |
 | pilot-v7-rc1 provenance | `077d9e1b35ee8738c8df334faee73f6a457396c8fa942c45e5799518b3540fc2` |
-| pilot-v7-rc1 tree | `b08f5f2b6629ea4ddd1f9d236b6c88e089d1d84f9c30f286208bd48b04e71e02` |
-| pilot-v6.1 tree | `f217de6c3997e8626425f4dd5fa5933c07e3b98935e53d324a89efd9642a4ab5` |
-| Phase-F results tree | `87f241afe6974ab11f30eecbd7556586f9c99357b67c93a1bf6f77ac92aa5dde` |
-| Phase-D results tree | `c09386863305aea2f9104ddabdbf25b78a9ab4ee52dba4788c400995a76ab714` |
-| Phase-A results tree | `d1d05a86d7137083ee0bd56fff9827c8abcb96c4dcbcada087801b4881d550bd` |
-| src/iqa_soa tree | `b75b477b74998a24c1dea9a226d5de85116f4c5f758d7ae098dfaf6b103ae541` |
+| pilot-v7-rc1 tree | `025a7c2d962759e622efa286a80bf512e956cd50ebef03d636352782a041eb30` |
+| pilot-v6.1 tree | `ebf27513105e2dbae73a71b529f954c3ee2a562446e6cfe8284acef065b9ff48` |
+| Phase-F results tree | `4b4ea6309028f22d75264a9350ce6f66850daf163fcfe910ada4c1a91e353040` |
+| Phase-D results tree | `8eff6744d8dbe79b5d3cace21d1f6ce1124818f2d8f014d7b58e28b72c118995` |
+| Phase-A results tree | `48b6294b58e8805220fe02104f9a118ae5728352dfcbc3873c6d908d22e9b6c8` |
+| src/iqa_soa tree | `1825ca11de6723c10fa557d641b4c3585b20c2f9a1c634e9247d46821a53c4d3` |
 | preregistration v1 | `163c931a1054260cd30b6c4fe13bbfa8d460739c66bf0ccd523824ae184a00bb` |
 | preregistration v3 | `6b7a33501f4610a73f35770314368ecc2aee4eadeab1f5f51b6e09c847409efe` |
 | configs/policies/default.xml | `256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5` |
