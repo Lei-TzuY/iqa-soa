@@ -1711,6 +1711,19 @@ def analyze(root: Path, manifest_path: Path, plan_path: Path) -> dict[str, Any]:
             "docs/phaseF_real_model_qualification_plan.md": _sha256_file(plan_path),
         },
         "raw_artifact_digests": file_digests,
+        "raw_artifact_digest_basis": (
+            "Canonical LF working-tree bytes, per docs/hash_basis_policy.md 6. "
+            "Note that ExperimentRunner writes runs.csv through the csv module, "
+            "whose default line terminator is CRLF, so a freshly produced "
+            "runs.csv is CRLF on Windows until Git normalizes it on check-in. "
+            "The digests recorded here are taken from the canonical LF "
+            "materialization and therefore reproduce in a clean clone on any "
+            "platform; a locally regenerated, not-yet-committed runs.csv will "
+            "not match until it is re-materialized (hash_basis_policy 7). "
+            "runs.jsonl and every evidence trace are written LF directly and "
+            "are unaffected. No hash-time normalization is performed: bytes are "
+            "hashed exactly as read."
+        ),
         "matrix": {
             "expected": matrix.expected,
             "observed": matrix.observed,
@@ -1792,8 +1805,14 @@ def main(argv: list[str] | None = None) -> int:
         out = Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
         summary = out / "phaseF-summary.csv"
-        with summary.open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=SUMMARY_FIELDS)
+        # LF, so the recorded digest is on the canonical hash basis required by
+        # docs/hash_basis_policy.md and reproduces in a clean clone on any OS.
+        with summary.open("w", encoding="utf-8", newline="\n") as handle:
+            # csv writes \r\n unless told otherwise, which would put the recorded
+            # digest on a non-portable basis (docs/hash_basis_policy.md 5).
+            writer = csv.DictWriter(
+                handle, fieldnames=SUMMARY_FIELDS, lineterminator="\n"
+            )
             writer.writeheader()
             for cell in result["cells"]:
                 writer.writerow(_cell_row(cell))

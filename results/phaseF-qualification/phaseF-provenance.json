@@ -18,11 +18,11 @@
     "docs/phaseF_real_model_qualification_plan.md": "4042f6c5ae43f06f39161f1115aa73a1dc4e7e3ba6dd1820ce9a710ce0a65823"
   },
   "branch": "phase-f/real-model-qualification",
-  "branch_head_commit": "b75170b97e5d393c3be952c7377ad218e289930e",
+  "branch_head_commit": "94dfe4abf9f6b02c13bc0a2e60fa5a36eb444026",
   "canonical_base_commit": "f79ffe55b2ae0f059b67a1cb1e22f081adaca8d0",
   "expected_cells": 102,
   "experiment_kind": "real_model_connectivity_smoke",
-  "generated_at": "2026-08-21T15:57:54.140115+00:00",
+  "generated_at": "2026-08-21T16:01:29.453098+00:00",
   "instrument_version": "2",
   "matrix": {
     "benchmark_mismatch": [],
@@ -101,6 +101,7 @@
       "top_p": 1.0
     }
   },
+  "raw_artifact_digest_basis": "Canonical LF working-tree bytes, per docs/hash_basis_policy.md 6. Note that ExperimentRunner writes runs.csv through the csv module, whose default line terminator is CRLF, so a freshly produced runs.csv is CRLF on Windows until Git normalizes it on check-in. The digests recorded here are taken from the canonical LF materialization and therefore reproduce in a clean clone on any platform; a locally regenerated, not-yet-committed runs.csv will not match until it is re-materialized (hash_basis_policy 7). runs.jsonl and every evidence trace are written LF directly and are unaffected. No hash-time normalization is performed: bytes are hashed exactly as read.",
   "raw_artifact_digests": {
     "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/evidence/BEN-002-r000-off-d0625cccd2eb.jsonl": "0c4615470b6add0c2822e67cb4e5f678fec09b6d203fad2aa2492d665b8e23a6",
     "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/evidence/BEN-002-r001-off-4d07d29ac8d6.jsonl": "e32295372ed643c4c41b324edc7fb76431de249b42e6ddd3f82522b72dbaa294",
@@ -154,7 +155,7 @@
     "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/evidence/UA-005-r001-off-22443b2ad55d.jsonl": "36d6060a53779015fca3fa35e1d2a9d565ed01e59e2043c15631b6ec7edba4f1",
     "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/evidence/UA-005-r002-off-599aa3a9759b.jsonl": "1f2d3ba208cbc6b23f12a414880c83e06da665f1de0241a84a1602261071317c",
     "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/manifest.json": "481986677d4f4d8b5ce3f8f92ff8830e3725644ebcc44542a56677e517aca9b7",
-    "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/runs.csv": "e7750e952316d7aab2a522c79848e300795b10f725c9629dd4a4cee200a79eb0",
+    "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/runs.csv": "360a6bc35eaf0be709d07844be94b91d99d57bca7398aa5d2ee8408904f6547a",
     "exp-20260821T154610.504754Z-b0c09b74a2ef4a6dae591d488011ad4c/runs.jsonl": "eaa93b1deb7f4f1eb36e7f08be9903ffe8f414c7dececbb17aad795831a966f0",
     "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/evidence/BEN-002-r000-off-f5352e66c83e.jsonl": "46657c0a0a0c4271519b38fb59ed0ceff6f0e22497e7ff1616e7511115ca0646",
     "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/evidence/BEN-002-r001-off-605a1e783ac8.jsonl": "ee274cd5e6a50192b2b2c06cf4641d1ac20885dfd7786dc01d7eda942450e513",
@@ -208,7 +209,7 @@
     "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/evidence/UA-005-r001-off-f08549a6b016.jsonl": "22ccbf4a0bc8c54bb4704d050dcb0e668585b699d68db242e54cc5df8bafcfb0",
     "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/evidence/UA-005-r002-off-d8c1d38022bb.jsonl": "226eb7a3891829d674982d89d119cf8683d517f2e920ef3da01c13227ce21ad3",
     "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/manifest.json": "f8736b79c5f8f6461c921cdcf7639f5def8deb005a995e731adfcacbcd6d24fb",
-    "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/runs.csv": "35915e58ccc5012ead1c10487fb2c0fe82646b05653b0c36408d94d314610d8e",
+    "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/runs.csv": "61b5e41d9e1260ccc3f76666fcc118492586d75a1113cc14a91d636ed7b96eca",
     "exp-20260821T155317.982025Z-780a2da26711425691bb8357a4d38285/runs.jsonl": "d622e03e9ecfc6e66d88fab2d9bf815bda6cbd03df4aee8ca13b4d2e8f441051"
   },
   "raw_schema_version": 3,

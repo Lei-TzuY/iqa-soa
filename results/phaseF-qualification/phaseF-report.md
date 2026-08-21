@@ -170,7 +170,7 @@ No rc1 task was edited, no rc2 was created, and no prompt was altered after obse
 
 Canonical base commit: `f79ffe55b2ae0f059b67a1cb1e22f081adaca8d0`
 
-Phase-F branch head: `b75170b97e5d393c3be952c7377ad218e289930e`
+Phase-F branch head: `94dfe4abf9f6b02c13bc0a2e60fa5a36eb444026`
 
 ## 10. Analysis discipline
 

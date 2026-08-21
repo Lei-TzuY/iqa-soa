@@ -1130,3 +1130,82 @@ def test_instrument_availability_evidence_detects_a_shrinking_prompt() -> None:
     assert shrunk.input_tokens_non_decreasing is False
     # It is evidence, not a gate: it must not by itself flip a verdict.
     assert shrunk.instrument_regression is False
+
+
+# --------------------------------------------------------------------------
+# Canonical hash basis for produced Phase-F artifacts
+# --------------------------------------------------------------------------
+
+RESULT_ROOT = PROJECT_ROOT / "results" / "phaseF-qualification"
+requires_results = pytest.mark.skipif(
+    not (RESULT_ROOT / "phaseF-provenance.json").is_file(),
+    reason="Phase-F results have not been produced in this tree",
+)
+
+
+@requires_results
+def test_every_produced_phase_f_artifact_is_lf() -> None:
+    """A CRLF artifact would put its recorded digest on a non-portable basis."""
+
+    offenders = [
+        str(path.relative_to(PROJECT_ROOT))
+        for path in RESULT_ROOT.rglob("*")
+        if path.is_file() and b"\r\n" in path.read_bytes()
+    ]
+    assert offenders == [], f"CRLF Phase-F artifacts: {offenders}"
+
+
+@requires_results
+def test_recorded_raw_digests_reproduce_from_the_working_tree() -> None:
+    provenance = json.loads(
+        (RESULT_ROOT / "phaseF-provenance.json").read_text(encoding="utf-8")
+    )
+    digests = provenance["raw_artifact_digests"]
+    assert digests, "provenance must record the raw artifact digests"
+    mismatched = [
+        name
+        for name, digest in digests.items()
+        if _sha256(RESULT_ROOT / "raw" / name) != digest
+    ]
+    assert mismatched == [], f"digests do not reproduce: {mismatched}"
+
+
+@requires_results
+@requires_git
+def test_produced_artifacts_match_their_committed_blobs() -> None:
+    """Working-tree bytes must equal committed bytes on the canonical basis."""
+
+    listing = _git("ls-files", "--", "results/phaseF-qualification").decode("utf-8")
+    tracked = [line for line in listing.splitlines() if line.strip()]
+    assert tracked, "Phase-F results are not committed yet"
+    for relative in tracked:
+        committed = _git("cat-file", "blob", f"HEAD:{relative}")
+        assert (PROJECT_ROOT / relative).read_bytes() == committed, relative
+
+
+@requires_results
+def test_produced_artifacts_carry_no_credential_value() -> None:
+    """Only the environment-variable NAME may appear, never a value."""
+
+    for path in RESULT_ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        raw = path.read_bytes()
+        assert b"local-ollama-no-auth" not in raw, path
+        assert b'"api_key"' not in raw, path
+        assert b"Authorization" not in raw, path
+
+
+@requires_results
+def test_results_are_permanently_labelled_qualification_only() -> None:
+    provenance = json.loads(
+        (RESULT_ROOT / "phaseF-provenance.json").read_text(encoding="utf-8")
+    )
+    assert provenance["result_label"] == analyzer.RESULT_LABEL
+    assert provenance["experiment_kind"] == "real_model_connectivity_smoke"
+    assert provenance["canonical_base_commit"] == CANONICAL_BASE
+    assert provenance["observed_cells"] == 102
+    for forbidden in ("treatment_effect", "p_value", "confidence_interval",
+                      "standardized_effect_size", "off_vs_full_comparison",
+                      "pooled_model_comparison", "qa_full_arm_executed"):
+        assert provenance["analysis_performed"][forbidden] is False
