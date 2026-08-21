@@ -4,7 +4,7 @@
   "phase": "H",
   "manifest_sha256": "d2c6d86c4a3edb7531096c083064a0bfa13a74364e851e2735c80e1e72260759",
   "provenance_sha256": "163dc71fa314834520bb7ddc6da59e40fe1fa471fe43c39292f5656fd9138894",
-  "audit_sha256": "a617830f053c93b41bb98418b3d03e5976f5049f8235d9dac71280d4b8df5e4a",
+  "audit_sha256": "1ac6cc1273722cb68edecfdd00014070dd1d8a19df642c9dc2894c67e357b0f4",
   "qualification_contract_sha256": "5d75eb716e6ff04a9291517c190d419802c03f15bbdffe4a2d1b9db47ba5bed8",
   "frozen_flag_meaning": "The manifest's frozen=true flag is the manifest-schema requirement that this selection is hash-pinned: every case file is bound to a SHA-256 of its raw working-tree bytes and the loader refuses the selection if any byte moves. It does NOT mean the benchmark is scientifically final. The release status is release-candidate.",
   "supersedes": {

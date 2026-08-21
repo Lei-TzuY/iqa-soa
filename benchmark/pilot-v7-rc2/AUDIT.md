@@ -168,6 +168,28 @@ rc2, and should be revisited only in a dedicated architecture phase.
 | configs/policies/default.xml | `256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5` |
 | configs/models.yaml | `5eaf2cd132f30b331bca049cf66bcf9a02c5a9cd5da9a8cbf90901d543b1f6c3` |
 
+Tree digests are taken over **tracked** files, enumerated with `git ls-files`
+and hashed from working-tree bytes. That is not the blob-only hashing the
+hash-basis policy prohibits — the bytes attested are the bytes a run reads — but
+it excludes local run output, which otherwise makes
+`results/phaseA-privacy-ablation` irreproducible between a developer's working
+tree and a clean checkout of the same commit.
+
+## The one existing test that had to be edited
+
+`tests/integration/test_phaseF_qualification.py::
+test_no_historical_result_or_frozen_benchmark_differs_from_canonical_main`
+asserted that no path under `benchmark/` appeared in a diff against the
+canonical base at all, which forbids additions as well as mutations and so
+forbids publishing any successor benchmark. The diff is now filtered to
+`MDRT`, and a companion test closes the case it would otherwise admit: benchmark
+version namespaces present at the canonical base may not even gain a file. The
+companion was confirmed non-vacuous by staging a file into
+`benchmark/pilot-v7-rc1/` and observing it fail. No Phase-F result, config, plan
+or report byte was touched, and `scripts/validate_pilot_v7_rc1.py` and
+`tests/benchmark/test_pilot_v7_rc1_construct.py` are hash-pinned so that this
+remains the only such edit.
+
 ## What this release candidate does not claim
 
 It does not claim that rc2 will expose any real model, that runtime QA reduces

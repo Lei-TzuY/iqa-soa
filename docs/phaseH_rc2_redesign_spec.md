@@ -481,7 +481,47 @@ Phase H is additive. The validator pins, by SHA-256 of raw working-tree bytes:
   `tests/benchmark/test_pilot_v7_rc1_construct.py` — rc2 adds its own validator
   and test module rather than editing the rc1 ones.
 
-No existing generic validator or test was edited.
+### 11.1 The one existing test that had to be edited
+
+`tests/integration/test_phaseF_qualification.py::
+test_no_historical_result_or_frozen_benchmark_differs_from_canonical_main`
+asserted that `git diff --name-only <canonical base> -- benchmark …` was empty.
+That predicate conflates two invariants. The one it exists to protect is
+**immutability** — no committed case, frozen manifest, historical result,
+preregistration or governance config may be edited, deleted, renamed or
+retyped. The one it accidentally enforced is that `benchmark/` may never grow,
+which forbids exactly the additive work a successor benchmark consists of (new
+task IDs and a new version namespace) while protecting nothing extra.
+
+The diff is now filtered to `MDRT`, so every mutation it previously caught still
+fails it and only pure additions pass. The weaker case that would otherwise be
+admitted — a file *added* inside an already-frozen version namespace, which
+changes what that version denotes without changing any pinned byte — is covered
+by a new companion test that checks `benchmark/pilot-*` namespaces present at
+the canonical base with no diff filter at all. That companion was confirmed
+non-vacuous by staging a file into `benchmark/pilot-v7-rc1/` and observing it
+fail. No Phase-F result, config, plan or report byte was touched.
+
+No other existing validator or test was edited. `scripts/validate_pilot_v7_rc1.py`
+and `tests/benchmark/test_pilot_v7_rc1_construct.py` are hash-pinned by the rc2
+validator precisely so that this remains checkable.
+
+### 11.2 Tree digests are taken over tracked files
+
+A fresh-checkout run exposed a reproducibility defect in the first version of
+the rc2 validator: its tree digests walked the working tree, so the
+`results/phaseA-privacy-ablation` digest also absorbed local run output. That
+directory is gitignored as a whole and only five files inside it were
+force-added, so a working tree in which the ablation has been re-run carries 31
+untracked evidence files beside the committed ones, and the digest differed from
+a clean clone of the identical commit.
+
+Tree digests now enumerate tracked paths via `git ls-files` and still hash the
+**working-tree bytes** of each one. This is deliberately not the blob-only
+hashing `docs/hash_basis_policy.md` §2 prohibits: the bytes attested are the
+bytes a run would read, so an edited tracked file still changes the digest and
+tamper detection is intact. Enumeration failure raises rather than silently
+falling back to a weaker walk.
 
 ---
 
