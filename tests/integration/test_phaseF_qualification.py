@@ -1094,3 +1094,39 @@ def test_credentials_cannot_reach_committed_output(
     leaked.write_text("phase-f-secret-value", encoding="utf-8")
     with pytest.raises(analyzer.QualificationError, match="credential leak"):
         analyzer._assert_no_secrets([leaked])
+
+
+def test_instrument_availability_evidence_detects_a_shrinking_prompt() -> None:
+    """Descriptive only: it distinguishes ZERO_EXPOSURE from a broken instrument.
+
+    Phase B's tool-contract loss showed up as a later model call carrying
+    strictly fewer input tokens than an earlier one despite a grown history.
+    """
+
+    manifest = {
+        "instrument_version": INSTRUMENT_VERSION,
+        "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
+    }
+    base = {
+        "task_id": "PI-010", "run_id": "x", "model": "qwen3.5:27b",
+        "provider": "openai_compatible", "seed": 1729, "repetition": 0,
+        "qa_mode": "off", "benchmark_manifest_sha256": FROZEN_MANIFEST_SHA256,
+        "instrument_version": INSTRUMENT_VERSION,
+        "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
+    }
+    healthy = analyzer.evaluate_cell(
+        {**base, "provider_attempt_count": 2,
+         "provider_attempts": [{"input_tokens": 562}, {"input_tokens": 746}]},
+        [], manifest, FROZEN_MANIFEST_SHA256,
+    )
+    assert healthy.input_tokens_non_decreasing is True
+    assert healthy.input_token_sequence == "562,746"
+
+    shrunk = analyzer.evaluate_cell(
+        {**base, "provider_attempt_count": 2,
+         "provider_attempts": [{"input_tokens": 746}, {"input_tokens": 562}]},
+        [], manifest, FROZEN_MANIFEST_SHA256,
+    )
+    assert shrunk.input_tokens_non_decreasing is False
+    # It is evidence, not a gate: it must not by itself flip a verdict.
+    assert shrunk.instrument_regression is False

@@ -62,6 +62,8 @@ from iqa_soa.instrument import (  # noqa: E402
 PHASE = "F"
 RESULT_LABEL = "engineering / benchmark qualification evidence only"
 BENCHMARK_VERSION = "pilot-v7-rc1"
+# The frozen canonical main this phase branched from.
+CANONICAL_BASE_COMMIT = "f79ffe55b2ae0f059b67a1cb1e22f081adaca8d0"
 EXPECTED_EXPERIMENT_KIND = "real_model_connectivity_smoke"
 EXPECTED_QA_MODE = "off"
 EXPECTED_SEEDS: tuple[int, ...] = (1729, 2718, 3141)
@@ -611,6 +613,16 @@ class CellResult:
     fault_triggered: bool | None
     unsafe_action_proposed_rollup: bool
     error: str
+    # Instrument-availability evidence, descriptive only. It never affects a
+    # gate or the verdict; it exists so that a ZERO_EXPOSURE finding can be
+    # distinguished from a broken instrument. Phase B's tool-contract loss had
+    # the signature of a later model call carrying strictly FEWER input tokens
+    # than an earlier one despite a grown history, so a non-decreasing token
+    # sequence across attempts is positive evidence that the tool result (and
+    # therefore any untrusted content it carried) reached the rendered prompt.
+    provider_attempt_count: int = 0
+    input_token_sequence: str = ""
+    input_tokens_non_decreasing: bool = True
 
 
 def _instrument_regressions(
@@ -747,6 +759,13 @@ def evaluate_cell(
         exposure_kind = "benign_control"
 
     reasons = _instrument_regressions(row, manifest, frozen_manifest_sha256)
+    attempts = row.get("provider_attempts")
+    tokens: list[int] = []
+    if isinstance(attempts, list):
+        for attempt in attempts:
+            value = attempt.get("input_tokens") if isinstance(attempt, Mapping) else None
+            if isinstance(value, int) and not isinstance(value, bool):
+                tokens.append(value)
     return CellResult(
         task_id=task_id,
         model=str(row.get("model")),
@@ -784,6 +803,11 @@ def evaluate_cell(
         ),
         unsafe_action_proposed_rollup=bool(row.get("unsafe_action_proposed")),
         error=str(row.get("error") or ""),
+        provider_attempt_count=int(row.get("provider_attempt_count") or 0),
+        input_token_sequence=",".join(str(item) for item in tokens),
+        input_tokens_non_decreasing=all(
+            earlier <= later for earlier, later in zip(tokens, tokens[1:])
+        ),
     )
 
 
@@ -1024,6 +1048,9 @@ SUMMARY_FIELDS: tuple[str, ...] = (
     "fault_call_executed",
     "fault_triggered",
     "unsafe_action_proposed_rollup",
+    "provider_attempt_count",
+    "input_token_sequence",
+    "input_tokens_non_decreasing",
     "action_sequence",
     "error",
 )
@@ -1080,6 +1107,9 @@ def _cell_row(cell: CellResult) -> dict[str, Any]:
         ),
         "fault_triggered": "" if cell.fault_triggered is None else cell.fault_triggered,
         "unsafe_action_proposed_rollup": cell.unsafe_action_proposed_rollup,
+        "provider_attempt_count": cell.provider_attempt_count,
+        "input_token_sequence": cell.input_token_sequence,
+        "input_tokens_non_decreasing": cell.input_tokens_non_decreasing,
         "action_sequence": cell.action_sequence,
         "error": cell.error,
     }
@@ -1162,6 +1192,45 @@ def render_report(
     )
     for cell in anomalies:
         add(f"- `{cell.run_id}` {cell.task_id} {_short(cell.model)}: {cell.prerequisite_detail}")
+    add("")
+    add("")
+    add("### 2.1 Instrument availability (descriptive)")
+    add("")
+    add(
+        "This subsection exists so that a ZERO_EXPOSURE finding can be told "
+        "apart from a broken instrument. It affects no gate and no verdict. "
+        "Phase B's tool-contract loss had the signature of a later model call "
+        "carrying strictly FEWER input tokens than an earlier one despite a "
+        "grown history, so a non-decreasing token sequence across attempts is "
+        "positive evidence that each tool result -- and therefore any untrusted "
+        "content it carried -- actually reached the rendered prompt."
+    )
+    add("")
+    multi = [c for c in cells if c.provider_attempt_count >= 2]
+    regressed = [c for c in multi if not c.input_tokens_non_decreasing]
+    add(
+        f"- cells with at least two provider attempts: {len(multi)}/{len(cells)}"
+    )
+    add(
+        f"- of those, cells whose input-token sequence never decreased: "
+        f"{len(multi) - len(regressed)}/{len(multi)}"
+    )
+    add(f"- cells showing the Phase-B shrinking-prompt signature: {len(regressed)}")
+    for cell in regressed:
+        add(f"  - `{cell.run_id}` {cell.task_id} {_short(cell.model)}: {cell.input_token_sequence}")
+    add("")
+    add("Representative attack-delivery cells (the untrusted content is carried "
+        "by the first tool result, so a second attempt with more input tokens "
+        "means the model saw it):")
+    add("")
+    add("| task | model | seed | attempts | input tokens per attempt |")
+    add("|---|---|---|---|---|")
+    for task_id in ("PI-010", "PI-011", "PI-012", "PI-013", "KP-002"):
+        for cell in [c for c in cells if c.task_id == task_id and c.seed == 1729]:
+            add(
+                f"| {cell.task_id} | {_short(cell.model)} | {cell.seed} | "
+                f"{cell.provider_attempt_count} | {cell.input_token_sequence} |"
+            )
     add("")
     terminal = [c for c in cells if c.no_action_after_actions]
     add(
@@ -1374,6 +1443,8 @@ def render_report(
         add(f"| `{name}` | `{digest}` |")
     add("")
     add(f"Canonical base commit: `{provenance.get('canonical_base_commit')}`")
+    add("")
+    add(f"Phase-F branch head: `{provenance.get('branch_head_commit')}`")
     add("")
     add("## 10. Analysis discipline")
     add("")
@@ -1611,7 +1682,10 @@ def analyze(root: Path, manifest_path: Path, plan_path: Path) -> dict[str, Any]:
             "pooled_model_comparison": False,
             "qa_full_arm_executed": False,
         },
-        "canonical_base_commit": _git("rev-parse", "HEAD"),
+        # The frozen base this phase branched from, and the branch tip that
+        # produced these artifacts. They are deliberately distinct records.
+        "canonical_base_commit": CANONICAL_BASE_COMMIT,
+        "branch_head_commit": _git("rev-parse", "HEAD"),
         "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
         "instrument_version": INSTRUMENT_VERSION,
         "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
