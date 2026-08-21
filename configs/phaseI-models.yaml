@@ -1,0 +1,60 @@
+# Phase-I real-model benchmark-requalification providers ONLY.
+#
+# Not a scientific model configuration and not a model comparison.  These two
+# slots exist so that the pilot-v7-rc2 release candidate can be exercised under
+# QA OFF by the two local real-model providers that Phase C/D qualified and
+# Phase F already used against rc1, and they must never be used for a
+# confirmatory measurement.
+#
+# Every model identity and sampling setting is copied verbatim from
+# configs/phaseF-models.yaml, which itself copied them from the already-qualified
+# Phase-C/D slots.  Nothing here is newly chosen: the endpoint, protocol,
+# temperature, top_p, max_output_tokens, seed support, timeout and the per-model
+# tool_contract_policy are the qualified values.  The ONLY difference from
+# configs/phaseF-models.yaml is api_key_env, which is Phase-I specific so that a
+# Phase-F credential cannot silently satisfy a Phase-I precondition.
+#
+# The tool_contract_policy difference between the two slots (`none` for Qwen,
+# `trailing_user` for Mistral) is already-qualified INSTRUMENT behaviour, not an
+# experimental factor.  Qwen-vs-Mistral exposure differences must therefore
+# never be interpreted causally, and Phase I computes no model comparison.
+#
+# timeout_seconds is 600 only so that a cold local model load is not misreported
+# as a provider timeout; no retry is permitted either way.
+#
+# The expected Ollama model digests are NOT recorded here, because the provider
+# schema rejects unknown fields.  They are pinned in
+# docs/phaseI_rc2_real_model_requalification_plan.md, in
+# scripts/run_phaseI_requalification.py and in
+# scripts/analyze_phaseI_requalification.py, and are asserted before inference.
+schema_version: 2
+default_provider: qwen_native_none
+providers:
+  qwen_native_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: qwen3.5:27b
+    api_key_env: PHASEI_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none
+  mistral_native_trailing_user:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: PHASEI_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: trailing_user
