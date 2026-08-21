@@ -567,7 +567,7 @@ def _write_arm(
                     "run_id": run_id,
                     "task_id": task_id,
                     "model": model,
-                    "provider": provider,
+                    "provider": "openai_compatible",
                     "seed": seed,
                     "repetition": repetition,
                     "qa_mode": "off",
@@ -628,7 +628,7 @@ def _dump(
         "instrument_version": INSTRUMENT_VERSION,
         "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
         "provider": {
-            "provider": provider,
+            "provider": "openai_compatible",
             "model": model,
             "tool_contract_policy": policy,
             "protocol": "native_tools",
@@ -809,7 +809,7 @@ def test_wrong_provider_identity_is_refused(artifacts: Path) -> None:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     manifest["provider"]["model"] = "qwen3.5:9b"
     (directory / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    with pytest.raises(analyzer.QualificationError, match="resolved model"):
+    with pytest.raises(analyzer.QualificationError, match="is not one of"):
         _analyze(artifacts)
 
 

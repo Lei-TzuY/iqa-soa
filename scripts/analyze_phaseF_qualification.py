@@ -67,13 +67,15 @@ EXPECTED_QA_MODE = "off"
 EXPECTED_SEEDS: tuple[int, ...] = (1729, 2718, 3141)
 EXPECTED_REPETITIONS = 3
 EXPECTED_MODELS: tuple[str, ...] = ("qwen3.5:27b", "mistral-small3.2:24b")
-EXPECTED_PROVIDERS: dict[str, str] = {
-    "qwen_native_none": "qwen3.5:27b",
-    "mistral_native_trailing_user": "mistral-small3.2:24b",
-}
+# ``OpenAICompatibleProvider.name`` is the class-level string "openai_compatible"
+# for every slot, so the manifest's provider descriptor does NOT carry the config
+# slot name.  Arm identity is therefore asserted on the resolved model, which is
+# unique per arm, together with its qualified tool-contract policy -- a stronger
+# check than a config label, because it verifies what actually ran.
+EXPECTED_PROVIDER_NAME = "openai_compatible"
 EXPECTED_TOOL_CONTRACT_POLICY: dict[str, str] = {
-    "qwen_native_none": "none",
-    "mistral_native_trailing_user": "trailing_user",
+    "qwen3.5:27b": "none",
+    "mistral-small3.2:24b": "trailing_user",
 }
 EXPECTED_CELLS = 102
 
@@ -1423,27 +1425,34 @@ def analyze(root: Path, manifest_path: Path, plan_path: Path) -> dict[str, Any]:
     for arm in arms:
         descriptor = _mapping(arm.manifest.get("provider"), "manifest provider")
         name = str(descriptor.get("provider"))
-        if name in providers_seen:
-            raise QualificationError(f"provider {name!r} produced more than one arm")
-        if EXPECTED_PROVIDERS.get(name) != descriptor.get("model"):
+        model = str(descriptor.get("model"))
+        if name != EXPECTED_PROVIDER_NAME:
             raise QualificationError(
-                f"provider {name!r} resolved model {descriptor.get('model')!r}, "
-                f"expected {EXPECTED_PROVIDERS.get(name)!r}"
+                f"arm {arm.directory.name}: provider is {name!r}, expected "
+                f"{EXPECTED_PROVIDER_NAME!r}"
             )
-        if EXPECTED_TOOL_CONTRACT_POLICY.get(name) != descriptor.get(
+        if model not in EXPECTED_MODELS:
+            raise QualificationError(
+                f"arm {arm.directory.name}: resolved model {model!r} is not one of "
+                f"{list(EXPECTED_MODELS)}"
+            )
+        if model in providers_seen:
+            raise QualificationError(f"model {model!r} produced more than one arm")
+        if EXPECTED_TOOL_CONTRACT_POLICY[model] != descriptor.get(
             "tool_contract_policy"
         ):
             raise QualificationError(
-                f"provider {name!r} tool_contract_policy is "
-                f"{descriptor.get('tool_contract_policy')!r}"
+                f"model {model!r} ran with tool_contract_policy "
+                f"{descriptor.get('tool_contract_policy')!r}, expected "
+                f"{EXPECTED_TOOL_CONTRACT_POLICY[model]!r}"
             )
         digests = _mapping(arm.manifest.get("input_digests"), "manifest input_digests")
         if digests.get("benchmark_manifest_sha256") != frozen_manifest_sha256:
-            raise QualificationError(f"arm {name!r} used a different benchmark manifest")
-        providers_seen[name] = {
+            raise QualificationError(f"model {model!r} used a different benchmark manifest")
+        providers_seen[model] = {
             "provider": name,
-            "model": descriptor.get("model"),
-            "effective_model": descriptor.get("model"),
+            "model": model,
+            "effective_model": model,
             "tool_contract_policy": descriptor.get("tool_contract_policy"),
             "protocol": descriptor.get("protocol"),
             "temperature": descriptor.get("temperature"),
@@ -1456,9 +1465,9 @@ def analyze(root: Path, manifest_path: Path, plan_path: Path) -> dict[str, Any]:
             "runtime": arm.manifest.get("provider_runtime"),
             "record_count": arm.manifest.get("record_count"),
         }
-    if set(providers_seen) != set(EXPECTED_PROVIDERS):
+    if set(providers_seen) != set(EXPECTED_MODELS):
         raise QualificationError(
-            f"expected providers {sorted(EXPECTED_PROVIDERS)}, got {sorted(providers_seen)}"
+            f"expected models {sorted(EXPECTED_MODELS)}, got {sorted(providers_seen)}"
         )
 
     cells: list[CellResult] = []
