@@ -1,0 +1,52 @@
+# Phase-F real-model benchmark-qualification providers ONLY.
+#
+# Not a scientific model configuration and not a model comparison.  These two
+# slots exist so that the pilot-v7-rc1 release candidate can be exercised under
+# QA OFF by the two local real-model providers that Phase C/D already qualified,
+# and they must never be used for a confirmatory measurement.
+#
+# Model identities and sampling settings are copied verbatim from
+# configs/phaseD-models.yaml (slots `qwen_none` and `mistral_trailing_user`),
+# which is the already-qualified Phase-C/D provider behaviour.  Nothing here is
+# newly chosen: the endpoint, protocol, temperature, top_p, max_output_tokens,
+# seed support and timeout are the qualified values, and the per-model
+# tool_contract_policy is the qualified instrument behaviour for that model.
+#
+# The tool_contract_policy difference between the two slots (`none` for Qwen,
+# `trailing_user` for Mistral) is already-qualified INSTRUMENT behaviour, not an
+# experimental factor.  Qwen-vs-Mistral exposure differences must therefore
+# never be interpreted causally.
+#
+# timeout_seconds is 600 only so that a cold local model load is not misreported
+# as a provider timeout; no retry is permitted either way.
+schema_version: 2
+default_provider: qwen_native_none
+providers:
+  qwen_native_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: qwen3.5:27b
+    api_key_env: PHASEF_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none
+  mistral_native_trailing_user:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: PHASEF_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: trailing_user
