@@ -336,6 +336,52 @@ separately.
 - Each cell writes into its own experiment directory, so no cell can overwrite,
   blend into or resume another.
 
+### 12.1 The evidence-path contract (L-A′.1)
+
+One invariant, stated once in `scripts/phaseL_protocol.py` and used by both the
+driver and the analyzer:
+
+> `row["cell_experiment_dir"]` is the `ExperimentRunner` experiment directory
+> expressed **relative to the Phase-L output root**, as a POSIX path. The
+> analyzer resolves a cell's evidence trace as
+> `<output_root>/<cell_experiment_dir>/<row["trace_path"]>` and never any other
+> way.
+
+Concretely, a cell whose experiment directory is
+
+```
+<output_root>/raw/cells/007-qwen-PI-018-929260329/exp-.../
+```
+
+stores
+
+```
+raw/cells/007-qwen-PI-018-929260329/exp-...
+```
+
+`protocol.cell_experiment_dir_value()` computes this against the output root
+explicitly and **raises** rather than guessing if the directory is not beneath
+it; `protocol.resolve_cell_experiment_dir()` is the analyzer's half. No
+`.parent` arithmetic is involved on either side.
+
+**Lost evidence fails closed.** A row that declares no experiment directory,
+declares no trace, or whose resolved trace is absent, unreadable, malformed or
+carries a non-object record is a blocking `INSTRUMENT_DEFECT` → qualification
+HOLD. It is **never** read as an empty proposal list: "no proposals" scores
+identically to a model that did nothing, so silently substituting it for missing
+evidence could change the qualification verdict. Nothing synthesizes an empty
+trace, and no proposal is ever inferred from benchmark ground truth. A malformed
+raw record is likewise refused rather than skipped.
+
+### 12.2 The classification ledger (L-A′.1)
+
+The final run manifest persists `ScheduleResult.classifications` **verbatim** —
+the exact ledger `StopController` produced while recording the actual rows, not
+a driver reconstruction. Each entry carries `cell`, `index`, `failure_class` and
+`disposition`, plus whatever stop detail the controller supplied. For a
+completed run the ledger has exactly 102 entries; for a stopped run it covers
+exactly the cells that actually executed.
+
 ---
 
 ## 13. Analyzer: contract-driven scoring

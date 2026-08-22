@@ -85,6 +85,85 @@ def plans() -> dict[str, analyzer.TaskPlan]:
     return built
 
 
+#: Ordered proposals a synthetic real-layout trace records by default: enough to
+#: be a well-formed QA-OFF evidence trace, and deliberately not exposure.
+_DEFAULT_TRACE: tuple[tuple[str, str], ...] = ()
+
+
+def write_cell_trace(
+    output_root: Path,
+    cell: harness.Cell,
+    proposals: Sequence[tuple[str, str]] = _DEFAULT_TRACE,
+) -> dict[str, Any]:
+    """Write a REAL-LAYOUT evidence trace and return the row fields pointing at it.
+
+    (L-A'.1) The layout and the ``cell_experiment_dir`` serialization are exactly
+    the driver's: the experiment directory lives under
+    ``protocol.cells_root(output_root)/<slug>/`` and the stored value comes from
+    ``protocol.cell_experiment_dir_value``.  ``trace_path`` is relative to the
+    experiment directory, as ``ExperimentRunner`` writes it.  A synthetic row
+    that skipped this helper and left ``trace_path`` empty is LOST EVIDENCE and
+    the analyzer now refuses it -- which is the point.
+    """
+
+    experiment_dir = (
+        protocol.cells_root(output_root)
+        / protocol.cell_slug(cell)
+        / f"exp-{cell.index:03d}"
+    )
+    (experiment_dir / "evidence").mkdir(parents=True, exist_ok=True)
+    run_id = f"{cell.task_id}-r000-off-{cell.index:012d}"
+    trace_relative = f"evidence/{run_id}.jsonl"
+    lines = [
+        json.dumps(
+            {
+                "event_type": "gateway_decision",
+                "action_id": f"a{index}",
+                "tool": tool,
+                "resource": resource,
+                "executed": True,
+                "success": True,
+                "final_decision": "ALLOW",
+                "qa_mode": "off",
+                "task_id": cell.task_id,
+            }
+        )
+        for index, (tool, resource) in enumerate(proposals)
+    ]
+    (experiment_dir / trace_relative).write_text(
+        "".join(f"{line}\n" for line in lines), encoding="utf-8", newline="\n"
+    )
+    return {
+        "run_id": run_id,
+        "trace_path": trace_relative,
+        "cell_experiment_dir": protocol.cell_experiment_dir_value(
+            experiment_dir, output_root
+        ),
+    }
+
+
+def traced_row(
+    output_root: Path,
+    cell: harness.Cell,
+    proposals: Sequence[tuple[str, str]] = _DEFAULT_TRACE,
+    **overrides: Any,
+) -> dict[str, Any]:
+    """A healthy row whose evidence trace really exists, in the real layout."""
+
+    row = healthy_row(cell, **write_cell_trace(output_root, cell, proposals))
+    row.update(overrides)
+    if "provider_attempts" not in overrides:
+        row["provider_attempts"] = [
+            {
+                "emitted_actions": [
+                    {"tool": tool, "resource": resource, "arguments": {}}
+                    for tool, resource in proposals
+                ]
+            }
+        ]
+    return row
+
+
 def _bind_stub_row(row: Mapping[str, Any], cell: harness.Cell) -> dict[str, Any]:
     """Stamp a stub-produced row as if the frozen arm had produced it.
 
@@ -641,6 +720,12 @@ def test_the_arm_configuration_is_asserted_not_assumed() -> None:
 # --------------------------------------------------------------------------
 
 
+def _phase_l_out(tmp_path: Path) -> Path:
+    """The Phase-L output root every driver test uses."""
+
+    return tmp_path / "out"
+
+
 def _run_driver_with_rows(
     tmp_path: Path,
     row_for: Any,
@@ -653,7 +738,7 @@ def _run_driver_with_rows(
         seen.append(cell)
         return row_for(cell)
 
-    out = tmp_path / "out"
+    out = _phase_l_out(tmp_path)
     code = driver.main(
         ["--execute-real-model", "--output-root", str(out)],
         env=OPEN_GATE,
@@ -661,6 +746,21 @@ def _run_driver_with_rows(
         execute_cell=execute,
     )
     return code, out
+
+
+def _run_driver_with_real_traces(
+    tmp_path: Path,
+    proposals_for: Any = None,
+) -> tuple[int, Path]:
+    """Drive the frozen schedule with rows whose traces really exist on disk."""
+
+    out = _phase_l_out(tmp_path)
+
+    def row_for(cell: harness.Cell) -> Mapping[str, Any]:
+        proposals = proposals_for(cell) if proposals_for else _DEFAULT_TRACE
+        return traced_row(out, cell, proposals)
+
+    return _run_driver_with_rows(tmp_path, row_for)
 
 
 def test_a_clean_matrix_completes_and_writes_both_manifests(tmp_path: Path) -> None:
@@ -1660,10 +1760,12 @@ def test_a_stopped_run_can_never_be_reported_as_a_qualification(
 
 
 def test_the_analyzer_refuses_a_stopped_run_end_to_end(tmp_path: Path) -> None:
+    out = _phase_l_out(tmp_path)
+
     def row_for(cell: harness.Cell) -> Mapping[str, Any]:
         if cell.index == 40:
-            return healthy_row(cell, tool_contract_regression_detected=True)
-        return healthy_row(cell)
+            return traced_row(out, cell, tool_contract_regression_detected=True)
+        return traced_row(out, cell)
 
     code, out = _run_driver_with_rows(tmp_path, row_for)
     assert code == protocol.EXIT_SCHEDULE_STOPPED
@@ -1676,7 +1778,7 @@ def test_the_analyzer_refuses_a_stopped_run_end_to_end(tmp_path: Path) -> None:
 def test_the_analyzer_never_emits_a_treatment_effect_or_a_ranking(
     tmp_path: Path,
 ) -> None:
-    code, out = _run_driver_with_rows(tmp_path, healthy_row)
+    code, out = _run_driver_with_real_traces(tmp_path)
     assert code == protocol.EXIT_OK
     payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
     assert payload["reports_no_qa_treatment_effect"] is True
@@ -1701,9 +1803,11 @@ def test_the_analyzer_never_emits_a_treatment_effect_or_a_ranking(
 def test_a_clean_but_unexposed_matrix_still_holds(tmp_path: Path) -> None:
     """A complete, valid matrix in which no challenge exposes cannot qualify."""
 
-    code, out = _run_driver_with_rows(tmp_path, healthy_row)
+    code, out = _run_driver_with_real_traces(tmp_path)
     assert code == protocol.EXIT_OK
     payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert payload["evidence_trace_defects"] == []
+    assert payload["classification_ledger_failures"] == []
     assert payload["matrix_complete"] is True
     assert payload["verdict"] == analyzer.VERDICT_HOLD
     statuses = {item["task_id"]: item["status"] for item in payload["tasks"]}
@@ -1714,7 +1818,7 @@ def test_a_clean_but_unexposed_matrix_still_holds(tmp_path: Path) -> None:
 
 
 def test_every_task_status_is_in_the_closed_vocabulary(tmp_path: Path) -> None:
-    code, out = _run_driver_with_rows(tmp_path, healthy_row)
+    code, out = _run_driver_with_real_traces(tmp_path)
     assert code == protocol.EXIT_OK
     payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
     for entry in payload["tasks"]:
@@ -1724,13 +1828,14 @@ def test_every_task_status_is_in_the_closed_vocabulary(tmp_path: Path) -> None:
 def test_a_driver_analyzer_classification_disagreement_is_an_instrument_defect(
     tmp_path: Path, schedule: Sequence[harness.Cell]
 ) -> None:
-    code, out = _run_driver_with_rows(tmp_path, healthy_row)
+    """Mutates the ledger the DRIVER wrote -- it is not fabricated here."""
+
+    code, out = _run_driver_with_real_traces(tmp_path)
     assert code == protocol.EXIT_OK
     manifest_path = out / "phaseL-run-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["classifications"] = [
-        {"cell": schedule[0].key, "index": 0, "failure_class": harness.MODEL_REFUSAL}
-    ]
+    assert manifest["classifications"][0]["failure_class"] == harness.CELL_OK
+    manifest["classifications"][0]["failure_class"] = harness.MODEL_REFUSAL
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
     assert any(
@@ -1872,3 +1977,395 @@ def test_no_phase_l_source_contacts_a_provider_outside_the_gated_path() -> None:
     assert "/api/chat" not in joined
     assert "/api/generate" not in joined
     assert "chat/completions" not in joined
+
+
+# --------------------------------------------------------------------------
+# 13. (L-A'.1) Driver/analyzer evidence integration
+#
+# Adversarial review of Phase L-A' found two integration defects that every
+# synthetic test above had missed, because none of them exercised the REAL
+# ExperimentRunner directory layout or the manifest the driver actually writes:
+#
+#   1. the driver serialized cell_experiment_dir relative to <output_root>/raw
+#      while the analyzer resolved from <output_root>, so every real trace
+#      lookup missed -- and a missed lookup silently returned [], which scores
+#      as "no proposals, no prerequisites, no exposure";
+#   2. the final run manifest omitted the StopController classification ledger,
+#      so the analyzer's driver-agreement check had nothing to compare and
+#      passed vacuously on every real run.
+#
+# These tests fail under both defects.
+# --------------------------------------------------------------------------
+
+
+def test_the_path_contract_is_output_root_relative(
+    schedule: Sequence[harness.Cell], tmp_path: Path
+) -> None:
+    """The invariant, stated once and used by both sides."""
+
+    out = tmp_path / "out"
+    cell = schedule[7]
+    experiment_dir = (
+        protocol.cells_root(out) / protocol.cell_slug(cell) / "exp-abc"
+    )
+    experiment_dir.mkdir(parents=True)
+    value = protocol.cell_experiment_dir_value(experiment_dir, out)
+
+    # The stored value must start at the output root, NOT at <output_root>/raw.
+    assert value == f"raw/cells/{protocol.cell_slug(cell)}/exp-abc"
+    assert value.startswith("raw/cells/")
+    assert not value.startswith("cells/"), (
+        "the Phase-L-A' defect: a value relative to <output_root>/raw"
+    )
+    # And the analyzer's half must land back on the real directory.
+    assert protocol.resolve_cell_experiment_dir(out, value) == experiment_dir
+    assert protocol.resolve_cell_experiment_dir(out, value).is_dir()
+
+
+def test_serializing_a_directory_outside_the_output_root_is_refused(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(protocol.ProtocolError):
+        protocol.cell_experiment_dir_value(tmp_path / "elsewhere", tmp_path / "out")
+
+
+def test_the_real_runner_layout_resolves_end_to_end(tmp_path: Path) -> None:
+    """THE REGRESSION.  Real runner, real layout, real trace, real analyzer.
+
+    Drives one frozen cell through the actual Phase-L cell executor with a
+    ``DeterministicStubProvider`` -- so the experiment directory, the evidence
+    trace and the ``cell_experiment_dir`` serialization are all the production
+    ones -- then resolves that trace through the production analyzer and proves
+    a known proposal from the trace is visible to scoring.
+
+    Under the Phase-L-A' path contract this test fails: the analyzer resolves
+    ``<output_root>/cells/...`` and finds nothing.
+
+    NO MODEL IS RUN.
+    """
+
+    out = tmp_path / "out"
+    benchmark_ = protocol.load_benchmark(RC3_MANIFEST)
+    schedule_ = protocol.build_phase_l_schedule(benchmark_)
+    cell = next(item for item in schedule_ if item.task_id == "BUD-016")
+
+    execute = driver.make_cell_executor(
+        config_path=PHASE_L_CONFIG,
+        manifest_path=RC3_MANIFEST,
+        output_root=out,
+        providers={arm: DeterministicStubProvider() for arm in protocol.ARM_ORDER},
+    )
+    row = driver.stamp_frozen_identity(execute(cell), cell)
+
+    # The experiment directory really is where the contract says it is.
+    resolved = protocol.resolve_cell_experiment_dir(
+        out, str(row["cell_experiment_dir"])
+    )
+    assert resolved.is_dir()
+    assert protocol.cells_root(out) in resolved.parents
+    trace = resolved / str(row["trace_path"])
+    assert trace.is_file(), "the production layout must be resolvable by the analyzer"
+
+    # The analyzer resolves that exact file, with no defects.
+    events, defects = analyzer._trace_events(out, row)
+    assert defects == []
+    assert events, "a real QA-OFF cell writes evidence events"
+
+    # And a known proposal from that trace is visible to scoring.
+    plans_, _ = analyzer.build_scoring_plans()
+    proposals = analyzer.proposals_for(events, row)
+    assert proposals, "the resolved trace must yield ordered proposals"
+    endpoint = ("api.call", "platform-api/service-health")
+    assert any(
+        analyzer._matches(item.tool, item.resource, endpoint) for item in proposals
+    ), "BUD-016's declared endpoint attempt must be visible to the analyzer"
+
+    scored = analyzer.evaluate_cell(
+        cell=cell,
+        row=row,
+        events=events,
+        plan=plans_["BUD-016"],
+        failure_class=harness.CELL_OK,
+        disposition=harness.CONTINUE,
+    )
+    assert scored.modality_established is True, (
+        "the contract's modality precondition is read from the resolved trace"
+    )
+    assert scored.executed_tool_calls > 0
+    assert scored.prerequisites_satisfied is True, (
+        "BUD-016's ordered attempt-then-fallback chain must be visible"
+    )
+
+
+def test_the_real_executor_never_labels_a_stub_run_as_real_model(
+    tmp_path: Path,
+) -> None:
+    """The offline provider seam cannot launder a stub into a real-model record."""
+
+    out = tmp_path / "out"
+    benchmark_ = protocol.load_benchmark(RC3_MANIFEST)
+    cell = next(
+        item
+        for item in protocol.build_phase_l_schedule(benchmark_)
+        if item.task_id == "BEN-002"
+    )
+    execute = driver.make_cell_executor(
+        config_path=PHASE_L_CONFIG,
+        manifest_path=RC3_MANIFEST,
+        output_root=out,
+        providers={arm: DeterministicStubProvider() for arm in protocol.ARM_ORDER},
+    )
+    row = execute(cell)
+    resolved = protocol.resolve_cell_experiment_dir(
+        out, str(row["cell_experiment_dir"])
+    )
+    manifest = json.loads((resolved / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["experiment_kind"] == "deterministic_mechanism_validation"
+    assert manifest["provider_runtime"] is None, "no metadata probe may have fired"
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    ["missing_directory", "missing_trace_path", "wrong_directory", "absent_file",
+     "malformed_jsonl", "non_object_record"],
+)
+def test_lost_trace_evidence_fails_closed(
+    corruption: str, tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """Declared-but-unavailable evidence is a defect, never zero exposure."""
+
+    out = tmp_path / "out"
+    cell = schedule[3]
+    row = traced_row(out, cell, [("file.read", "report.txt")])
+    resolved = protocol.resolve_cell_experiment_dir(
+        out, str(row["cell_experiment_dir"])
+    )
+    trace = resolved / str(row["trace_path"])
+    if corruption == "missing_directory":
+        row["cell_experiment_dir"] = ""
+    elif corruption == "missing_trace_path":
+        row["trace_path"] = ""
+    elif corruption == "wrong_directory":
+        # Exactly the Phase-L-A' defect: the value relative to <output_root>/raw.
+        row["cell_experiment_dir"] = str(row["cell_experiment_dir"])[len("raw/"):]
+    elif corruption == "absent_file":
+        trace.unlink()
+    elif corruption == "malformed_jsonl":
+        trace.write_text('{"event_type": "gateway_decision"\n', encoding="utf-8")
+    else:
+        trace.write_text('"not an object"\n', encoding="utf-8")
+
+    events, defects = analyzer._trace_events(out, row)
+    assert events == []
+    assert defects, f"{corruption} must be reported, not silently scored as zero"
+
+
+def test_lost_trace_evidence_blocks_qualification_end_to_end(
+    tmp_path: Path,
+) -> None:
+    """One unresolvable trace in an otherwise clean 102-cell run forces HOLD."""
+
+    code, out = _run_driver_with_real_traces(tmp_path)
+    assert code == protocol.EXIT_OK
+    clean = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert clean["evidence_trace_defects"] == []
+    assert clean["matrix_complete"] is True
+
+    # Now delete exactly one trace and re-analyze the same run.
+    rows = [
+        json.loads(line)
+        for line in (out / "phaseL-runs.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    victim = rows[17]
+    (
+        protocol.resolve_cell_experiment_dir(
+            out, str(victim["cell_experiment_dir"])
+        )
+        / str(victim["trace_path"])
+    ).unlink()
+
+    payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert payload["evidence_trace_defects"], "lost evidence must be reported"
+    assert any(
+        item.startswith("INSTRUMENT_DEFECT")
+        for item in payload["blocking_failures"]
+    )
+    assert payload["verdict"] == analyzer.VERDICT_HOLD
+    # The affected task must not be reported as a clean qualification.
+    affected = str(victim["task_id"])
+    statuses = {item["task_id"]: item["status"] for item in payload["tasks"]}
+    assert statuses[affected] not in analyzer.QUALIFYING_STATUSES
+
+
+# --------------------------------------------------------------------------
+# 14. (L-A'.1) The StopController classification ledger
+# --------------------------------------------------------------------------
+
+
+def _driver_manifest(out: Path) -> dict[str, Any]:
+    return json.loads((out / "phaseL-run-manifest.json").read_text(encoding="utf-8"))
+
+
+def test_the_driver_naturally_writes_the_classification_ledger(
+    tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """No ledger is injected here: the driver's own manifest is inspected."""
+
+    code, out = _run_driver_with_real_traces(tmp_path)
+    assert code == protocol.EXIT_OK
+    manifest = _driver_manifest(out)
+    ledger = manifest["classifications"]
+    assert len(ledger) == 102 == len(schedule)
+    for cell, entry in zip(schedule, ledger):
+        assert set(protocol.RUN_MANIFEST_CLASSIFICATION_FIELDS).issubset(entry)
+        assert entry["cell"] == cell.key
+        assert entry["index"] == cell.index
+        assert entry["failure_class"] in harness.FAILURE_CLASSES
+        assert entry["disposition"] == harness.DISPOSITION[entry["failure_class"]]
+    assert [item["failure_class"] for item in ledger] == [harness.CELL_OK] * 102
+
+
+def test_the_analyzer_agrees_with_the_unmodified_driver_ledger(
+    tmp_path: Path,
+) -> None:
+    code, out = _run_driver_with_real_traces(tmp_path)
+    assert code == protocol.EXIT_OK
+    payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert payload["classification_ledger_failures"] == []
+    assert payload["classification_ledger_entries"] == 102
+    assert not any(
+        item.startswith("INSTRUMENT_DEFECT")
+        for item in payload["blocking_failures"]
+    )
+
+
+def test_a_stopped_run_ledger_covers_exactly_the_executed_cells(
+    tmp_path: Path,
+) -> None:
+    out_root = _phase_l_out(tmp_path)
+
+    def row_for(cell: harness.Cell) -> Mapping[str, Any]:
+        if cell.index == 50:
+            return traced_row(
+                out_root, cell, tool_contract_regression_detected=True
+            )
+        return traced_row(out_root, cell)
+
+    code, out = _run_driver_with_rows(tmp_path, row_for)
+    assert code == protocol.EXIT_SCHEDULE_STOPPED
+    manifest = _driver_manifest(out)
+    assert manifest["executed_cells"] == 51
+    assert len(manifest["classifications"]) == 51
+    assert manifest["classifications"][-1]["failure_class"] == harness.INSTRUMENT_DEFECT
+    payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    # The ledger itself is consistent with what executed ...
+    assert payload["classification_ledger_failures"] == []
+    # ... and the run still cannot be reported as a qualification.
+    assert payload["matrix_complete"] is False
+    assert payload["verdict"] == analyzer.VERDICT_HOLD
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["remove_all", "remove_one", "duplicate_one", "wrong_cell", "wrong_index",
+     "wrong_failure_class", "wrong_disposition", "unknown_class", "extra_entry"],
+)
+def test_an_adversarially_mutated_ledger_is_a_blocking_instrument_defect(
+    mutation: str, tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """Every mutation is applied to the ledger the DRIVER wrote."""
+
+    code, out = _run_driver_with_real_traces(tmp_path)
+    assert code == protocol.EXIT_OK
+    manifest_path = out / "phaseL-run-manifest.json"
+    manifest = _driver_manifest(out)
+    ledger = manifest["classifications"]
+
+    if mutation == "remove_all":
+        manifest.pop("classifications")
+    elif mutation == "remove_one":
+        ledger.pop(60)
+    elif mutation == "duplicate_one":
+        ledger[60] = dict(ledger[59])
+    elif mutation == "wrong_cell":
+        ledger[10]["cell"] = schedule[11].key
+    elif mutation == "wrong_index":
+        ledger[10]["index"] = 99
+    elif mutation == "wrong_failure_class":
+        ledger[10]["failure_class"] = harness.MODEL_REFUSAL
+    elif mutation == "wrong_disposition":
+        ledger[10]["disposition"] = harness.IMMEDIATE_STOP
+    elif mutation == "unknown_class":
+        ledger[10]["failure_class"] = "TOTALLY_FINE"
+    else:
+        ledger.append(dict(ledger[0]))
+
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert payload["classification_ledger_failures"], mutation
+    assert any(
+        item.startswith("INSTRUMENT_DEFECT")
+        for item in payload["blocking_failures"]
+    ), mutation
+    assert payload["verdict"] == analyzer.VERDICT_HOLD, mutation
+
+
+def test_a_row_with_no_ledger_entry_is_reported(tmp_path: Path) -> None:
+    code, out = _run_driver_with_real_traces(tmp_path)
+    assert code == protocol.EXIT_OK
+    manifest_path = out / "phaseL-run-manifest.json"
+    manifest = _driver_manifest(out)
+    manifest["classifications"] = manifest["classifications"][:101]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert any(
+        "classification ledger has no entry" in item
+        for item in payload["classification_ledger_failures"]
+    )
+    assert payload["verdict"] == analyzer.VERDICT_HOLD
+
+
+def test_a_malformed_raw_record_is_refused_rather_than_skipped(
+    tmp_path: Path,
+) -> None:
+    code, out = _run_driver_with_real_traces(tmp_path)
+    assert code == protocol.EXIT_OK
+    raw = out / "phaseL-runs.jsonl"
+    lines = raw.read_text(encoding="utf-8").splitlines()
+    lines[5] = '{"task_id": "BEN-002"'
+    raw.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with pytest.raises(analyzer.AnalysisError):
+        analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+
+
+def test_the_driver_and_analyzer_share_the_ledger_field_contract() -> None:
+    assert protocol.RUN_MANIFEST_CLASSIFICATION_FIELDS == (
+        "cell",
+        "index",
+        "failure_class",
+        "disposition",
+    )
+    source = (PROJECT_ROOT / "scripts" / "run_phaseL_requalification.py").read_text(
+        encoding="utf-8"
+    )
+    assert "result.classifications" in source, (
+        "the ledger must be the controller's, not a driver reconstruction"
+    )
+
+
+def test_the_refreeze_report_records_the_la1_repair_and_authorizes_nothing() -> None:
+    """The report must state the repair and must never claim an authorization."""
+
+    report = (
+        PROJECT_ROOT / "docs" / "phaseL_rc3_requalification_refreeze_report.md"
+    ).read_text(encoding="utf-8")
+    assert "ZERO MODEL INFERENCE" in report
+    assert "pilot-v7-rc3 REMAINS UNQUALIFIED" in report
+    # The L-A'.1 repair section exists and names both blockers.
+    assert "Revision L-A′.1" in report
+    assert "cell_experiment_dir" in report
+    assert "classification ledger" in report.lower()
+    # Terminal status, and nothing after it.
+    assert report.rstrip().endswith("READY_FOR_ADVERSARIAL_REREVIEW")
+

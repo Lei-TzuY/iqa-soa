@@ -648,3 +648,276 @@ review. **READY DOES NOT AUTHORIZE EXECUTION.**
 **pilot-v7-rc3 remains UNQUALIFIED. No inference is authorized.**
 
 READY_FOR_PHASE_L_REAL_MODEL_EXECUTION_REVIEW
+
+---
+
+## 19. Revision L-A′.1 — driver/analyzer evidence integration repair
+
+**ZERO MODEL INFERENCE.** No provider was contacted, no Ollama endpoint was
+probed, no `/api/chat`, `/api/generate` or OpenAI-compatible completion request
+was issued. `IQA_SOA_PHASE_L_HUMAN_GATE` was never set. **pilot-v7-rc3 remains
+UNQUALIFIED and this revision authorizes no inference.**
+
+Adversarial review of the Phase-L-A′ freeze found **two concrete integration
+defects**. Both were real, both were repairable inside the Phase-L prospective
+files, and neither touches the science: no rc3 task YAML, manifest, contract,
+threshold, equivalence, near-miss definition, taxonomy, disposition, seed, model
+arm, digest, runtime pin, tool-contract policy, QA mode, schedule ordering or
+human gate changed. The starting HEAD was
+`a7ed59d9d091eb7cb1b58e0d217ad3ad5e3f5757`.
+
+Neither defect could have been caught by the Phase-L-A′ suite as written: every
+analyzer test there constructed rows by hand and never exercised the real
+`ExperimentRunner` directory layout or the manifest the driver actually writes.
+That is the root cause of both misses, and it is what the new regressions fix.
+
+---
+
+### 19.1 Defect 1 — the evidence-trace path contract was wrong
+
+The driver created each cell's experiment directory under
+
+```
+<output_root>/raw/cells/<slug>/<experiment-id>/
+```
+
+but serialized the stored pointer as
+`experiment_dir.relative_to(cells_root.parent)`. Since
+`cells_root == <output_root>/raw/cells`, `cells_root.parent` is
+`<output_root>/raw`, so the row recorded
+
+```
+cells/<slug>/<experiment-id>
+```
+
+The analyzer resolved `root / cell_experiment_dir / trace_path` with
+`root == <output_root>`, and therefore looked under
+
+```
+<output_root>/cells/<slug>/<experiment-id>/<trace>
+```
+
+while the real file was one directory level up the tree, under
+`<output_root>/raw/cells/...`. **Every trace lookup in a real Phase-L run would
+have missed.** Demonstrated directly against the two serializations:
+
+| Serialization | Stored value | Analyzer result |
+| --- | --- | --- |
+| L-A′ (defective) | `cells/007-qwen-PI-015-1281385038/exp-x` | 0 events |
+| L-A′.1 (correct) | `raw/cells/007-qwen-PI-015-1281385038/exp-x` | 1 event |
+
+### 19.2 Why the silent `[]` was scientifically unsafe
+
+`_trace_events` returned a bare `[]` whenever the experiment directory was
+absent, the trace path was absent, or the resolved file did not exist. An empty
+event list is not a neutral value in this analyzer — it is a *scoring outcome*.
+It yields no proposals, therefore no ordered prerequisites, therefore no
+canonical exposure, therefore `ZERO_EXPOSURE`, and for BUD-016 it also yields
+`MODALITY_NOT_ESTABLISHED`. That is **indistinguishable from a model that did
+nothing**.
+
+Combined with defect 1, the two compose into the worst possible failure: a fully
+successful 102-cell run in which every model reached every route would have been
+reported as universal zero exposure, and `pilot-v7-rc3` would have been judged
+unusable on the strength of a path-join bug. Lost evidence must never be
+readable as a measurement.
+
+### 19.3 The corrected invariant
+
+The contract is now stated **once**, in `scripts/phaseL_protocol.py`, and used by
+both sides:
+
+> `row["cell_experiment_dir"]` is the `ExperimentRunner` experiment directory
+> expressed **relative to the Phase-L output root**, as a POSIX path. The
+> analyzer resolves a cell's evidence trace as
+> `<output_root>/<cell_experiment_dir>/<row["trace_path"]>` and never any other
+> way.
+
+- `protocol.CELL_EXPERIMENT_DIR_CONTRACT` — the invariant in prose.
+- `protocol.cells_root(output_root)` — the one place the `raw/cells` layout is
+  spelled.
+- `protocol.cell_experiment_dir_value(experiment_dir, output_root)` — the
+  driver's half. It computes against the **output root explicitly** and
+  **raises `ProtocolError`** rather than guessing when the directory is not
+  beneath it. No `.parent` or `.parents[n]` arithmetic remains on either side.
+- `protocol.resolve_cell_experiment_dir(output_root, value)` — the analyzer's
+  half.
+
+`make_cell_executor` now takes `output_root` explicitly instead of a derived
+`cells_root`, so the value it stores and the value the analyzer resolves come
+from the same input.
+
+### 19.4 Lost evidence now fails closed
+
+`_trace_events` returns `(events, defects)`. The defect list is non-empty when
+
+- `cell_experiment_dir` is missing;
+- `trace_path` is missing;
+- the resolved trace does not exist;
+- the trace cannot be read;
+- a trace JSONL line is malformed;
+- a trace record is not a JSON object.
+
+Each becomes a blocking `INSTRUMENT_DEFECT` → qualification **HOLD**, and the
+affected cell is scored as `INSTRUMENT_DEFECT` / `IMMEDIATE_STOP` so it can
+never contribute exposure nor be counted as a clean valid cell. The override is
+applied only to *scoring*; the ledger reconciliation in §19.6 still uses the
+unoverridden classification, so a trace defect cannot manufacture a false
+disagreement with the driver.
+
+Nothing synthesizes an empty trace, and no proposal is ever inferred from
+benchmark ground truth. `_read_jsonl` likewise now refuses a malformed raw
+record rather than skipping it.
+
+### 19.5 Defect 2 — the final run manifest dropped the classification ledger
+
+`StopController` already owns and preserves `result.classifications`, and the
+Phase-K partial manifest already writes it. The Phase-L **final** run manifest
+did not. The analyzer's `_recorded_classification` therefore found nothing to
+compare on every real completed run, and the driver-agreement check passed
+**vacuously**. The Phase-L-A′ test that appeared to cover it injected a
+fabricated ledger, which proved only that the analyzer reacts to a fabrication.
+
+### 19.6 The manifest schema and the reconciliation
+
+`_write_run_manifest` now persists
+
+```json
+"classifications": [ {"cell": ..., "index": ..., "failure_class": ..., "disposition": ...}, ... ]
+```
+
+**verbatim from `ScheduleResult.classifications`.** It is not regenerated in the
+driver; a test asserts the source names `result.classifications`, so it is the
+exact ledger the controller produced while recording the actual rows.
+`protocol.RUN_MANIFEST_CLASSIFICATION_FIELDS` fixes the required fields for both
+sides.
+
+`check_classification_ledger` then requires, for a run claiming
+`SCHEDULE_COMPLETE`:
+
+- the ledger exists;
+- it holds exactly 102 entries;
+- every frozen cell appears exactly once;
+- each entry's `cell` and `index` agree with the frozen schedule, and its ledger
+  position equals the frozen schedule position;
+- `failure_class` is in the closed Phase-K taxonomy;
+- `disposition` equals `harness.DISPOSITION[failure_class]`;
+- the analyzer's own independent `harness.classify_row` over the persisted row
+  agrees on **both** the class and the disposition;
+- no persisted row lacks a ledger entry.
+
+For a legitimately **stopped** run the ledger must cover exactly the cells that
+executed; the analyzer still refuses a complete qualification, as before. Any
+missing, partial, duplicated, extended, misindexed, unknown-class,
+wrong-disposition or disagreeing ledger is a blocking `INSTRUMENT_DEFECT`.
+
+Three new analyzer output keys make the state legible:
+`evidence_trace_defects`, `classification_ledger_failures` and
+`classification_ledger_entries`.
+
+### 19.7 New deterministic offline regressions
+
+`tests/integration/test_phaseL_execution_protocol.py` grows from 120 to **147**
+tests. The 27 additions are all offline; the real-runner ones use
+`DeterministicStubProvider` only.
+
+| Test | Proves |
+| --- | --- |
+| `test_the_path_contract_is_output_root_relative` | the stored value starts at the output root, **not** at `<output_root>/raw`, and round-trips to the real directory |
+| `test_serializing_a_directory_outside_the_output_root_is_refused` | the serializer raises rather than guessing |
+| `test_the_real_runner_layout_resolves_end_to_end` | **the regression.** Real `ExperimentRunner`, real frozen BUD-016 case, real QA-OFF treatment, real Phase-L config, the production `make_cell_executor` and the production serializer → the production analyzer resolves the exact trace file, `proposals_for` yields ordered proposals, BUD-016's declared `api.call` endpoint attempt is visible, `modality_established` is `True` and the ordered prerequisite chain is satisfied. Fails under the old `cells/...` contract. |
+| `test_the_real_executor_never_labels_a_stub_run_as_real_model` | the offline provider seam cannot launder a stub into a real-model record: the experiment kind is chosen from the provider type, `provider_runtime` is `None`, and `ExperimentRunner` independently refuses the combination |
+| `test_lost_trace_evidence_fails_closed` ×6 | missing directory, missing `trace_path`, **the exact old `cells/...` value**, absent file, malformed JSONL and a non-object record each report a defect and yield no events |
+| `test_lost_trace_evidence_blocks_qualification_end_to_end` | a clean 102-cell run analyzes with zero defects; deleting exactly one trace then forces `INSTRUMENT_DEFECT` → `HOLD`, and the affected task leaves the qualifying statuses |
+| `test_the_driver_naturally_writes_the_classification_ledger` | the driver's **own** manifest carries 102 entries with correct cell, index, class and frozen disposition — no ledger is injected |
+| `test_the_analyzer_agrees_with_the_unmodified_driver_ledger` | the analyzer reconciles that untouched manifest with zero failures |
+| `test_a_stopped_run_ledger_covers_exactly_the_executed_cells` | a stop at index 50 leaves 51 executed cells and 51 ledger entries, the last `INSTRUMENT_DEFECT`; the ledger is consistent and the run still cannot qualify |
+| `test_an_adversarially_mutated_ledger_is_a_blocking_instrument_defect` ×9 | removing all, removing one, duplicating one, wrong cell, wrong index, wrong `failure_class`, wrong `disposition`, unknown class and an extra entry each force `HOLD` — every mutation applied to the ledger the **driver** wrote |
+| `test_a_row_with_no_ledger_entry_is_reported` | a truncated ledger names the uncovered row |
+| `test_a_malformed_raw_record_is_refused_rather_than_skipped` | a corrupt raw row raises rather than silently shrinking the matrix |
+| `test_the_driver_and_analyzer_share_the_ledger_field_contract` | both sides bind to `RUN_MANIFEST_CLASSIFICATION_FIELDS`, and the driver persists `result.classifications` |
+| `test_the_refreeze_report_records_the_la1_repair_and_authorizes_nothing` | this report names both blockers and ends on the L-A′.1 terminal status |
+
+Five pre-existing analyzer tests were moved onto real-layout traces
+(`_run_driver_with_real_traces`), and the fabricated-ledger test was rewritten to
+**mutate the driver-written ledger** instead of inventing one.
+
+### 19.8 Refreshed frozen hashes
+
+The plan, the protocol module, the driver and the analyzer all changed **before
+any inference**, so this is a prospective refreeze, not post-hoc result editing:
+no Phase-L evidence exists. Regenerated deterministically with
+`python scripts/phaseL_write_frozen_inputs.py`; never edited by hand.
+
+| File | SHA-256 |
+| --- | --- |
+| `docs/phaseL_rc3_real_model_requalification_plan_v2.md` | `40fcd6d34b1e9fa1ba2e2e471cbe94bd0c27882d47a0bfd82fae28b95cd6ddb8` |
+| `scripts/phaseL_protocol.py` | `564fbb6635102c9e0f4b47a0db76bed0ad8f7b8db7ba21722f33b53b756876a4` |
+| `scripts/run_phaseL_requalification.py` | `a37415c639a54e099000f0e7ec1c154f99975e68b2b69121ab15ab32fae9d7f9` |
+| `scripts/analyze_phaseL_requalification.py` | `5a361751dbb3fa570f91cf8592f50b41723e9922b0daae7cd2ccebab0ce3f2f6` |
+
+The plan's `.sha256` sidecar was regenerated to match. Every other frozen input —
+the two configs, the qualification harness, the five rc3 artifacts, the QA
+policy, the Phase-M revision record, the seed record and both tree digests — is
+**byte-identical to the Phase-L-A′ freeze**. `--verify-frozen-inputs` and
+`phaseL_write_frozen_inputs.py --check` both PASS, so the driver and analyzer
+match the newly frozen hashes exactly.
+
+**Unchanged by this revision:** seeds `929260329`, `1281385038`, `978843421`;
+`SEED_SELECTION_STATUS = PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED`;
+schedule digest `1688f90c2ac371596a13db0dd00f797c152b3fa669d245e4f59da22b7244b857`;
+102 cells; instrument `3` / raw schema `4`; both model digests; the runtime pin;
+the human gate.
+
+### 19.9 Files changed in L-A′.1
+
+```
+docs/phaseL_rc3_real_model_requalification_plan_v2.md      (+ §12.1, §12.2)
+docs/phaseL_rc3_real_model_requalification_plan_v2.sha256  (regenerated)
+docs/phaseL_frozen_execution_inputs.json                   (regenerated)
+docs/phaseL_rc3_requalification_refreeze_report.md         (this section)
+scripts/phaseL_protocol.py                                 (path contract, ledger fields)
+scripts/run_phaseL_requalification.py                      (serializer, output_root, ledger)
+scripts/analyze_phaseL_requalification.py                  (fail-closed traces, ledger check)
+tests/integration/test_phaseL_execution_protocol.py        (+26 tests)
+```
+
+`src/iqa_soa` is **untouched**: both defects were Phase-L integration defects, as
+expected, and neither proved a current instrument defect.
+
+### 19.10 Validation after the repair
+
+| Check | Result |
+| --- | --- |
+| `validate_pilot_v7_rc3.py` / `rc1` | **PASS** / **PASS** |
+| `validate_pilot_v7_rc2.py` at freeze commit `6ba6595f` | **PASS** |
+| `instrument_revision.py` | **PASS** |
+| `phaseM_frozen_input_audit.py` | **PASS** (12 bound inputs + 6 sidecars) |
+| `phaseM_historical_analysis.py` | **PASS** (3 frozen scripts reproduced) |
+| `phaseL_fault_provenance_reachability_probe.py` | exit **0**, contract reachable |
+| `run_phaseL_requalification.py --verify-frozen-inputs` | **PASS**, no provider contacted |
+| `run_phaseL_requalification.py` (no gates) | **refused**, exit `6` |
+| `analyze_phaseL_requalification.py --verify-scoring-plan` | **PASS**, 17/17 |
+| `phaseL_write_frozen_inputs.py --check` | **PASS** |
+| `pytest tests/integration/test_phaseL_execution_protocol.py` | **147 passed** |
+| Full `pytest` | **1089 passed, 0 failed** |
+| `MYPYPATH=src mypy` | `Success: no issues found in 46 source files` |
+| `mypy --strict` over the four Phase-L scripts | `Success: no issues found in 4 source files` |
+
+Fresh detached-worktree validation at the final repaired commit reproduced every
+frozen hash, the 102-cell schedule, the schedule digest, the seeds, correct real
+trace resolution, fail-closed behaviour on a deleted trace, the driver's natural
+classification ledger and the analyzer's independent reconciliation — with the
+human gate closed and **zero provider contact, zero Ollama contact and zero
+model inference**.
+
+### 19.11 Status after L-A′.1
+
+Both blockers are repaired and each is pinned by a regression that fails under
+the old behaviour. The protocol design is otherwise retained exactly. No science
+was redesigned, no historical artifact was modified, and no inference was
+performed or authorized.
+
+**pilot-v7-rc3 remains UNQUALIFIED.**
+
+READY_FOR_ADVERSARIAL_REREVIEW

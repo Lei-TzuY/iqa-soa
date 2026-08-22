@@ -35,6 +35,24 @@ The matrix gate is absolute and runs BEFORE any scoring: a partial matrix, a
 duplicated cell, a missing cell, an extra cell, a row that cannot be bound to
 its frozen cell, an invalidated cell silently counted as valid, or a run that
 stopped, each make a complete qualification impossible.
+
+(Phase L-A'.1) Two integration defects found by adversarial review are repaired
+here:
+
+1. **Evidence traces are resolved under one shared path contract and lost
+   evidence fails closed.**  ``protocol.CELL_EXPERIMENT_DIR_CONTRACT`` fixes
+   ``cell_experiment_dir`` as the experiment directory relative to the PHASE-L
+   OUTPUT ROOT, and both the driver and :func:`_trace_events` use it.  A row
+   that declares no experiment directory, declares no trace, or whose resolved
+   trace is absent, unreadable or malformed is a blocking ``INSTRUMENT_DEFECT``.
+   It is never silently read as an empty proposal list, because "no proposals"
+   scores identically to a model that did nothing and would change the verdict.
+2. **The StopController classification ledger is required, not optional.**  The
+   driver persists ``ScheduleResult.classifications`` verbatim, and
+   :func:`check_classification_ledger` reconciles every entry against this
+   analyzer's own independent ``harness.classify_row``.  A missing, partial,
+   duplicated, extended, misindexed or disagreeing ledger is a blocking
+   ``INSTRUMENT_DEFECT``.
 """
 
 from __future__ import annotations
@@ -1355,28 +1373,97 @@ def classify_task(plan: TaskPlan, cells: Sequence[CellResult]) -> TaskReport:
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read the append-only raw record, refusing anything unreadable.
+
+    A malformed raw row is lost evidence for that cell, not an absent cell, so
+    it raises rather than being skipped.
+    """
+
     if not path.is_file():
         raise AnalysisError(f"missing raw evidence: {path}")
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    rows: list[dict[str, Any]] = []
+    for number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        if not line.strip():
+            continue
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise AnalysisError(
+                f"{path} is malformed at line {number}: {exc}"
+            ) from exc
+        if not isinstance(parsed, dict):
+            raise AnalysisError(f"{path} carries a non-object row at line {number}")
+        rows.append(parsed)
+    return rows
 
 
-def _trace_events(root: Path, row: Mapping[str, Any]) -> list[dict[str, Any]]:
-    directory = str(row.get("cell_experiment_dir") or "")
-    trace = str(row.get("trace_path") or "")
-    if not directory or not trace:
-        return []
-    path = root / directory / trace
+def _trace_events(
+    root: Path, row: Mapping[str, Any]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Resolve one cell's evidence trace, or report why it is LOST.
+
+    (L-A'.1) This used to return a bare ``[]`` whenever the experiment directory
+    was absent, the trace path was absent, or the resolved file did not exist.
+    That silently turned lost evidence into "no proposals, no prerequisites, no
+    exposure" -- a scoring outcome indistinguishable from a model that simply
+    did nothing, and one that can change the qualification verdict. Combined
+    with the Phase-L-A' path defect (the driver serialized
+    ``cell_experiment_dir`` relative to ``<output_root>/raw`` while this
+    function resolved from ``<output_root>``), EVERY real trace lookup would
+    have missed and every cell would have scored zero exposure.
+
+    It now fails closed: the second element is a non-empty defect list whenever
+    the trace is declared-but-unavailable, and the caller must treat that as a
+    blocking ``INSTRUMENT_DEFECT``.  Nothing here synthesizes an empty trace and
+    nothing infers proposals from benchmark ground truth.
+
+    Resolution follows ``protocol.CELL_EXPERIMENT_DIR_CONTRACT`` exactly:
+    ``<output_root>/<cell_experiment_dir>/<trace_path>``.
+    """
+
+    cell_key = str(row.get("cell_key") or row.get("run_key") or "?")
+    directory = str(row.get("cell_experiment_dir") or "").strip()
+    trace = str(row.get("trace_path") or "").strip()
+    if not directory:
+        return [], [
+            f"{cell_key}: the row declares no cell_experiment_dir, so its evidence "
+            "trace cannot be located; lost evidence is never scored as zero exposure"
+        ]
+    if not trace:
+        return [], [
+            f"{cell_key}: the row declares no trace_path, so its evidence trace "
+            "cannot be located; lost evidence is never scored as zero exposure"
+        ]
+    path = protocol.resolve_cell_experiment_dir(root, directory) / trace
     if not path.is_file():
-        return []
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+        return [], [
+            f"{cell_key}: the declared evidence trace {directory}/{trace} does not "
+            f"exist under {root}; lost evidence is never scored as zero exposure"
+        ]
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{cell_key}: the evidence trace {directory}/{trace} is unreadable: {exc}"]
+    events: list[dict[str, Any]] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError as exc:
+            return [], [
+                f"{cell_key}: the evidence trace {directory}/{trace} is malformed at "
+                f"line {number}: {exc}"
+            ]
+        if not isinstance(parsed, dict):
+            return [], [
+                f"{cell_key}: the evidence trace {directory}/{trace} carries a "
+                f"non-object record at line {number}"
+            ]
+        events.append(parsed)
+    return events, []
 
 
 def analyze(
@@ -1404,7 +1491,8 @@ def analyze(
     matrix = check_matrix(schedule, rows, run_manifest)
 
     cell_results: list[CellResult] = []
-    classification_disagreements: list[str] = []
+    trace_defects: list[str] = []
+    independent: dict[str, tuple[str, str]] = {}
     for position, row in enumerate(rows):
         if position >= len(schedule):
             break
@@ -1415,22 +1503,35 @@ def analyze(
         failure_class, disposition = harness.classify_row(
             row, cell, scripted_faults=benchmark.scripted_faults
         )
-        recorded = _recorded_classification(run_manifest, cell)
-        if recorded is not None and recorded != failure_class:
-            classification_disagreements.append(
-                f"{cell.key}: the driver recorded {recorded!r}, the analyzer "
-                f"independently classifies {failure_class!r}"
-            )
-        cell_results.append(
-            evaluate_cell(
-                cell=cell,
-                row=row,
-                events=_trace_events(root, row),
-                plan=plan,
-                failure_class=failure_class,
-                disposition=disposition,
-            )
+        independent[cell.key] = (failure_class, disposition)
+
+        events, defects = _trace_events(root, row)
+        trace_defects.extend(defects)
+        # (L-A'.1) LOST EVIDENCE IS NOT ZERO EXPOSURE.  A cell whose trace could
+        # not be resolved is scored as an INSTRUMENT_DEFECT so it can never
+        # contribute exposure and can never be counted as a clean valid cell.
+        # The ledger reconciliation above still uses the UNOVERRIDDEN
+        # classification, so this override cannot manufacture a disagreement
+        # with the driver.
+        scoring_class, scoring_disposition = (
+            (harness.INSTRUMENT_DEFECT, harness.IMMEDIATE_STOP)
+            if defects
+            else (failure_class, disposition)
         )
+        result = evaluate_cell(
+            cell=cell,
+            row=row,
+            events=events,
+            plan=plan,
+            failure_class=scoring_class,
+            disposition=scoring_disposition,
+        )
+        result.detail.extend(defects)
+        cell_results.append(result)
+
+    ledger_failures = check_classification_ledger(
+        schedule, rows, run_manifest, independent
+    )
 
     by_task: dict[str, list[CellResult]] = {}
     for result in cell_results:
@@ -1445,7 +1546,8 @@ def analyze(
         *(f"FROZEN_ARTIFACT_MISMATCH: {item}" for item in frozen_failures),
         *(f"CONTRACT_NOT_MACHINE_READABLE: {item}" for item in plan_failures),
         *(f"MATRIX_INVALID: {item}" for item in matrix.failures),
-        *(f"INSTRUMENT_DEFECT: {item}" for item in classification_disagreements),
+        *(f"INSTRUMENT_DEFECT: {item}" for item in trace_defects),
+        *(f"INSTRUMENT_DEFECT: {item}" for item in ledger_failures),
     ]
     unqualified = [
         report.task_id
@@ -1472,6 +1574,11 @@ def analyze(
         "observed_cells": matrix.observed,
         "matrix_complete": matrix.complete,
         "matrix_failures": matrix.failures,
+        "evidence_trace_defects": trace_defects,
+        "classification_ledger_failures": ledger_failures,
+        "classification_ledger_entries": len(
+            run_manifest.get("classifications") or []
+        ),
         "blocking_failures": blocking,
         "scoring_is_contract_derived": True,
         "contract_keys_used": {
@@ -1506,16 +1613,119 @@ def analyze(
     }
 
 
-def _recorded_classification(
-    run_manifest: Mapping[str, Any], cell: harness.Cell
-) -> str | None:
+def check_classification_ledger(
+    schedule: Sequence[harness.Cell],
+    rows: Sequence[Mapping[str, Any]],
+    run_manifest: Mapping[str, Any],
+    independent: Mapping[str, tuple[str, str]],
+) -> list[str]:
+    """Reconcile the StopController ledger against an independent reclassification.
+
+    (L-A'.1) Phase L-A' asked the analyzer to compare its own classification
+    against the driver's, but the final run manifest carried no ledger, so on
+    every real run the comparison had nothing to compare and passed vacuously.
+    The driver now persists ``result.classifications`` verbatim and this
+    function requires it.
+
+    ``independent`` maps each cell key to the ``(failure_class, disposition)``
+    the analyzer derived by re-running ``harness.classify_row`` over the
+    persisted row.  Every discrepancy below is a blocking ``INSTRUMENT_DEFECT``:
+    the driver and the analyzer disagreeing about what happened means the run
+    cannot be interpreted, whichever of the two is right.
+    """
+
+    failures: list[str] = []
     entries = run_manifest.get("classifications")
     if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
-        return None
-    for entry in entries:
-        if isinstance(entry, Mapping) and entry.get("cell") == cell.key:
-            return str(entry.get("failure_class") or "")
-    return None
+        return [
+            "the run manifest carries no StopController classification ledger; a "
+            "run whose driver did not record what it decided cannot be reconciled"
+        ]
+
+    terminal = str(run_manifest.get("terminal_status") or "")
+    executed = run_manifest.get("executed_cells")
+    expected_count = (
+        len(schedule)
+        if terminal == harness.TERMINAL_STATUS_OK
+        else (executed if isinstance(executed, int) else len(rows))
+    )
+    if len(entries) != expected_count:
+        failures.append(
+            f"the classification ledger has {len(entries)} entries; a run reporting "
+            f"{terminal or 'no terminal status'} must carry exactly {expected_count}"
+        )
+
+    by_key = {cell.key: cell for cell in schedule}
+    seen: dict[str, int] = {}
+    for position, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            failures.append(f"ledger entry {position} is not an object")
+            continue
+        missing = [
+            name
+            for name in protocol.RUN_MANIFEST_CLASSIFICATION_FIELDS
+            if name not in entry
+        ]
+        if missing:
+            failures.append(f"ledger entry {position} is missing {missing}")
+            continue
+        key = str(entry["cell"])
+        seen[key] = seen.get(key, 0) + 1
+        cell = by_key.get(key)
+        if cell is None:
+            failures.append(
+                f"ledger entry {position} names cell {key!r}, which is not in the "
+                "frozen schedule"
+            )
+            continue
+        if entry["index"] != cell.index:
+            failures.append(
+                f"ledger entry for {key} carries index {entry['index']!r}, the "
+                f"frozen index is {cell.index}"
+            )
+        if position != cell.index:
+            failures.append(
+                f"ledger entry for {key} is at ledger position {position}, the "
+                f"frozen schedule position is {cell.index}"
+            )
+        failure_class = str(entry["failure_class"])
+        disposition = str(entry["disposition"])
+        if failure_class not in harness.FAILURE_CLASSES:
+            failures.append(
+                f"ledger entry for {key} names {failure_class!r}, which is not in "
+                "the closed Phase-K taxonomy"
+            )
+            continue
+        frozen_disposition = harness.DISPOSITION[failure_class]
+        if disposition != frozen_disposition:
+            failures.append(
+                f"ledger entry for {key} pairs {failure_class!r} with "
+                f"{disposition!r}; the frozen disposition is {frozen_disposition!r}"
+            )
+        reclassified = independent.get(key)
+        if reclassified is None:
+            failures.append(
+                f"ledger entry for {key} has no corresponding persisted row to "
+                "reclassify"
+            )
+            continue
+        if reclassified != (failure_class, disposition):
+            failures.append(
+                f"{key}: the driver recorded {(failure_class, disposition)!r}, the "
+                f"analyzer independently classifies {reclassified!r}"
+            )
+
+    duplicates = sorted(key for key, count in seen.items() if count > 1)
+    if duplicates:
+        failures.append(f"the classification ledger duplicates cells: {duplicates}")
+
+    for key in sorted(independent):
+        if key not in seen:
+            failures.append(
+                f"{key}: a row was persisted but the classification ledger has no "
+                "entry for it"
+            )
+    return failures
 
 
 def build_parser() -> argparse.ArgumentParser:

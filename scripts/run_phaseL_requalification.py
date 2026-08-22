@@ -282,7 +282,11 @@ def _row_from_cell_directory(experiment_dir: Path) -> dict[str, Any]:
 
 
 def make_cell_executor(
-    *, config_path: Path, manifest_path: Path, cells_root: Path
+    *,
+    config_path: Path,
+    manifest_path: Path,
+    output_root: Path,
+    providers: Mapping[str, Any] | None = None,
 ) -> CellExecutor:
     """Build the real, runner-backed executor for one frozen cell.
 
@@ -291,25 +295,50 @@ def make_cell_executor(
     must give it a per-cell configuration.  That is what this does: a config
     whose seed tuple is exactly this cell's seed, whose repetition count is one,
     whose treatment set is exactly ``off``, and whose output root is this cell's
-    own directory -- so no cell can overwrite, blend into or resume another.
+    own directory under ``<output_root>/raw/cells/<slug>/`` -- so no cell can
+    overwrite, blend into or resume another.
 
     Nothing about the run is otherwise altered.  The provider, the policy, the
     ablations, the step budget and the frozen benchmark are the frozen ones.
+
+    (L-A'.1) ``output_root`` is now passed EXPLICITLY and the serialized
+    ``cell_experiment_dir`` is computed against it, per
+    ``protocol.CELL_EXPERIMENT_DIR_CONTRACT``.  It used to be derived by
+    ``.parent`` arithmetic off the cells root, which silently produced a path
+    relative to ``<output_root>/raw`` while the analyzer resolved from
+    ``<output_root>`` -- so every real trace lookup missed.
+
+    ``providers`` is an OFFLINE-TEST SEAM.  It exists so the deterministic
+    end-to-end regression can drive the real runner, the real frozen cases and
+    the real directory layout without inference.  It cannot be used to launder a
+    stub into a real-model record: the experiment kind is chosen from the
+    provider type below, and ``ExperimentRunner`` independently refuses to label
+    a ``DeterministicStubProvider`` run as a real-model experiment.
     """
 
+    from iqa_soa.agent.providers import DeterministicStubProvider
     from iqa_soa.benchmark import load_frozen_pilot
 
     frozen = load_frozen_pilot(manifest_path)
     base_config = load_experiment_config(config_path)
-    providers = {
+    resolved_providers: Mapping[str, Any] = providers or {
         arm: load_provider(
             base_config.models_path, provider_name=protocol.ARM_PROVIDER_SLOT[arm]
         )
         for arm in protocol.ARM_ORDER
     }
+    deterministic = any(
+        isinstance(item, DeterministicStubProvider)
+        for item in resolved_providers.values()
+    )
+    experiment_kind = (
+        "deterministic_mechanism_validation" if deterministic
+        else protocol.EXPERIMENT_KIND
+    )
+    root = protocol.cells_root(output_root)
 
     def execute(cell: harness.Cell) -> Mapping[str, Any]:
-        cell_root = cells_root / protocol.cell_slug(cell)
+        cell_root = root / protocol.cell_slug(cell)
         config = replace(
             base_config,
             output_root=cell_root,
@@ -319,20 +348,20 @@ def make_cell_executor(
         )
         started = time.perf_counter()
         experiment_dir = ExperimentRunner(
-            config, provider=providers[cell.arm]
+            config, provider=resolved_providers[cell.arm]
         ).run(
             treatments=[protocol.QA_MODE],
             case_ids=[cell.task_id],
             repetitions=1,
             frozen_benchmark=frozen,
             max_total_runs=1,
-            experiment_kind=protocol.EXPERIMENT_KIND,
+            experiment_kind=experiment_kind,
             infrastructure_retry_limit=protocol.INFRASTRUCTURE_RETRY_LIMIT,
         )
         row = _row_from_cell_directory(experiment_dir)
         row["cell_elapsed_ms"] = (time.perf_counter() - started) * 1000.0
-        row["cell_experiment_dir"] = str(
-            experiment_dir.relative_to(cells_root.parent).as_posix()
+        row["cell_experiment_dir"] = protocol.cell_experiment_dir_value(
+            experiment_dir, output_root
         )
         return row
 
@@ -460,6 +489,13 @@ def _write_run_manifest(
         "stop_reason": result.stop_reason,
         "stop_detail": list(result.stop_detail),
         "cells_not_started": list(result.not_started),
+        # (L-A'.1) THE STOPCONTROLLER CLASSIFICATION LEDGER, persisted verbatim.
+        # It is NOT regenerated here: this is the exact ledger the controller
+        # produced while recording the actual rows, so the analyzer's
+        # independent reclassification has something real to disagree with.
+        # Phase L-A' omitted it, which made that reconciliation vacuous on every
+        # real run -- it could only ever fire if somebody fabricated the field.
+        "classifications": [dict(item) for item in result.classifications],
         "note": (
             "Every provider attempt is preserved. No cell was retried, replaced, "
             "repaired, resumed or rerun, and no raw trace was deleted."
@@ -626,7 +662,7 @@ def main(
         or make_cell_executor(
             config_path=config_path,
             manifest_path=manifest_path,
-            cells_root=output_root / "raw" / "cells",
+            output_root=output_root,
         ),
         raw_path=raw_path,
         partial_manifest_path=output_root / "phaseL-partial-manifest.json",

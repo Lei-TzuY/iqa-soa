@@ -209,6 +209,18 @@ DRIVER_STAMPED_SCHEDULE_FIELDS: tuple[str, ...] = (
     "cell_experiment_dir",
 )
 
+#: (L-A'.1) Every field one entry of the StopController classification ledger
+#: must carry into the final run manifest. The ledger is the driver's record of
+#: what it decided while recording each actual row; the analyzer reconciles its
+#: own independent classification against it, so a missing ledger makes that
+#: reconciliation vacuous rather than passing.
+RUN_MANIFEST_CLASSIFICATION_FIELDS: tuple[str, ...] = (
+    "cell",
+    "index",
+    "failure_class",
+    "disposition",
+)
+
 #: Identity the RUNNER must emit and the harness must bind, unstamped by the
 #: driver.  ``harness.REQUIRED_IDENTITY_FIELDS`` minus the two above.
 RUNNER_EMITTED_IDENTITY_FIELDS: tuple[str, ...] = tuple(
@@ -670,6 +682,70 @@ def cell_slug(cell: harness.Cell) -> str:
     """A stable, filesystem-safe directory name for one cell's raw evidence."""
 
     return f"{cell.index:03d}-{cell.arm}-{cell.task_id}-{cell.seed}"
+
+
+# --------------------------------------------------------------------------
+# (L-A'.1) The raw-evidence path contract, owned in ONE place
+# --------------------------------------------------------------------------
+#
+# Phase L-A' had a real driver/analyzer integration defect here. The driver
+# serialized ``cell_experiment_dir`` relative to ``cells_root.parent``, which is
+# ``<output_root>/raw``, so it stored ``cells/<slug>/<experiment-id>``; the
+# analyzer resolved ``<output_root>/<cell_experiment_dir>/<trace_path>`` and
+# therefore looked under ``<output_root>/cells/...`` while the real file was at
+# ``<output_root>/raw/cells/...``. Every trace lookup in a real run would have
+# missed, and the analyzer silently treated a missed lookup as an empty event
+# list -- which reads as "no proposals, no prerequisites, no exposure" and can
+# change the qualification verdict.
+#
+# The invariant below is now stated once, used by both sides, and derived from
+# the Phase-L OUTPUT ROOT explicitly rather than from ``.parent`` arithmetic.
+
+#: Where a cell's own experiment directory lives, beneath the Phase-L output
+#: root. One cell is one ``ExperimentRunner`` invocation, so each gets its own
+#: directory and no cell can overwrite, blend into or resume another.
+CELLS_SUBDIR: tuple[str, ...] = ("raw", "cells")
+
+#: THE PATH CONTRACT, in one sentence, binding on the driver and the analyzer:
+CELL_EXPERIMENT_DIR_CONTRACT = (
+    "row['cell_experiment_dir'] is the ExperimentRunner experiment directory "
+    "expressed RELATIVE TO THE PHASE-L OUTPUT ROOT, as a POSIX path. The "
+    "analyzer resolves a cell's evidence trace as "
+    "<output_root>/<cell_experiment_dir>/<row['trace_path']> and never any "
+    "other way. A row that declares no experiment directory, declares no "
+    "trace, or whose resolved trace is absent or unreadable is LOST EVIDENCE "
+    "and is a blocking INSTRUMENT_DEFECT -- never an empty proposal list."
+)
+
+
+def cells_root(output_root: Path) -> Path:
+    """The directory that holds every cell's own experiment directory."""
+
+    return output_root.joinpath(*CELLS_SUBDIR)
+
+
+def cell_experiment_dir_value(experiment_dir: Path, output_root: Path) -> str:
+    """Serialize an experiment directory under the contract above.
+
+    Raises rather than guessing when the directory is not under the output root,
+    because a silently wrong relative path is exactly the defect this function
+    exists to remove.
+    """
+
+    try:
+        relative = experiment_dir.resolve().relative_to(output_root.resolve())
+    except ValueError as exc:
+        raise ProtocolError(
+            f"the cell experiment directory {experiment_dir} is not beneath the "
+            f"Phase-L output root {output_root}; {CELL_EXPERIMENT_DIR_CONTRACT}"
+        ) from exc
+    return relative.as_posix()
+
+
+def resolve_cell_experiment_dir(output_root: Path, value: str) -> Path:
+    """The analyzer's half of the same contract."""
+
+    return output_root / value
 
 
 def schedule_digest(schedule: Sequence[harness.Cell]) -> str:
