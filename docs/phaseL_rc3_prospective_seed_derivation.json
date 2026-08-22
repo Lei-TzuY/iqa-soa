@@ -1,0 +1,51 @@
+{
+  "canonical_base_commit": "beafa5d170659997790e1c3e79086ea05548c094",
+  "collision_checks": {
+    "collision_free": true,
+    "collision_policy": "A zero, duplicate or historically reused seed is reported and the derivation STOPS. No alternative is chosen here: substituting a different value would reintroduce the investigator degree of freedom this derivation exists to remove.",
+    "historical_seed_overlap": [],
+    "historical_seeds_checked_against": [
+      1729,
+      2718,
+      3141,
+      5772,
+      8119
+    ],
+    "internal_duplicate_seeds": [],
+    "zero_valued_seeds": []
+  },
+  "derivation_formula": "material = <canonical_base_commit> + \"|\" + <purpose> + \"|seed-\" + str(i); digest = SHA256(material.encode(\"utf-8\")); seed = int.from_bytes(digest[:4], \"big\") & 0x7fffffff; for i in 1..3",
+  "derivations": [
+    {
+      "first_four_bytes": "37636329",
+      "material": "beafa5d170659997790e1c3e79086ea05548c094|phase-l|pilot-v7-rc3|qa-off-requalification|seed-1",
+      "ordinal": 1,
+      "seed": 929260329,
+      "sha256": "37636329148c950509a23fc05a1da5e698068eb7f6fdfc21e1d314d625b00908"
+    },
+    {
+      "first_four_bytes": "cc60624e",
+      "material": "beafa5d170659997790e1c3e79086ea05548c094|phase-l|pilot-v7-rc3|qa-off-requalification|seed-2",
+      "ordinal": 2,
+      "seed": 1281385038,
+      "sha256": "cc60624ed0fc5a241f60e20306c34f10691065307fd2cc0cdbeb4df400f0df07"
+    },
+    {
+      "first_four_bytes": "ba57f71d",
+      "material": "beafa5d170659997790e1c3e79086ea05548c094|phase-l|pilot-v7-rc3|qa-off-requalification|seed-3",
+      "ordinal": 3,
+      "seed": 978843421,
+      "sha256": "ba57f71d3d91df82ea45de709f8372403679c107d4827726963a38cb86df863b"
+    }
+  ],
+  "derived_before_any_inference": true,
+  "model_inference_performed": false,
+  "phase": "L-A",
+  "purpose": "phase-l|pilot-v7-rc3|qa-off-requalification",
+  "seed_mask": "0x7fffffff",
+  "seeds": [
+    929260329,
+    1281385038,
+    978843421
+  ]
+}
