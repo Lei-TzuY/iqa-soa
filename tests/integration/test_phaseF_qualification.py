@@ -43,6 +43,11 @@ from iqa_soa.instrument import (
     RAW_SCHEMA_VERSION,
 )
 
+if str(PROJECT_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+
+import instrument_revision  # noqa: E402
+
 CONFIG_PATH = PROJECT_ROOT / "configs" / "phaseF-qualification.yaml"
 MODELS_PATH = PROJECT_ROOT / "configs" / "phaseF-models.yaml"
 MANIFEST_PATH = PROJECT_ROOT / "benchmark" / "pilot-v7-rc1" / "manifest.json"
@@ -50,6 +55,13 @@ PLAN_PATH = PROJECT_ROOT / "docs" / "phaseF_real_model_qualification_plan.md"
 PLAN_SIDECAR = PROJECT_ROOT / "docs" / "phaseF_real_model_qualification_plan.sha256"
 
 CANONICAL_BASE = "f79ffe55b2ae0f059b67a1cb1e22f081adaca8d0"
+#: The commit that concluded Phase F (PR #4).  Phase-F assertions about what
+#: PHASE F itself did are evaluated over the range CANONICAL_BASE..PHASE_COMMIT,
+#: which is a fact of history and stays true forever.  Evaluating them against
+#: the live working tree instead would silently upgrade "Phase F changed
+#: nothing" into "nothing may ever change", freezing the instrument against
+#: every future repair -- which is precisely what blocked Phase L-A.
+PHASE_COMMIT = "da6ccdc552c2e085cf6a3d0131c108f86bd32a7e"
 
 _GIT = shutil.which("git")
 requires_git = pytest.mark.skipif(_GIT is None, reason="git executable not available")
@@ -335,11 +347,57 @@ def test_pilot_v7_rc1_benchmark_is_byte_identical_to_canonical_main() -> None:
 
 
 @requires_git
-def test_no_src_iqa_soa_file_differs_from_canonical_main() -> None:
+def test_phase_f_itself_changed_no_src_iqa_soa_file() -> None:
+    """Phase F was instrument-neutral, asserted over Phase F's own commit range.
+
+    Phase F must not have touched the instrument it was measuring with, and it
+    did not.  That is a closed historical fact and this test proves it from git
+    history, so it remains verifiable no matter what a later phase does.
+
+    It deliberately does NOT compare against the working tree.  Phase M repairs
+    the instrument under its own separately hash-pinned revision record
+    (``docs/phaseM_instrument_revision.json``); a working-tree comparison here
+    would make this Phase-F test the veto on every future instrument repair,
+    while proving nothing additional about Phase F.  The live half of the
+    original assertion is not dropped -- it is asserted, more strictly, by
+    ``test_the_live_instrument_differs_only_by_the_approved_revision`` below.
+    """
+
     diff = _git(
-        "diff", "--name-only", CANONICAL_BASE, "--", "src/iqa_soa"
+        "diff", "--name-only", CANONICAL_BASE, PHASE_COMMIT, "--", "src/iqa_soa"
     ).decode("utf-8").strip()
-    assert diff == "", f"src/iqa_soa must not change in Phase F: {diff}"
+    assert diff == "", f"src/iqa_soa changed during Phase F: {diff}"
+
+
+@requires_git
+def test_the_live_instrument_differs_only_by_the_approved_revision() -> None:
+    """The WORKING TREE half, restored and strengthened rather than relaxed.
+
+    The pre-Phase-M form of the test above compared ``src/iqa_soa`` in the
+    working tree against the canonical base and required an empty diff.  That
+    predicate is strictly weaker than this one: it could only say "nothing
+    moved", and it had no way to distinguish a reviewed, hash-pinned instrument
+    repair from a drive-by edit -- it simply forbade both, which is what
+    deadlocked Phase L-A.
+
+    Here every file that differs under ``src/iqa_soa`` must be an entry in the
+    approved Phase-M revision record, and ``check_instrument_provenance`` then
+    requires that entry to name the file's exact SHA-256 and a scientific
+    reason, that the record's parent digest be the previously frozen instrument
+    tree, and that the whole tree digest to the approved value.  An unapproved
+    byte under ``src/iqa_soa`` still fails this test, exactly as before.
+    """
+
+    assert instrument_revision.check_instrument_provenance(label="F") == []
+    changed = {
+        line
+        for line in _git(
+            "diff", "--name-only", CANONICAL_BASE, "--", "src/iqa_soa"
+        ).decode("utf-8").splitlines()
+        if line.strip()
+    }
+    approved = set(instrument_revision.load_revision()["changed_files"])
+    assert changed <= approved, f"unapproved instrument change: {sorted(changed - approved)}"
 
 
 PROTECTED_PATHS = (

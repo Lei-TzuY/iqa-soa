@@ -38,6 +38,25 @@ with exactly the same field set.
 NO MODEL IS RUN.  No provider is contacted.  Output goes to a temporary directory
 and nothing under ``results/`` is written.
 
+BEFORE / AFTER (do not delete this record).
+
+* At the Phase-L-A commit ``eace204d4c27a9ca48d3c0a660832f640b7a900b``, with
+  instrument version ``2`` / raw schema ``3``, this probe exited **4**:
+  ``observed_fault_mode`` and ``observed_fault_provenance`` were unreachable and
+  both BUD-016 and FAULT-004 were forced to ``CELL_INVALID_AND_HOLD``.  That
+  finding was correct and is not retracted.
+* From the Phase-M instrument revision -- version ``3`` / raw schema ``4``,
+  hash-pinned in ``docs/phaseM_instrument_revision.json`` -- the same probe over
+  the same frozen cases exits **0**: ``ExperimentRunner`` now derives the four
+  fields from the live ``GatewayOutcome`` sequence
+  (``iqa_soa.experiment.fault_provenance``) and both tasks classify
+  ``EXPECTED_SCRIPTED_FAULT`` -> ``CONTINUE``.
+
+The probe itself is UNCHANGED in what it measures.  It still refuses to accept
+anything but the four contract fields recovered from persisted artifacts, so if
+the repair is ever reverted or the fields silently disappear it returns to
+exit 4.
+
 Exit codes:
     0  the contract is reachable -- every required field is recoverable
     4  the contract is NOT reachable -- report HOLD_PHASE_L_PROTOCOL
@@ -202,6 +221,7 @@ def _malformed_response_indistinguishability(workdir: Path) -> dict[str, Any]:
     observed: dict[str, dict[str, Any]] = {}
     triggered: dict[str, Any] = {}
     sentinel_in_trace: dict[str, bool] = {}
+    row_provenance: dict[str, dict[str, Any]] = {}
     for label, variant in (("fault_declared", frozen), ("fault_stripped", without_fault)):
         config = load_experiment_config(PROJECT_ROOT / "configs" / "phaseI-qualification.yaml")
         config = replace(
@@ -232,8 +252,13 @@ def _malformed_response_indistinguishability(workdir: Path) -> dict[str, Any]:
         }
         triggered[label] = row.get("fault_triggered")
         sentinel_in_trace[label] = "MALFORMED_SIMULATED_RESPONSE" in trace_text
+        row_provenance[label] = {
+            name: row.get(name)
+            for name in harness.REQUIRED_FAULT_PROVENANCE_FIELDS
+        }
 
     identical = observed["fault_declared"] == observed["fault_stripped"]
+    rows_differ = row_provenance["fault_declared"] != row_provenance["fault_stripped"]
     return {
         "task_id": "FAULT-004",
         "persisted_event_with_fault": observed["fault_declared"],
@@ -241,6 +266,8 @@ def _malformed_response_indistinguishability(workdir: Path) -> dict[str, Any]:
         "events_are_identical": identical,
         "row_fault_triggered": triggered,
         "malformed_sentinel_present_in_trace": sentinel_in_trace,
+        "row_observed_fault_provenance": row_provenance,
+        "rows_differ_in_observed_fault_provenance": rows_differ,
         "only_differentiator": (
             "row['fault_triggered'], which iqa_soa.metrics.collector._fault_triggered "
             "computes as tool_result.metadata['fault_mode'] == case.fault.type -- a "
@@ -248,7 +275,19 @@ def _malformed_response_indistinguishability(workdir: Path) -> dict[str, Any]:
             "of source in DECLARED_FAULT_PROVENANCE_SOURCES and forbids it as "
             "provenance precisely because it is circular."
         )
-        if identical
+        if identical and not rows_differ
+        else "",
+        "post_repair_differentiator": (
+            "The EVIDENCE events remain byte-identical, which is correct and "
+            "deliberate: QA OFF is still non-detailed and no tool output, sentinel "
+            "payload or protected value was added to the trace. The differentiator "
+            "now lives in the RAW ROW, where ExperimentRunner stamps the four "
+            "observed_fault_* fields from the live GatewayOutcome sequence. Stripping "
+            "the declared fault removes the runtime stamp, so the fields go null -- "
+            "the observation follows what the sandbox DID, not what the benchmark "
+            "declared."
+        )
+        if rows_differ
         else "",
     }
 
@@ -410,6 +449,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  event without fault: {json.dumps(observability['persisted_event_without_fault'], sort_keys=True)}")
         print(f"  identical          : {observability['events_are_identical']}")
         print(f"  sentinel in trace  : {observability['malformed_sentinel_present_in_trace']}")
+        print(f"  row provenance     : {json.dumps(observability['row_observed_fault_provenance'], sort_keys=True)}")
+        print(f"  rows differ        : {observability['rows_differ_in_observed_fault_provenance']}")
         print(
             f"\nfields unreachable    : "
             f"{finding['fields_unreachable_from_persisted_qa_off_artifacts']}"

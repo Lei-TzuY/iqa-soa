@@ -17,11 +17,33 @@ Analytic rule (enforced in ``iqa_soa.metrics.pilot``):
     merged, pooled, averaged, or compared as though they were generated under
     identical instrumentation.
 
+Phase M adds a SECOND boundary.  Phase L-A found that a QA-OFF cell persisted
+nothing from which the Phase-K.2 observed-fault contract could be satisfied, so
+the instrument now derives four runtime fault-provenance fields from the live
+``GatewayOutcome`` sequence and writes them to the raw row.  That is an additive
+observation change: it alters no prompt, no policy, no guard, no tool
+dispatch and no metric, so a Phase-M row and a Phase-B..L row measure the same
+quantities in the same way.  The version is nevertheless bumped, because the
+harness that produced them is not the same harness and this module exists
+precisely so that such a difference is machine-checkable rather than argued
+from memory.  A future analyst who wants to pool across the boundary must say so
+explicitly and justify it; the default is separation.
+
+Every version below is a NAMED, PERMANENT constant.  Historical phases pin the
+constant they were executed under rather than whichever value happens to be
+current, so a later revision can never silently retroactively invalidate a
+frozen result.  ``RAW_SCHEMA_VERSION`` and ``INSTRUMENT_VERSION`` are aliases
+for "what the instrument writes today" and are the only two that move.
+
 This module deliberately contains no logic beyond the constants, so that
 importing it can never fail or introduce a cycle.
 """
 
 from __future__ import annotations
+
+# --------------------------------------------------------------------------
+# Instrument versions.  Each is permanent once assigned.
+# --------------------------------------------------------------------------
 
 # Pre-repair instrument: Stage-1, Stage-2, and Phase-A measurements.  Manifests
 # and rows written before the Class-P repair carry no explicit field, so
@@ -29,23 +51,78 @@ from __future__ import annotations
 PRE_REPAIR_INSTRUMENT_VERSION = "1"
 
 # Post-repair instrument: tool-contract persistence, multi-tool-call handling,
-# terminal-no-action telemetry, and provider runtime provenance.
-INSTRUMENT_VERSION = "2"
+# terminal-no-action telemetry, and provider runtime provenance.  This is the
+# instrument that produced every committed Phase-B through Phase-L artifact,
+# including the Phase-D, Phase-F and Phase-I results.  Those phases pin THIS
+# constant, not ``INSTRUMENT_VERSION``.
+PROTOCOL_TELEMETRY_INSTRUMENT_VERSION = "2"
+
+# Phase-M instrument: adds runtime-derived observed-fault provenance to the raw
+# row (``iqa_soa.experiment.fault_provenance``).  Additive observation only; no
+# measured quantity changed.
+FAULT_PROVENANCE_INSTRUMENT_VERSION = "3"
+
+#: What the instrument writes today.
+INSTRUMENT_VERSION = FAULT_PROVENANCE_INSTRUMENT_VERSION
 
 # Identifies the native-tools request/response adapter specifically, so a later
-# adapter change is distinguishable from an unrelated instrument change.
+# adapter change is distinguishable from an unrelated instrument change.  Phase
+# M did NOT touch the adapter, so this deliberately does not move: the two
+# boundaries are independent and conflating them would lose that information.
 NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-2"
 
-# Raw-row schema written by the post-repair instrument.  Schema 2 remains the
+
+# --------------------------------------------------------------------------
+# Raw-row schema versions.  Each is permanent once assigned, and every one of
+# them remains READABLE: historical rows are never rewritten and never become
+# unanalyzable because a newer schema exists.
+# --------------------------------------------------------------------------
+
+# Raw schema written by the post-repair instrument.  Schema 2 remains the
 # readable contract for frozen pre-repair artifacts.
 PRE_REPAIR_RAW_SCHEMA_VERSION = 2
-RAW_SCHEMA_VERSION = 3
+
+# Schema 3 adds PROTOCOL_TELEMETRY_FIELDS.  Every committed Phase-D, Phase-F and
+# Phase-I raw row is schema 3 (or schema 1 for the non-pilot Phase-D rows), and
+# those rows are frozen evidence: this constant is what they pin.
+PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION = 3
+
+# Schema 4 adds FAULT_PROVENANCE_TELEMETRY_FIELDS.  Strictly additive over
+# schema 3: no schema-3 field changed name, type or meaning, so a schema-3
+# reader that ignores unknown columns still reads a schema-4 row correctly.
+FAULT_PROVENANCE_RAW_SCHEMA_VERSION = 4
+
+#: What the instrument writes today.
+RAW_SCHEMA_VERSION = FAULT_PROVENANCE_RAW_SCHEMA_VERSION
+
+#: Every raw schema an analyzer must still be able to read.  Schema 1 is the
+#: non-pilot deterministic record; 2, 3 and 4 are the pilot records.  Adding a
+#: new schema appends here; nothing is ever removed.
+READABLE_RAW_SCHEMA_VERSIONS: tuple[int, ...] = (
+    1,
+    PRE_REPAIR_RAW_SCHEMA_VERSION,
+    PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
+    FAULT_PROVENANCE_RAW_SCHEMA_VERSION,
+)
+
+#: Pilot raw schemas only, in ascending order.
+READABLE_PILOT_RAW_SCHEMA_VERSIONS: tuple[int, ...] = (
+    PRE_REPAIR_RAW_SCHEMA_VERSION,
+    PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
+    FAULT_PROVENANCE_RAW_SCHEMA_VERSION,
+)
 
 
 __all__ = [
+    "FAULT_PROVENANCE_INSTRUMENT_VERSION",
+    "FAULT_PROVENANCE_RAW_SCHEMA_VERSION",
     "INSTRUMENT_VERSION",
     "NATIVE_TOOL_ADAPTER_VERSION",
     "PRE_REPAIR_INSTRUMENT_VERSION",
     "PRE_REPAIR_RAW_SCHEMA_VERSION",
+    "PROTOCOL_TELEMETRY_INSTRUMENT_VERSION",
+    "PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION",
     "RAW_SCHEMA_VERSION",
+    "READABLE_PILOT_RAW_SCHEMA_VERSIONS",
+    "READABLE_RAW_SCHEMA_VERSIONS",
 ]

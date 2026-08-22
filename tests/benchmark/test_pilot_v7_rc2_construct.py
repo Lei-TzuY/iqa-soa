@@ -25,6 +25,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
+import instrument_revision  # noqa: E402
+import phaseM_historical_analysis as frozen_compat  # noqa: E402
 import validate_pilot_v7_rc2 as validator  # noqa: E402
 
 from iqa_soa.agent.providers import DeterministicStubProvider  # noqa: E402
@@ -128,7 +130,43 @@ def _run(tmp_path: Path, case_id: str, treatments: list[str]):
 
 
 def test_a_history_is_byte_identical() -> None:
-    assert validator.check_historical_immutability() == []
+    """Every frozen tree, artifact and pilot this validator pins is unmoved.
+
+    PHASE M.1 AMENDMENT -- narrower than it looks, and strictly stronger than the
+    empty-list form it replaces.
+
+    This validator is a FROZEN Phase-H artifact. Its bytes are not edited, and
+    Phase I's live protected-path set requires them not to be. One of its claims
+    is nevertheless no longer true of the current tree: it pins ``src/iqa_soa``
+    to the Phase-H instrument tree and asserts that pin against the working tree,
+    and Phase M revised the instrument to repair the defect the Phase-L-A HOLD
+    identified.
+
+    Erasing the claim -- which the first Phase-M revision did, by deleting the
+    pin from the frozen validator -- destroys information and mutates a protected
+    file. Recording it does neither. So the failure set is asserted to be EXACTLY
+    the one superseded assertion, composed in
+    ``scripts/phaseM_historical_analysis.py`` from the Phase-K frozen digest and
+    the approved revision's digest:
+
+    * any additional failure fails this test, so every other frozen tree,
+      artifact and pilot the validator pins is still checked live and unchanged;
+    * a DIFFERENT instrument fails it too, because the expected text embeds the
+      approved digest;
+    * an instrument that is not an approved, per-file hash-pinned revision fails
+      ``check_instrument_provenance`` below;
+    * and the frozen validator is separately proved to pass COMPLETELY, including
+      the instrument pin, when run at its own freeze commit.
+
+    An unapproved byte under ``src/iqa_soa`` therefore still fails, exactly as it
+    did before Phase M.
+    """
+
+    assert (
+        tuple(validator.check_historical_immutability())
+        == frozen_compat.rc2_superseded_live_assertions()
+    )
+    assert instrument_revision.check_instrument_provenance() == []
 
 
 def test_b_manifest_provenance_and_roles(rc2) -> None:
@@ -192,7 +230,32 @@ def test_n_ua004_ua005_contrast_is_preserved(rc2, provenance) -> None:
 
 
 def test_validator_cli_reports_pass() -> None:
-    assert validator.run_all() == []
+    """Everything except the superseded instrument pin (see ``test_a_...``)."""
+
+    assert (
+        tuple(validator.run_all())
+        == frozen_compat.rc2_superseded_live_assertions()
+    )
+
+
+def test_the_frozen_validator_passes_completely_at_its_own_freeze_commit() -> None:
+    """Including the instrument pin, where the claim it makes is still true.
+
+    Run from a detached worktree at the commit that froze pilot-v7-rc2. Nothing
+    is patched and nothing is substituted: the validator, the ``iqa_soa`` package
+    it imports and the benchmark it validates are the real committed bytes of a
+    real commit.
+    """
+
+    spec = next(
+        s for s in frozen_compat.FROZEN_ANALYSES if s.name == "rc2_validator"
+    )
+    assert frozen_compat.check_frozen_script_bytes(spec) == []
+    import tempfile
+
+    result = frozen_compat.reproduce(spec, Path(tempfile.mkdtemp(prefix="rc2-")))
+    assert result["failures"] == []
+    assert result["passes_at_freeze_commit"] is True
 
 
 # --------------------------------------------------------------------------- #

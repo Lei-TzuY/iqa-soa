@@ -44,9 +44,16 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from iqa_soa.instrument import (  # noqa: E402
-    INSTRUMENT_VERSION,
     NATIVE_TOOL_ADAPTER_VERSION,
+    PROTOCOL_TELEMETRY_INSTRUMENT_VERSION,
 )
+
+#: Phase D executed on instrument "2" and its results are frozen evidence.
+#: This analyzer pins the instrument its phase actually RAN under rather than
+#: whichever value is current, so a later additive instrument revision (Phase M
+#: -> "3", raw schema -> 4) can never retroactively fail a committed artifact.
+#: A frozen result is analyzable under the contract it was written under.
+INSTRUMENT_VERSION = PROTOCOL_TELEMETRY_INSTRUMENT_VERSION
 from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS_V3  # noqa: E402
 
 

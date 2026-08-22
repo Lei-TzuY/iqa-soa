@@ -53,6 +53,9 @@ BENCHMARK_VERSION = "pilot-v7-rc3"
 RC3_ROOT = PROJECT_ROOT / "benchmark" / BENCHMARK_VERSION
 MANIFEST_PATH = RC3_ROOT / "manifest.json"
 CANONICAL_BASE_COMMIT = "beafa5d170659997790e1c3e79086ea05548c094"
+#: The commit that archived the Phase-L-A HOLD (PR #8), and the canonical
+#: parent of the Phase-M instrument repair.
+PHASE_L_A_COMMIT = "eace204d4c27a9ca48d3c0a660832f640b7a900b"
 REPORT_PATH = PROJECT_ROOT / "docs" / "phaseL_rc3_requalification_freeze_report.md"
 SEED_RECORD_PATH = PROJECT_ROOT / "docs" / "phaseL_rc3_prospective_seed_derivation.json"
 
@@ -516,55 +519,86 @@ def test_qa_off_never_produces_detailed_evidence() -> None:
     assert treatment_for("full").detailed_evidence is True
 
 
-def test_observed_fault_provenance_is_unreachable_under_qa_off(
+def test_observed_fault_provenance_is_reachable_under_qa_off(
     probe_finding: dict[str, Any]
 ) -> None:
-    """REGRESSION PIN FOR THE PHASE-L-A HOLD.
+    """REGRESSION PIN, UPDATED BY PHASE M AFTER THE INSTRUMENT WAS REPAIRED.
 
-    If this test starts failing, the instrument has been repaired and the HOLD
-    may be revisited.  It must never be relaxed to make the phase pass.
+    BEFORE (Phase L-A, commit ``eace204d4c27a9ca48d3c0a660832f640b7a900b``,
+    instrument ``2`` / raw schema ``3``): this asserted
+    ``contract_reachable is False``, with ``observed_fault_mode`` and
+    ``observed_fault_provenance`` unreachable and both fault tasks forced to
+    ``CELL_INVALID_AND_HOLD``.  That finding was real, and the HOLD it produced is
+    not retracted -- see ``docs/phaseL_rc3_requalification_freeze_report.md``,
+    which Phase M leaves byte-identical.
+
+    AFTER (Phase M, instrument ``3`` / raw schema ``4``, hash-pinned in
+    ``docs/phaseM_instrument_revision.json``): the same probe, over the same
+    frozen cases, through the same real ``ExperimentRunner`` and the same
+    ``DeterministicStubProvider``, now recovers all four fields.
+
+    The pin is not relaxed, it is INVERTED, and it is still a pin: if the four
+    fields ever disappear again this test fails, because ``contract_reachable``
+    goes back to ``False``.  ``detailed_evidence_under_qa_off`` is asserted here
+    too, so the repair can never be "achieved" by turning QA OFF into a detailed
+    treatment.
     """
 
-    assert probe_finding["contract_reachable"] is False
+    assert probe_finding["contract_reachable"] is True
+    # The repair is raw protocol telemetry. QA OFF is still NOT detailed.
     assert probe_finding["detailed_evidence_under_qa_off"] is False
-    assert probe_finding["fields_unreachable_from_persisted_qa_off_artifacts"] == [
-        "observed_fault_mode",
-        "observed_fault_provenance",
-    ]
-    assert sorted(probe_finding["tasks_forced_to_hold_or_stop"]) == [
-        "BUD-016",
-        "FAULT-004",
-    ]
+    assert probe_finding["fields_unreachable_from_persisted_qa_off_artifacts"] == []
+    assert probe_finding["tasks_forced_to_hold_or_stop"] == []
+    assert probe_finding["model_inference_performed"] is False
 
 
-def test_both_rc3_fault_tasks_fail_closed_to_unexpected_sandbox_failure(
+def test_both_rc3_fault_tasks_now_satisfy_the_k2_contract(
     probe_finding: dict[str, Any]
 ) -> None:
+    """BEFORE: both tasks were ``UNEXPECTED_SANDBOX_FAILURE`` /
+    ``CELL_INVALID_AND_HOLD`` because no provenance was persisted.
+    AFTER: both prove their declared fault from runtime telemetry.
+
+    The declaration is still never the source.  The probe stamps only the
+    identity fields a driver legitimately owns (model, digest, seed, run key) and
+    deliberately does NOT stamp fault provenance; every observed field on these
+    rows was written by ``ExperimentRunner`` from the live ``GatewayOutcome``
+    sequence.
+    """
+
     findings = {item["task_id"]: item for item in probe_finding["findings"]}
     assert set(findings) == {"BUD-016", "FAULT-004"}
     for task_id, item in findings.items():
-        assert item["expected_scripted_fault_matched"] is False, task_id
-        assert item["harness_failure_class"] == harness.UNEXPECTED_SANDBOX_FAILURE
-        assert item["harness_disposition"] == harness.CELL_INVALID_AND_HOLD
-        assert item["match_refusal_reasons"], task_id
-        # The refusal is about missing provenance, not about a wrong declaration.
-        assert all(
-            "provenance" in reason or "missing" in reason
-            for reason in item["match_refusal_reasons"]
-        )
+        assert item["expected_scripted_fault_matched"] is True, task_id
+        assert item["harness_failure_class"] == harness.EXPECTED_SCRIPTED_FAULT, task_id
+        assert item["harness_disposition"] == harness.CONTINUE, task_id
+        assert item["match_refusal_reasons"] == [], task_id
+        assert item["provenance_reachability"]["unrecoverable"] == [], task_id
 
 
-def test_a_malformed_response_fault_is_invisible_in_a_qa_off_trace(
+def test_the_malformed_response_repair_is_raw_telemetry_not_evidence_detail(
     probe_finding: dict[str, Any]
 ) -> None:
-    """FAULT-004's fault leaves no observable trace at all under QA OFF.
+    """The QA-OFF EVIDENCE TRACE is deliberately still unchanged.
 
-    The persisted evidence event is byte-equal whether the declared fault fired
-    or not, and the sentinel payload never reaches the trace.  No driver
-    engineering can recover an observation that was never written.
+    BEFORE, this asserted that the FAULT-004 fault was invisible everywhere: the
+    persisted evidence event was byte-equal whether the declared fault fired or
+    not, so nothing could be recovered.
+
+    AFTER, the evidence event is STILL byte-equal, and that is the point.  Phase M
+    did not turn QA OFF into a detailed treatment, did not enable the evidence
+    guard and did not write the ``<<<MALFORMED_SIMULATED_RESPONSE>>>`` sentinel
+    into the trace.  The differentiator moved into the RAW ROW, where the four
+    ``observed_fault_*`` fields are stamped from the live runtime outcome.
+
+    Stripping the declared fault from the case makes those fields go null, which
+    is the crux: the observation tracks what the SANDBOX DID, so removing the
+    fault removes the observation.  A declaration-derived field could not behave
+    this way, because it would still have a declaration to copy.
     """
 
     observability = probe_finding["malformed_response_observability"]
+    # The evidence trace is untouched: no detail, no sentinel, no tool output.
     assert observability["events_are_identical"] is True
     assert observability["malformed_sentinel_present_in_trace"] == {
         "fault_declared": False,
@@ -574,7 +608,21 @@ def test_a_malformed_response_fault_is_invisible_in_a_qa_off_trace(
         "fault_declared": True,
         "fault_stripped": False,
     }
-    assert observability["only_differentiator"]
+    # The raw row now carries the observation, and only when the fault fired.
+    assert observability["rows_differ_in_observed_fault_provenance"] is True
+    assert observability["row_observed_fault_provenance"]["fault_declared"] == {
+        "observed_fault_tool": "api.call",
+        "observed_fault_resource": "inventory-api/sku-4471",
+        "observed_fault_mode": "malformed_response",
+        "observed_fault_provenance": "gateway_outcome.executed_action",
+    }
+    assert all(
+        value is None
+        for value in observability["row_observed_fault_provenance"][
+            "fault_stripped"
+        ].values()
+    )
+    assert observability["post_repair_differentiator"]
 
 
 def test_the_only_differentiator_is_a_forbidden_declared_source() -> None:
@@ -603,33 +651,35 @@ def test_the_only_differentiator_is_a_forbidden_declared_source() -> None:
     assert any("declaration" in reason for reason in reasons)
 
 
-def test_the_runner_persists_neither_the_operation_log_nor_the_outcomes() -> None:
-    """The other two admitted runtime sources are not persisted either.
+def test_the_runner_still_persists_neither_the_operation_log_nor_the_outcomes(
+) -> None:
+    """The MINIMALITY half of the repair, unchanged in force.
 
-    ``SandboxState.operation_log`` reaches disk only inside the irreversible
-    ``final_state_fingerprint`` SHA-256, and ``AgentRun.outcomes`` is never
-    serialized at all, so neither ``sandbox.operation_log`` nor
-    ``gateway_outcome.*`` is available to a driver reading persisted artifacts.
+    BEFORE, this proved that neither ``SandboxState.operation_log`` nor
+    ``AgentRun.outcomes`` was persisted -- which was the defect, since the four
+    contract fields had no other source.
+
+    AFTER, those two bulk structures are STILL not persisted, and that remains
+    the correct behaviour.  Phase M added four derived scalar fields and a count,
+    not the structures they were derived from: no operation log, no outcomes
+    block, no ``ToolResult`` payload.  This test now guards the opposite failure
+    mode from the one it was written for -- an over-broad repair that dumps
+    runtime structures into the raw record.
     """
 
     runner_source = (SRC_ROOT / "iqa_soa" / "experiment" / "runner.py").read_text(
         encoding="utf-8"
     )
-    # The operation log is mentioned on exactly one line, and that line is the
-    # one that folds it into the irreversible state fingerprint.
+    # The operation log is still mentioned on exactly one line, and that line is
+    # still the one that folds it into the irreversible state fingerprint.
     log_lines = [
         line.strip()
         for line in runner_source.splitlines()
         if "operation_log" in line
     ]
     assert log_lines == ['"operation_log": state.operation_log,']
-    # The row the runner returns carries no outcome or fault provenance field.
-    for forbidden in (
-        '"gateway_outcomes"',
-        '"outcomes":',
-        '"observed_fault_tool"',
-        '"observed_fault_mode"',
-    ):
+    # No bulk runtime structure is serialized into the row.
+    for forbidden in ('"gateway_outcomes"', '"outcomes":', '"tool_result"'):
         assert forbidden not in runner_source
 
 
@@ -701,7 +751,18 @@ def test_no_preregistration_v4_and_no_pilot_v7_final() -> None:
 
 
 def test_phase_l_a_modified_no_historical_or_frozen_artifact() -> None:
-    """Phase L-A is additive only, relative to the canonical base commit."""
+    """Phase L-A was additive only -- asserted over the Phase-L-A commit range.
+
+    This is a claim about what PHASE L-A did, and it is evaluated between the
+    Phase-K commit and the Phase-L-A commit, where it is true and stays true.
+
+    It previously compared against the live working tree, which quietly turned
+    "Phase L-A changed nothing" into "nothing may ever change" -- the same
+    conflation that made the Phase-L-A defect unrepairable in the first place.
+    Phase M repairs the instrument under a separately hash-pinned revision record
+    and does not touch one Phase-L-A byte; the Phase-L-A HOLD documents are still
+    asserted byte-identical below, live, against the working tree.
+    """
 
     changed = subprocess.run(
         [
@@ -710,6 +771,7 @@ def test_phase_l_a_modified_no_historical_or_frozen_artifact() -> None:
             "--name-only",
             "--diff-filter=MDRT",
             CANONICAL_BASE_COMMIT,
+            PHASE_L_A_COMMIT,
             "--",
             "benchmark",
             "results",
@@ -726,4 +788,30 @@ def test_phase_l_a_modified_no_historical_or_frozen_artifact() -> None:
     )
     assert changed.stdout.strip() == "", (
         "Phase L-A must add files only; modified: " f"{changed.stdout.splitlines()}"
+    )
+
+
+def test_the_phase_l_a_hold_record_is_never_rewritten() -> None:
+    """The HOLD report and its seed record are immutable, checked LIVE.
+
+    Phase M must not rewrite history to pretend the defect never existed. These
+    files ARE the Phase-L-A finding, and they are compared against the working
+    tree rather than against a commit range.
+    """
+
+    changed = subprocess.run(
+        [
+            "git", "diff", "--name-only", "--diff-filter=MDRT", PHASE_L_A_COMMIT, "--",
+            "docs/phaseL_rc3_requalification_freeze_report.md",
+            "docs/phaseL_rc3_prospective_seed_derivation.json",
+            "scripts/phaseL_seed_derivation.py",
+        ],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert changed.stdout.strip() == "", (
+        "the Phase-L-A HOLD record must never be rewritten: "
+        f"{changed.stdout.splitlines()}"
     )
