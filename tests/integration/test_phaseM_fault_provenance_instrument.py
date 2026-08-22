@@ -1079,11 +1079,53 @@ def test_the_rc3_validator_still_passes() -> None:
 
 
 def test_phase_m_authorizes_no_real_model_execution() -> None:
-    """No execution gate, no driver, no preregistration v4, no FINAL namespace."""
+    """No execution gate, no preregistration v4, no FINAL namespace.
+
+    **Split by Phase L-A', not relaxed.**  This assertion previously compared the
+    live working tree, which quietly turned "PHASE M created no Phase-L execution
+    protocol" -- a closed historical fact -- into "no phase may ever create one".
+    That is the same conflation §12.7 of the Phase-M report describes, and it
+    would have made the Phase-L-A' refreeze that Phase M exists to authorize
+    impossible.
+
+    The historical half is now evaluated over Phase M's own commit range, where
+    it is true and stays true.  The live half is what actually protects the
+    repository and is kept, unchanged and unweakened: the human gate is unset,
+    no preregistration v4 exists, no pilot-v7 FINAL namespace exists, no Phase-L
+    execution RESULT exists, and anything Phase L-A' froze still records that it
+    authorizes nothing.
+    """
 
     import os
 
+    # -- Live, and non-negotiable -------------------------------------------
     assert os.environ.get("IQA_SOA_PHASE_L_HUMAN_GATE") is None
+    assert not list((PROJECT_ROOT / "docs").glob("preregistration*v4*"))
+    for name in ("pilot-v7", "pilot-v7-final"):
+        assert not (PROJECT_ROOT / "benchmark" / name).exists()
+    assert not (PROJECT_ROOT / "results" / "phaseL-rc3-requalification").exists()
+    frozen_inputs = PROJECT_ROOT / "docs" / "phaseL_frozen_execution_inputs.json"
+    if frozen_inputs.is_file():
+        record = json.loads(frozen_inputs.read_text(encoding="utf-8"))
+        assert record["execution_authorized"] is False
+        assert record["model_inference_performed"] is False
+
+    # -- Historical: PHASE M added none of these ----------------------------
+    added = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=A", PARENT_COMMIT, "HEAD"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.split()
+    phase_m_added = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=A", PARENT_COMMIT,
+         "1bc5addf2fe5d83950a5d0ab89aa8188bd1db8b4"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.split()
     for relative in (
         "configs/phaseL-qualification.yaml",
         "configs/phaseL-models.yaml",
@@ -1091,10 +1133,13 @@ def test_phase_m_authorizes_no_real_model_execution() -> None:
         "scripts/analyze_phaseL_requalification.py",
         "docs/phaseL_rc3_real_model_requalification_plan.md",
     ):
-        assert not (PROJECT_ROOT / relative).exists(), relative
-    assert not list((PROJECT_ROOT / "docs").glob("preregistration*v4*"))
-    for name in ("pilot-v7", "pilot-v7-final"):
-        assert not (PROJECT_ROOT / "benchmark" / name).exists()
+        assert relative not in phase_m_added, f"Phase M added {relative}"
+    # The Phase-L-A v1 plan was never written by ANY phase: the refreeze is _v2,
+    # which is what keeps the Phase-L-A HOLD distinguishable.
+    assert "docs/phaseL_rc3_real_model_requalification_plan.md" not in added
+    assert not (
+        PROJECT_ROOT / "docs" / "phaseL_rc3_real_model_requalification_plan.md"
+    ).exists()
 
 
 def test_rc3_is_still_a_release_candidate() -> None:

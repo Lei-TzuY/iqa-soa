@@ -714,23 +714,41 @@ def test_a_correctly_stamped_row_would_be_recognised(frozen_rc3: Any) -> None:
 # --------------------------------------------------------------------------
 
 
-def test_no_phase_l_execution_protocol_was_frozen() -> None:
-    """Section 15 requires design finalization to stop on this discovery.
+def test_the_phase_l_a_version_of_the_protocol_was_never_frozen() -> None:
+    """Phase L-A froze no execution protocol, and its v1 plan never existed.
 
-    No execution config, driver or analyzer exists, so nothing can be executed
-    and no frozen hash record attests a protocol that cannot run.
+    **This pin was INVERTED by Phase L-A', not relaxed.**  Phase L-A withheld the
+    section-6 artifacts because freezing a protocol that provably could not
+    produce a qualifiable run would have been incoherent: the frozen hash record
+    would have attested a broken protocol and a READY status would have invited
+    the human execution gate to be opened over it.  That reasoning was correct
+    for Phase L-A and is not retracted.
+
+    Phase M / M.1 repaired the instrument defect under an approved, individually
+    hash-pinned revision, and Phase L-A' then froze the protocol as
+    ``*_plan_v2``.  Two things must therefore still hold, and are asserted here:
+
+    1. the Phase-L-A *v1* plan was never written -- the ``_v2`` suffix records
+       that this was the second attempt and keeps the HOLD distinguishable; and
+    2. whatever now exists still authorizes NOTHING.  The refreeze is a protocol
+       freeze, not an execution authorization.
+
+    ``tests/integration/test_phaseL_execution_protocol.py`` owns the positive
+    assertions about the refrozen protocol.
     """
 
-    for relative in (
-        "configs/phaseL-qualification.yaml",
-        "configs/phaseL-models.yaml",
-        "scripts/run_phaseL_requalification.py",
-        "scripts/analyze_phaseL_requalification.py",
-        "docs/phaseL_rc3_real_model_requalification_plan.md",
-    ):
-        assert not (PROJECT_ROOT / relative).exists(), (
-            f"{relative} must not exist while the phase is HOLD_PHASE_L_PROTOCOL"
-        )
+    assert not (
+        PROJECT_ROOT / "docs" / "phaseL_rc3_real_model_requalification_plan.md"
+    ).exists(), "Phase L-A wrote no v1 plan; the refreeze is deliberately _v2"
+
+    frozen_inputs = PROJECT_ROOT / "docs" / "phaseL_frozen_execution_inputs.json"
+    if frozen_inputs.is_file():
+        record = json.loads(frozen_inputs.read_text(encoding="utf-8"))
+        assert record["execution_authorized"] is False
+        assert record["model_inference_performed"] is False
+    assert not (PROJECT_ROOT / "results" / "phaseL-rc3-requalification").exists(), (
+        "no Phase-L execution result may exist while rc3 is unqualified"
+    )
 
 
 def test_the_report_exists_and_ends_with_the_hold_status() -> None:
