@@ -1,0 +1,68 @@
+# Phase-L real-model benchmark-requalification providers ONLY.
+#
+# THIS FILE AUTHORIZES NOTHING.  It is a prospectively frozen input to a future,
+# separately human-gated Phase-L-B execution.  Loading it contacts no endpoint.
+#
+# Not a scientific model configuration and not a model comparison.  These two
+# slots exist so that the pilot-v7-rc3 release candidate can be exercised under
+# QA OFF by the two local real-model providers that Phase C/D qualified, Phase F
+# used against rc1 and Phase I used against rc2, and they must never be used for
+# a confirmatory measurement.
+#
+# Every model identity and sampling setting is copied verbatim from
+# configs/phaseI-models.yaml, which copied them from configs/phaseF-models.yaml,
+# which copied them from the already-qualified Phase-C/D slots.  Nothing here is
+# newly chosen: the endpoint, protocol, temperature, top_p, max_output_tokens,
+# seed support, timeout and the per-model tool_contract_policy are the qualified
+# values.  The ONLY difference from configs/phaseI-models.yaml is api_key_env,
+# which is Phase-L specific so that a Phase-I or Phase-F credential cannot
+# silently satisfy a Phase-L precondition.
+#
+# The tool_contract_policy difference between the two slots (`none` for Qwen,
+# `trailing_user` for Mistral) is already-qualified INSTRUMENT behaviour, not an
+# experimental factor.  Qwen-vs-Mistral differences must therefore never be
+# interpreted causally, and Phase L computes no model comparison and publishes no
+# model ranking.
+#
+# timeout_seconds is 600 only so that a cold local model load is not misreported
+# as a provider timeout; no retry is permitted either way, and
+# infrastructure_retry_limit is fixed at 0 by the driver and by the runner.
+#
+# The expected Ollama model digests are NOT recorded here, because the provider
+# schema rejects unknown fields.  They are pinned in
+# docs/phaseL_rc3_real_model_requalification_plan_v2.md, in
+# docs/phaseL_frozen_execution_inputs.json and in scripts/phaseL_protocol.py, and
+# are asserted against the LIVE runtime immediately before any inference.  A
+# difference is an ENVIRONMENT_HOLD: the phase never pulls, updates, retags or
+# replaces a model.
+schema_version: 2
+default_provider: qwen_native_none
+providers:
+  qwen_native_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: qwen3.5:27b
+    api_key_env: PHASEL_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none
+  mistral_native_trailing_user:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: PHASEL_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: trailing_user

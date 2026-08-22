@@ -1,0 +1,65 @@
+# Phase-L real-model QA-OFF benchmark-requalification experiment configuration ONLY.
+#
+# THIS FILE AUTHORIZES NOTHING.  It is a prospectively frozen input to a future,
+# separately human-gated Phase-L-B execution.  Loading it runs no model.
+#
+# Separate models path, separate output root.  It touches no frozen scientific
+# artifact, reuses no Phase-F or Phase-I row, and must never be pooled with
+# Stage-1, Stage-2, Phase-A, Phase-D, Phase-F, Phase-I or any future confirmatory
+# measurement.  Phase-I rows in particular are engineering evidence only and are
+# never qualification evidence for rc3.
+#
+# `treatments: ["off"]` is deliberate and is the whole point of Phase L: the
+# question is whether pilot-v7-rc3's designed safe paths, challenge routes,
+# multi-step causal prerequisites, resource modality, benign controls, deliberate
+# negative control and fault opportunity are behaviourally REACHABLE under real
+# models when no guard is running.  A FULL arm would answer a different
+# (confirmatory) question and is out of scope: Phase L estimates no QA
+# effectiveness, computes no treatment effect and ranks no model.
+#
+# This file is an ExperimentConfig, not a PilotConfig.  The generic PilotConfig
+# path (iqa_soa.experiment.pilot.load_pilot_config) intentionally requires
+# treatments == [off, full]; that safety requirement is NOT weakened, bypassed or
+# modified by Phase L.  The Phase-L driver drives the already-validated
+# ExperimentRunner directly, exactly as scripts/run_phaseD_qualification.py,
+# scripts/run_phaseF_qualification.py and scripts/run_phaseI_requalification.py
+# already do.
+#
+# `seeds` carries the THREE seeds Phase L-A derived prospectively from the
+# canonical Phase-K commit beafa5d170659997790e1c3e79086ea05548c094, before any
+# Phase-L model result existed, and which no Phase-L inference has ever consumed.
+# They are carried forward unchanged by Phase L-A'; they were NOT re-derived from
+# the Phase-M commit, because re-deriving seeds after an instrument repair would
+# be post-hoc seed reselection.  The Phase-F / Phase-I triple (1729, 2718, 3141)
+# and the Phase-A extension seeds (5772, 8119) remain forbidden here.
+#
+# `repetitions: 3` describes the seed count only.  The Phase-L driver does NOT
+# use the runner's own case x repetition loop: it executes exactly one (task,
+# seed) cell per runner invocation under the Phase-K StopController, so that an
+# immediate-stop condition can prevent the next cell and the next arm.
+#
+# max_agent_steps is 20, the value configs/experiment.yaml uses and therefore the
+# value every frozen Stage-1/Stage-2/Phase-A/Phase-F/Phase-I real-model run used.
+# It is not tuned for Phase L.  It exceeds every rc3 task's max_tool_calls
+# (max 5) so that a genuine over-budget proposal remains observable under QA OFF
+# instead of being truncated by the harness -- which BUD-014, BUD-015 and BUD-016
+# require, since each retains a cap crossing as declared telemetry.
+#
+# benchmark_path is the benchmark root only so the runner can digest it; the
+# executed case set comes from the frozen pilot-v7-rc3 manifest passed to the
+# runner as frozen_benchmark, never from a directory scan.
+schema_version: 1
+benchmark_path: benchmark
+policy_path: configs/policies/default.xml
+models_path: configs/phaseL-models.yaml
+ablations_path: configs/ablations.yaml
+output_root: results/phaseL-rc3-requalification/raw
+repetitions: 3
+seeds: [929260329, 1281385038, 978843421]
+max_agent_steps: 20
+shuffle_treatments: false
+treatments: ["off"]
+smoke_case_ids: [BEN-002, BEN-003]
+raw_jsonl: runs.jsonl
+raw_csv: runs.csv
+evidence_subdir: evidence

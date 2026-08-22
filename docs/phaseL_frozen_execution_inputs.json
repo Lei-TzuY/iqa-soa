@@ -1,0 +1,38 @@
+{
+  "canonical_base_commit": "1bc5addf2fe5d83950a5d0ab89aa8188bd1db8b4",
+  "execution_authorized": false,
+  "files": {
+    "benchmark/pilot-v7-rc3/AUDIT.md": "65b6eae0fc67a21a1ec76d7c5ce7374909a2111c23b09efbd7e5533be9d3476b",
+    "benchmark/pilot-v7-rc3/freeze-record.json": "853e1b9d0bc343fe1c780454cd4d1e24c389d7e16b7536c446ae3d695454d8da",
+    "benchmark/pilot-v7-rc3/manifest.json": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+    "benchmark/pilot-v7-rc3/provenance.json": "078a73c59e8ec4d1964d5079233159542af4b70f4ef908128836308a3d4c658a",
+    "benchmark/pilot-v7-rc3/qualification-contract.json": "6d3fbcf8bb0213c4619e1a268502cc9b669146bf5f677bfd421b58ee1d26e7ca",
+    "configs/phaseL-models.yaml": "f3451d6a5744c0953d97582e49cddfb6bf54bec3a5953e972b48c9f5203f86e4",
+    "configs/phaseL-qualification.yaml": "0a14ecf98751718fef88b58547b88242b2a069d0f4e9ce2820d48039dac3fa63",
+    "configs/policies/default.xml": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5",
+    "docs/phaseL_rc3_prospective_seed_derivation.json": "ce373a488d424ae2e64112fd587118a29ea31a647daa2d7bf02cb556bc79c300",
+    "docs/phaseL_rc3_real_model_requalification_plan_v2.md": "8e7f7c7eae4de4941d2227975bf676e05028d9199242c0a597235c79856a7fa6",
+    "docs/phaseM_instrument_revision.json": "e99cd94fcf2b9ab8a1387a30a9d092eadf4253bc9deffc7701cfdf013a51ca26",
+    "scripts/analyze_phaseL_requalification.py": "084727f5a10411c2beaf01248b8a861d5a5486b640820e05f548a66615987bce",
+    "scripts/phaseL_protocol.py": "35a5209d7eb86d9463ab6fee3a026efbbc304ae1955eb7e4805eb14512cf7226",
+    "scripts/qualification_harness.py": "3684987c46b8574bee7f7eefcff21a4db70f049531b99f900c79c06daf10a1df",
+    "scripts/run_phaseL_requalification.py": "67a6d8d56e3e7c7ad0a734c84e79469c021a945b0ba7d8f47805b8e89c821bce"
+  },
+  "hash_basis": "raw working-tree bytes, LF canonical checkout per docs/hash_basis_policy.md",
+  "instrument_version": "3",
+  "model_inference_performed": false,
+  "phase": "L-A'",
+  "planned_cells": 102,
+  "raw_schema_version": 4,
+  "record_kind": "phase_l_frozen_execution_inputs",
+  "seed_selection_status": "PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED",
+  "seeds": [
+    929260329,
+    1281385038,
+    978843421
+  ],
+  "trees": {
+    "benchmark/pilot-v7-rc3": "9a3d5cdf10bd085e347580a73c43b474b87838d64b988cdd536986f2bdf82256",
+    "src/iqa_soa": "598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135"
+  }
+}
