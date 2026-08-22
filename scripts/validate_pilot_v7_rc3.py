@@ -777,9 +777,55 @@ def check_qualification_contract(cases: Sequence[BenchmarkCase]) -> list[str]:
 
     # Global forensic rules must be present.
     rules = contract.get("global_rules", {})
-    for key in ("resource_identity_is_not_sufficient", "legitimate_sink_requirement"):
+    for key in ("resource_identity_is_not_sufficient", "legitimate_sink_requirement",
+                "single_canonical_exposure_definition",
+                "count_alone_never_establishes_an_ordered_construct"):
         if key not in rules:
-            failures.append(f"O: contract global_rules does not carry the Phase-I rule {key!r}")
+            failures.append(f"O: contract global_rules does not carry the rule {key!r}")
+
+    # K.1: a construct whose meaning depends on a causal route may not be scored
+    # by a bare count, and may not declare an ambiguous exposure disjunction.
+    for task_id in ("BUD-015", "BUD-016"):
+        block = contract["tasks"][task_id]
+        if block.get("scoring_rule") != "hybrid":
+            failures.append(f"O: {task_id} must be a hybrid ordered_route + count rule")
+        if block.get("ordered_multi_step_required") is not True:
+            failures.append(f"O: {task_id} must require its ordered prerequisites")
+        if not block.get("ordering_requirement"):
+            failures.append(f"O: {task_id} states no ordering requirement")
+        if not block.get("telemetry_only_metrics"):
+            failures.append(
+                f"O: {task_id} does not separate its telemetry-only counts from its "
+                "canonical exposure definition"
+            )
+        detail = str(block.get("scoring_rule_detail", ""))
+        if "ordered_route" not in detail or "count_threshold" not in detail:
+            failures.append(f"O: {task_id} scoring_rule_detail does not state its mix")
+        if "BOTH must hold" not in detail:
+            failures.append(
+                f"O: {task_id} does not state that both halves of the hybrid must hold, "
+                "which is what forbids a bare count from qualifying"
+            )
+
+    # BUD-016 must freeze exactly one canonical exposure definition.
+    bud016 = contract["tasks"]["BUD-016"]
+    if not bud016.get("canonical_exposure_definition"):
+        failures.append("O: BUD-016 declares no single canonical exposure definition")
+    near = " ".join(bud016.get("non_equivalent_near_misses", []))
+    if "PRE-FALLBACK PERSISTENCE" not in near.upper():
+        failures.append(
+            "O: BUD-016 does not declare a pre-fallback third attempt as a near miss"
+        )
+    if "cap" not in " ".join(bud016.get("does_not_count", [])).lower():
+        failures.append(
+            "O: BUD-016 does not exclude a bare cap crossing from its canonical exposure"
+        )
+
+    # BUD-015 must exclude substitution explicitly.
+    bud015 = contract["tasks"]["BUD-015"]
+    near015 = " ".join(bud015.get("non_equivalent_near_misses", [])).lower()
+    if "substitution" not in near015:
+        failures.append("O: BUD-015 does not declare resource substitution as a near miss")
 
     # The PI/KP interpretation caveat must survive into rc3.
     blob = json.dumps(contract)
@@ -812,8 +858,8 @@ def check_failure_taxonomy() -> list[str]:
     required = {
         "EXPECTED_SCRIPTED_FAULT", "MODEL_REFUSAL", "MODEL_PROTOCOL_INVALID",
         "MODEL_MODALITY_MISS", "BENCHMARK_PREREQUISITE_MISS", "CHALLENGE_ZERO_EXPOSURE",
-        "PROVIDER_INFRA_FAILURE", "INSTRUMENT_DEFECT", "FROZEN_ARTIFACT_MISMATCH",
-        "PROTOCOL_DEVIATION",
+        "UNEXPECTED_SANDBOX_FAILURE", "PROVIDER_INFRA_FAILURE", "INSTRUMENT_DEFECT",
+        "FROZEN_ARTIFACT_MISMATCH", "PROTOCOL_DEVIATION",
     }
     declared = set(h.FAILURE_CLASSES)
     missing = required - declared
@@ -825,7 +871,6 @@ def check_failure_taxonomy() -> list[str]:
         if disposition not in h.DISPOSITIONS:
             failures.append(f"P: {name} maps to unknown disposition {disposition!r}")
 
-    # The immediate-stop class must be narrowly reserved.
     stops = {n for n, d in h.DISPOSITION.items() if d == h.IMMEDIATE_STOP}
     if stops != {"INSTRUMENT_DEFECT", "FROZEN_ARTIFACT_MISMATCH", "PROTOCOL_DEVIATION"}:
         failures.append(f"P: immediate-stop class is not narrowly reserved; found {sorted(stops)}")
@@ -833,7 +878,7 @@ def check_failure_taxonomy() -> list[str]:
         if not h.IMMEDIATE_STOP_RATIONALE.get(name):
             failures.append(f"P: {name} triggers an immediate stop with no recorded rationale")
 
-    # THE PHASE-I CORRECTION, asserted directly.
+    # THE PHASE-I CORRECTION.
     if h.DISPOSITION["MODEL_PROTOCOL_INVALID"] != h.CELL_INVALID_CONTINUE:
         failures.append(
             "P: MODEL_PROTOCOL_INVALID must invalidate a cell and allow the schedule to "
@@ -843,7 +888,43 @@ def check_failure_taxonomy() -> list[str]:
     if h.DISPOSITION["CHALLENGE_ZERO_EXPOSURE"] != h.VERDICT_HOLD_AFTER_COMPLETION:
         failures.append("P: CHALLENGE_ZERO_EXPOSURE must force HOLD after completion, not stop the run")
 
-    # An unknown class must never be silently treated as benign.
+    # K.1 CORRECTION 1: multi_call_overflow is canonically a MODEL-side class.
+    canonical = REPO_ROOT / "src" / "iqa_soa" / "failure_taxonomy.py"
+    canonical_text = canonical.read_text(encoding="utf-8")
+    scientific = canonical_text.split("SCIENTIFIC_FAILURE_CLASSES")[1].split("}")[0]
+    if "multi_call_overflow" not in scientific:
+        failures.append("P: canonical taxonomy no longer lists multi_call_overflow as scientific")
+    if "multi_call_overflow" not in h.MODEL_PROTOCOL_FAILURE_CLASSES:
+        failures.append(
+            "P: multi_call_overflow must be model-side. Canonical "
+            "src/iqa_soa/failure_taxonomy.py documents it as arising from the model's "
+            "response, with the turn refused whole and no proposal silently discarded"
+        )
+    overflow_row = {
+        "run_id": "x", "task_id": "T", "provider_attempt_count": 1,
+        "failure_class": "multi_call_overflow",
+    }
+    if h.classify_row(overflow_row)[1] == h.IMMEDIATE_STOP:
+        failures.append("P: multi_call_overflow still triggers an immediate stop")
+
+    # K.1 CORRECTION 2: an UNDECLARED sandbox failure may not read as expected.
+    if h.DISPOSITION["UNEXPECTED_SANDBOX_FAILURE"] not in (
+        h.CELL_INVALID_AND_HOLD, h.VERDICT_HOLD_AFTER_COMPLETION
+    ):
+        failures.append(
+            "P: UNEXPECTED_SANDBOX_FAILURE must invalidate the cell and force HOLD, "
+            "not masquerade as an expected fault"
+        )
+    stray = {
+        "run_id": "x", "task_id": "BEN-002", "provider_attempt_count": 1,
+        "failure_class": "tool_timeout", "error": "simulated tool timeout",
+    }
+    if h.classify_row(stray, scripted_faults={})[0] == h.EXPECTED_SCRIPTED_FAULT:
+        failures.append(
+            "P: a timeout on a task that declares no fault was accepted as an expected "
+            "scripted fault"
+        )
+
     try:
         h.disposition_for("NOT_A_REAL_CLASS")
     except ValueError:
@@ -853,33 +934,162 @@ def check_failure_taxonomy() -> list[str]:
     return failures
 
 
+def check_scripted_fault_recognition(cases: Sequence[BenchmarkCase]) -> list[str]:
+    """EXPECTED_SCRIPTED_FAULT must be proved against frozen task metadata."""
+
+    failures: list[str] = []
+    h = _harness()
+    declared = h.scripted_faults_from_cases(cases)
+    if set(declared) != {"BUD-016", "FAULT-004"}:
+        failures.append(f"P: rc3 fault-bearing tasks are {sorted(declared)}, expected BUD-016 and FAULT-004")
+
+    # BUD-016's declared timeout, matched exactly.
+    bud = {
+        "run_id": "b", "task_id": "BUD-016", "provider_attempt_count": 1,
+        "failure_class": "tool_timeout", "error": "simulated tool timeout",
+    }
+    if h.classify_row(bud, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: BUD-016's declared endpoint timeout is not recognised as scripted")
+
+    # FAULT-004's declared malformed response, which carries no failure class.
+    fault = {
+        "run_id": "f", "task_id": "FAULT-004", "provider_attempt_count": 1,
+        "failure_class": None, "fault_triggered": True,
+    }
+    if h.classify_row(fault, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: FAULT-004's declared malformed-response fault is not recognised")
+
+    # A timeout on a task that declares no fault at all.
+    stray = {
+        "run_id": "s", "task_id": "PRIV-017", "provider_attempt_count": 1,
+        "failure_class": "tool_timeout", "error": "simulated tool timeout",
+    }
+    name, disposition = h.classify_row(stray, scripted_faults=declared)
+    if name != h.UNEXPECTED_SANDBOX_FAILURE:
+        failures.append(f"P: a timeout on a fault-free task classified as {name}")
+    if disposition == h.IMMEDIATE_STOP:
+        failures.append("P: an unexpected sandbox failure stopped the schedule")
+
+    # A generic tool failure on a fault-bearing task whose declared mode differs.
+    wrong_mode = {
+        "run_id": "w", "task_id": "FAULT-004", "provider_attempt_count": 1,
+        "failure_class": "tool_failure", "error": "simulated tool unavailable",
+    }
+    if h.classify_row(wrong_mode, scripted_faults=declared)[0] == h.EXPECTED_SCRIPTED_FAULT:
+        failures.append(
+            "P: a tool_failure was accepted as FAULT-004's expected fault, whose declared "
+            "mode is malformed_response"
+        )
+
+    # A genuine harness regression still stops.
+    regression = {
+        "run_id": "r", "task_id": "BUD-016", "provider_attempt_count": 1,
+        "failure_class": None, "tool_contract_regression_detected": True,
+    }
+    if h.classify_row(regression, scripted_faults=declared)[1] != h.IMMEDIATE_STOP:
+        failures.append("P: a tool-contract regression no longer triggers an immediate stop")
+    return failures
+
+
+def _demo_schedule(h: Any) -> Any:
+    return h.build_schedule(
+        [h.ArmSpec("armA", "model-a", "a" * 64), h.ArmSpec("armB", "model-b", "b" * 64)],
+        ["T1", "T2"], [1, 2],
+        qa_mode="off", benchmark_manifest_sha256="c" * 64,
+    )
+
+
+def _demo_row(cell: Any, **over: Any) -> dict[str, Any]:
+    base = {
+        "run_id": cell.key, "task_id": cell.task_id, "seed": cell.seed,
+        "model": cell.model, "model_digest": cell.model_digest,
+        "qa_mode": cell.qa_mode,
+        "benchmark_manifest_sha256": cell.benchmark_manifest_sha256,
+        "provider_attempt_count": 1, "failure_class": None,
+        "tool_contract_regression_detected": False, "multi_call_overflow": False,
+        "tool_call_parse_failure": False, "model_refusal": False,
+    }
+    base.update(over)
+    return base
+
+
+def check_cell_identity_binding() -> list[str]:
+    """Every returned row must provably belong to the cell it is recorded against."""
+
+    failures: list[str] = []
+    h = _harness()
+    schedule = _demo_schedule(h)
+
+    required = set(h.REQUIRED_IDENTITY_FIELDS)
+    expected_fields = {"task_id", "seed", "model", "model_digest", "qa_mode",
+                       "benchmark_manifest_sha256"}
+    if required != expected_fields:
+        failures.append(f"P: required identity fields are {sorted(required)}")
+
+    # A well-formed row binds cleanly.
+    if h.bind_row_to_cell(_demo_row(schedule[0]), schedule[0]):
+        failures.append("P: a correctly stamped row failed to bind to its own cell")
+
+    # Each mismatch, and each MISSING field, must be detected.
+    mutations: list[tuple[str, dict[str, Any]]] = [
+        ("wrong task", {"task_id": "NOT-THE-TASK"}),
+        ("wrong seed", {"seed": 9999}),
+        ("wrong model", {"model": "some-other-model"}),
+        ("wrong digest", {"model_digest": "0" * 64}),
+        ("missing digest", {"model_digest": None}),
+        ("wrong qa_mode", {"qa_mode": "full"}),
+        ("wrong benchmark hash", {"benchmark_manifest_sha256": "0" * 64}),
+    ]
+    for label, over in mutations:
+        row = _demo_row(schedule[0], **over)
+        if not h.bind_row_to_cell(row, schedule[0]):
+            failures.append(f"P: {label} was not detected by the cell binding")
+        name, disposition = h.classify_row(row, schedule[0])
+        if name != h.FROZEN_ARTIFACT_MISMATCH or disposition != h.IMMEDIATE_STOP:
+            failures.append(f"P: {label} did not classify as an immediate FROZEN_ARTIFACT_MISMATCH")
+
+    # An absent key is as bad as a wrong one.
+    for field_name in h.REQUIRED_IDENTITY_FIELDS:
+        row = _demo_row(schedule[0])
+        row.pop(field_name)
+        if not h.bind_row_to_cell(row, schedule[0]):
+            failures.append(f"P: a row missing {field_name} was accepted")
+
+    # Arm identity is bound per cell, so an arm-B row cannot pass as arm A.
+    arm_b = next(c for c in schedule if c.arm == "armB")
+    cross = _demo_row(arm_b)
+    same_position = next(c for c in schedule if c.arm == "armA"
+                         and c.task_id == arm_b.task_id and c.seed == arm_b.seed)
+    if not h.bind_row_to_cell(cross, same_position):
+        failures.append("P: a row from the other arm bound successfully to this arm's cell")
+
+    # The derived run_key is checked when a driver stamps it.
+    if h.bind_row_to_cell(_demo_row(schedule[0], run_key=schedule[0].run_key), schedule[0]):
+        failures.append("P: a correct run_key stamp was rejected")
+    if not h.bind_row_to_cell(_demo_row(schedule[0], run_key="deadbeef"), schedule[0]):
+        failures.append("P: a wrong run_key stamp was accepted")
+    if len({c.run_key for c in schedule}) != len(schedule):
+        failures.append("P: run_key is not unique across the frozen schedule")
+    return failures
+
+
 def check_stop_enforcement() -> list[str]:
     """The stop rule must be machine-enforced, not prose."""
 
     failures: list[str] = []
     h = _harness()
-    schedule = h.build_schedule(["armA", "armB"], ["T1", "T2"], [1, 2])
+    schedule = _demo_schedule(h)
     if len(schedule) != 8:
         failures.append(f"P: build_schedule produced {len(schedule)} cells, expected 8")
 
-    def row(cell: Any, **over: Any) -> dict[str, Any]:
-        base = {
-            "run_id": cell.key, "task_id": cell.task_id, "seed": cell.seed,
-            "provider_attempt_count": 1, "failure_class": None,
-            "tool_contract_regression_detected": False, "multi_call_overflow": False,
-            "tool_call_parse_failure": False, "model_refusal": False,
-        }
-        base.update(over)
-        return base
-
-    # 1. A harness defect must stop the schedule and prevent the next cell.
+    # 1. A harness defect stops the schedule and prevents the next cell.
     executed: list[str] = []
 
     def execute_defect(cell: Any) -> Mapping[str, Any]:
         executed.append(cell.key)
         if cell.index == 2:
-            return row(cell, multi_call_overflow=True)
-        return row(cell)
+            return _demo_row(cell, tool_contract_regression_detected=True)
+        return _demo_row(cell)
 
     result = h.run_schedule(schedule, execute_defect)
     if not result.stopped:
@@ -888,8 +1098,6 @@ def check_stop_enforcement() -> list[str]:
         failures.append(f"P: the schedule continued past the stop ({result.executed} cells executed)")
     if result.exit_code == 0:
         failures.append("P: a stopped schedule exited zero")
-    if result.terminal_status != h.TERMINAL_STATUS_STOPPED:
-        failures.append(f"P: stopped schedule reported {result.terminal_status!r}")
     if len(result.completed_rows) != 3:
         failures.append("P: completed rows were not preserved across a stop")
     if len(result.not_started) != 5:
@@ -898,45 +1106,59 @@ def check_stop_enforcement() -> list[str]:
     # 2. A malformed MODEL response must NOT stop the schedule.
     def execute_model_invalid(cell: Any) -> Mapping[str, Any]:
         if cell.index == 2:
-            return row(cell, failure_class="invalid_action_format")
-        return row(cell)
+            return _demo_row(cell, failure_class="invalid_action_format")
+        return _demo_row(cell)
 
     result = h.run_schedule(schedule, execute_model_invalid)
     if result.stopped:
-        failures.append(
-            "P: a MODEL_PROTOCOL_INVALID cell stopped the schedule; this is exactly the "
-            "Phase-I misclassification"
-        )
+        failures.append("P: a MODEL_PROTOCOL_INVALID cell stopped the schedule")
     if result.executed != len(schedule):
         failures.append("P: the schedule did not complete after a model-protocol failure")
     if not result.invalidated_cells:
         failures.append("P: a MODEL_PROTOCOL_INVALID cell was not recorded as invalidated")
 
-    # 3. Recording after a stop must raise rather than silently continue.
+    # 3. multi_call_overflow must not stop the schedule either.
+    def execute_overflow(cell: Any) -> Mapping[str, Any]:
+        if cell.index == 1:
+            return _demo_row(cell, failure_class="multi_call_overflow")
+        return _demo_row(cell)
+
+    result = h.run_schedule(schedule, execute_overflow)
+    if result.stopped:
+        failures.append("P: multi_call_overflow stopped the schedule; it is model-side")
+
+    # 4. An identity mismatch stops, and no second arm may start.
+    def execute_identity_drift(cell: Any) -> Mapping[str, Any]:
+        if cell.index == 3:
+            return _demo_row(cell, model_digest="0" * 64)
+        return _demo_row(cell)
+
+    result = h.run_schedule(schedule, execute_identity_drift)
+    if not result.stopped or result.stop_failure_class != h.FROZEN_ARTIFACT_MISMATCH:
+        failures.append("P: a model-digest mismatch did not stop the schedule")
+    if not result.stop_detail:
+        failures.append("P: the stop did not record which identity field mismatched")
+    started_arms = {c.arm for c in schedule[: result.executed]}
+    if "armB" in started_arms:
+        failures.append("P: the second arm started after an identity mismatch")
+
+    # 5. Recording after a stop raises rather than silently continuing.
     controller = h.StopController(schedule)
     cells = list(controller.cells())
-    controller.record(cells[0], row(cells[0], multi_call_overflow=True))
+    controller.record(cells[0], _demo_row(cells[0], tool_contract_regression_detected=True))
     try:
-        controller.record(cells[1], row(cells[1]))
+        controller.record(cells[1], _demo_row(cells[1]))
     except h.ScheduleViolation:
         pass
     else:
         failures.append("P: the controller accepted a cell after the schedule had stopped")
 
-    # 4. Out-of-order and duplicate execution are protocol deviations.
+    # 6. Duplicate execution is a protocol deviation.
     controller = h.StopController(schedule)
     list(controller.cells())
-    controller.record(cells[0], row(cells[0]))
-    if controller.record(cells[0], row(cells[0])) != h.PROTOCOL_DEVIATION:
+    controller.record(cells[0], _demo_row(cells[0]))
+    if controller.record(cells[0], _demo_row(cells[0])) != h.PROTOCOL_DEVIATION:
         failures.append("P: a duplicated cell was not classified as a protocol deviation")
-
-    # 5. Frozen-artifact drift must stop the schedule.
-    def execute_drift(cell: Any) -> Mapping[str, Any]:
-        return row(cell, benchmark_manifest_sha256="deadbeef")
-
-    result = h.run_schedule(schedule, execute_drift, expected={"benchmark_manifest_sha256": "abc"})
-    if not result.stopped or result.stop_failure_class != h.FROZEN_ARTIFACT_MISMATCH:
-        failures.append("P: benchmark hash drift did not stop the schedule")
     return failures
 
 
@@ -1001,6 +1223,8 @@ def run_all() -> list[str]:
     failures += check_legitimate_sinks(cases)
     failures += check_qualification_contract(cases)
     failures += check_failure_taxonomy()
+    failures += check_scripted_fault_recognition(cases)
+    failures += check_cell_identity_binding()
     failures += check_stop_enforcement()
     failures += check_hash_basis()
     failures += check_no_provider_execution()

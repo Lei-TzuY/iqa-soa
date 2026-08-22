@@ -9,25 +9,33 @@ defect was discovered after the first arm completed, the second arm was launched
 28.4 seconds later anyway, and the run produced a 102-cell matrix it was not
 entitled to produce. The rule was prose; nothing enforced it.
 
-Two things were wrong and both are fixed here.
+Three things were wrong. The first was fixed in Phase K; the second and third
+were found by adversarial review and are fixed in Phase K.1.
 
-**1. The taxonomy conflated two very different events.**
+**1. The taxonomy conflated model behaviour with implementation defects.**
 Phase I classified ``invalid_action_format`` as an ``INSTRUMENT_DEFECT``, which is
-the emergency-stop class. Forensic inspection in Phase K showed the instrument
-behaved correctly: the native tool schema advertises ``arguments`` as a required
-object, the model emitted a non-object, and the adapter rejected it, classified
-it precisely, preserved the row and did not retry. That is a MODEL protocol
-violation, not an implementation defect. A model emitting malformed arguments
-invalidates a cell; it does not make the remaining evidence uninterpretable, and
-it must not trigger an emergency stop.
+the emergency-stop class. The instrument had behaved correctly: the native tool
+schema advertises ``arguments`` as a required object, the model emitted a
+non-object, and the adapter rejected it, classified it precisely, preserved the
+row and did not retry. That is a MODEL protocol violation. It invalidates a cell;
+it does not make the remaining evidence uninterpretable.
 
-**2. The stop rule was unenforced.**
-``StopController`` below makes the invariant machine-checked: once an
-immediate-stop condition is classified, the controller refuses to yield another
-cell, records the exact stop reason and cell, writes a partial manifest,
-preserves every completed row, and reports a non-zero exit status. A caller
-cannot continue the schedule by forgetting to check, because the schedule is
-driven through ``run_schedule`` and the controller owns the iteration.
+**2. (K.1) The taxonomy still mis-placed two things.**
+``multi_call_overflow`` was treated as a harness defect. Canonical
+``src/iqa_soa/failure_taxonomy.py`` documents it as a SCIENTIFIC failure class
+that "arises from the model's response, and the turn is refused whole rather than
+partially executed, so no proposal is silently discarded". It is model-side and
+must not stop the schedule. Separately, ``tool_timeout`` and ``tool_failure``
+were accepted as EXPECTED_SCRIPTED_FAULT for any task, which would let a genuinely
+unexpected sandbox failure masquerade as a designed one. Expectation is now
+proved against frozen per-task fault metadata.
+
+**3. (K.1) Rows were not bound to their cells.**
+The controller owned schedule ORDER but never checked that a returned row
+actually belonged to the cell being recorded. A row for the wrong task, seed,
+model, digest, treatment or benchmark could be accepted silently. Every identity
+field is now bound per cell, taken from the frozen schedule rather than from the
+row, and a missing field is a mismatch rather than a pass.
 
 Nothing here performs inference, and nothing here is wired into an executing
 qualification phase yet. It is offline-tested infrastructure for a future phase.
@@ -36,6 +44,7 @@ qualification phase yet. It is offline-tested infrastructure for a future phase.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
@@ -44,17 +53,18 @@ from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 # Closed failure taxonomy
 # --------------------------------------------------------------------------
 
+CELL_OK = "CELL_OK"
 EXPECTED_SCRIPTED_FAULT = "EXPECTED_SCRIPTED_FAULT"
 MODEL_REFUSAL = "MODEL_REFUSAL"
 MODEL_PROTOCOL_INVALID = "MODEL_PROTOCOL_INVALID"
 MODEL_MODALITY_MISS = "MODEL_MODALITY_MISS"
 BENCHMARK_PREREQUISITE_MISS = "BENCHMARK_PREREQUISITE_MISS"
 CHALLENGE_ZERO_EXPOSURE = "CHALLENGE_ZERO_EXPOSURE"
+UNEXPECTED_SANDBOX_FAILURE = "UNEXPECTED_SANDBOX_FAILURE"
 PROVIDER_INFRA_FAILURE = "PROVIDER_INFRA_FAILURE"
 INSTRUMENT_DEFECT = "INSTRUMENT_DEFECT"
 FROZEN_ARTIFACT_MISMATCH = "FROZEN_ARTIFACT_MISMATCH"
 PROTOCOL_DEVIATION = "PROTOCOL_DEVIATION"
-CELL_OK = "CELL_OK"
 
 FAILURE_CLASSES: tuple[str, ...] = (
     CELL_OK,
@@ -64,6 +74,7 @@ FAILURE_CLASSES: tuple[str, ...] = (
     MODEL_MODALITY_MISS,
     BENCHMARK_PREREQUISITE_MISS,
     CHALLENGE_ZERO_EXPOSURE,
+    UNEXPECTED_SANDBOX_FAILURE,
     PROVIDER_INFRA_FAILURE,
     INSTRUMENT_DEFECT,
     FROZEN_ARTIFACT_MISMATCH,
@@ -71,14 +82,16 @@ FAILURE_CLASSES: tuple[str, ...] = (
 )
 
 # --------------------------------------------------------------------------
-# Dispositions -- exactly the three the Phase-K specification requires, plus the
-# no-op case for a healthy cell.
+# Dispositions
 # --------------------------------------------------------------------------
 
 #: The cell is valid and the schedule continues.
 CONTINUE = "CONTINUE"
 #: (A) The cell is invalidated for scoring, and the frozen schedule continues.
 CELL_INVALID_CONTINUE = "CELL_INVALID_CONTINUE"
+#: (A+B) The cell is invalidated AND the final verdict is forced to HOLD. Used
+#: where a cell is unusable for a reason that also impugns the run as a whole.
+CELL_INVALID_AND_HOLD = "CELL_INVALID_AND_HOLD"
 #: (B) The schedule runs to completion, and the final verdict is forced to HOLD.
 VERDICT_HOLD_AFTER_COMPLETION = "VERDICT_HOLD_AFTER_COMPLETION"
 #: (C) Continued evidence generation is scientifically uninterpretable. Stop now.
@@ -87,26 +100,32 @@ IMMEDIATE_STOP = "IMMEDIATE_STOP"
 DISPOSITIONS: tuple[str, ...] = (
     CONTINUE,
     CELL_INVALID_CONTINUE,
+    CELL_INVALID_AND_HOLD,
     VERDICT_HOLD_AFTER_COMPLETION,
     IMMEDIATE_STOP,
 )
 
 #: The frozen, closed mapping. Defined and tested BEFORE any future inference.
 DISPOSITION: Mapping[str, str] = {
-    # A healthy cell, and the two model behaviours that are legitimate outcomes
-    # rather than faults: the benchmark's own injected fault firing as designed,
-    # and a model declining to act.
+    # Healthy cell, and the two model behaviours that are legitimate outcomes:
+    # the benchmark's own injected fault firing exactly as designed, and a model
+    # declining to act.
     CELL_OK: CONTINUE,
     EXPECTED_SCRIPTED_FAULT: CONTINUE,
     MODEL_REFUSAL: CONTINUE,
-    # (A) The model, not the harness, produced something unusable. The cell is
+    # (A) The MODEL, not the harness, produced something unusable. The cell is
     # invalidated; the remaining schedule stays interpretable.
     MODEL_PROTOCOL_INVALID: CELL_INVALID_CONTINUE,
     MODEL_MODALITY_MISS: CELL_INVALID_CONTINUE,
     BENCHMARK_PREREQUISITE_MISS: CELL_INVALID_CONTINUE,
     PROVIDER_INFRA_FAILURE: CELL_INVALID_CONTINUE,
-    # (B) A construct-level result that is only knowable once every cell of the
-    # task exists, so the schedule must complete before the verdict is taken.
+    # (A+B) A sandbox failure the frozen benchmark did NOT script. The cell is
+    # unusable, and an unexplained sandbox failure is serious enough that the run
+    # may not be reported as a clean pass -- but it does not, on its own, prove
+    # the instrument is broken, so the schedule still completes.
+    UNEXPECTED_SANDBOX_FAILURE: CELL_INVALID_AND_HOLD,
+    # (B) A construct-level result knowable only once every cell of the task
+    # exists, so the schedule must complete before the verdict is taken.
     CHALLENGE_ZERO_EXPOSURE: VERDICT_HOLD_AFTER_COMPLETION,
     # (C) Conditions under which further evidence cannot be interpreted at all.
     INSTRUMENT_DEFECT: IMMEDIATE_STOP,
@@ -117,15 +136,17 @@ DISPOSITION: Mapping[str, str] = {
 #: Why each immediate-stop class is narrowly reserved.
 IMMEDIATE_STOP_RATIONALE: Mapping[str, str] = {
     INSTRUMENT_DEFECT: (
-        "A defect confirmed in the harness itself -- a parser or adapter that "
-        "mis-handles a well-formed model response, lost or corrupted evidence, "
-        "or an analyzer/driver mismatch that changes interpretation. Every "
-        "subsequent cell would be measured with a broken instrument."
+        "A defect confirmed in the harness itself -- a tool-contract regression, "
+        "lost or corrupted evidence, or an analyzer/driver mismatch that changes "
+        "interpretation. Every subsequent cell would be measured with a broken "
+        "instrument."
     ),
     FROZEN_ARTIFACT_MISMATCH: (
-        "A frozen input moved: benchmark or plan hash drift, the wrong model or "
-        "model digest, the wrong seed, or the wrong treatment. The cells already "
-        "collected and the cells still to come would not be the same experiment."
+        "A frozen input moved, or a returned row does not belong to the cell it "
+        "was recorded against: benchmark or plan hash drift, the wrong or a "
+        "missing model identity or digest, the wrong seed, task or treatment. The "
+        "cells already collected and the cells still to come would not be the "
+        "same experiment."
     ),
     PROTOCOL_DEVIATION: (
         "The frozen schedule itself was violated -- a reordered, duplicated, "
@@ -155,78 +176,266 @@ def is_immediate_stop(failure_class: str) -> bool:
 
 
 # --------------------------------------------------------------------------
-# Classification of a raw row into the taxonomy
+# Failure-class groupings, aligned to canonical src/iqa_soa/failure_taxonomy.py
 # --------------------------------------------------------------------------
 
-#: Adapter/parser rejections that indicate the MODEL violated the advertised
-#: tool schema. The harness advertises ``arguments`` as a required object and
-#: rejects anything else; that rejection is correct behaviour, so these are
-#: model-protocol violations rather than implementation defects.
-_MODEL_PROTOCOL_FAILURE_CLASSES = frozenset(
-    {"invalid_action_format", "invalid_json", "invalid_tool_call"}
+#: Adapter/parser rejections and turn-level refusals that arise from the MODEL's
+#: response. Canonical ``SCIENTIFIC_FAILURE_CLASSES`` documents every one of
+#: these as model-side, including ``multi_call_overflow``, whose docstring states
+#: it "arises from the model's response, and the turn is refused whole rather
+#: than partially executed, so no proposal is silently discarded". The harness
+#: advertises its schema and its step budget and refuses violations of either;
+#: that refusal is correct behaviour, so these invalidate a cell rather than
+#: indicting the instrument.
+MODEL_PROTOCOL_FAILURE_CLASSES = frozenset(
+    {"invalid_action_format", "invalid_json", "invalid_tool_call", "multi_call_overflow"}
 )
 
-#: Harness-side regressions. ``multi_call_overflow`` means the harness lost or
-#: could not queue a proposal, and a tool-contract regression means the tool
-#: definition itself degraded between calls.
-_HARNESS_FAILURE_CLASSES = frozenset({"multi_call_overflow"})
+#: Sandbox outcomes. Whether one of these is EXPECTED depends entirely on the
+#: frozen benchmark metadata for that task; it is never assumed.
+SANDBOX_FAILURE_CLASSES = frozenset({"tool_timeout", "tool_failure", "invalid_resource"})
 
-#: Sandbox outcomes that are benchmark-designed or model-chosen, never defects.
-_SANDBOX_OUTCOME_CLASSES = frozenset(
-    {"tool_timeout", "tool_failure", "invalid_resource"}
+#: Provider/experiment-path failures, from canonical INFRASTRUCTURE_FAILURE_CLASSES.
+PROVIDER_FAILURE_CLASSES = frozenset(
+    {"provider_error", "rate_limit", "timeout", "benchmark_failure", "qa_failure",
+     "analysis_failure"}
 )
+
+#: The sandbox's deterministic per-mode signatures (src/iqa_soa/tools/registry.py).
+#: A malformed_response returns success with a sentinel payload and therefore has
+#: no failure class; the other modes return a fixed error string.
+FAULT_MODE_SIGNATURE: Mapping[str, tuple[str | None, str | None]] = {
+    "timeout": ("tool_timeout", "simulated tool timeout"),
+    "unavailable": ("tool_failure", "simulated tool unavailable"),
+    "partial_failure": ("tool_failure", "simulated partial tool failure"),
+    "malformed_response": (None, None),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class ScriptedFault:
+    """One task's frozen fault declaration, read from the benchmark case."""
+
+    task_id: str
+    tool: str
+    resource: str
+    mode: str
+
+    @property
+    def expected_failure_class(self) -> str | None:
+        return FAULT_MODE_SIGNATURE.get(self.mode, (None, None))[0]
+
+    @property
+    def expected_error(self) -> str | None:
+        return FAULT_MODE_SIGNATURE.get(self.mode, (None, None))[1]
+
+    @property
+    def fault_key(self) -> str:
+        return f"{self.tool}:{self.resource}"
+
+
+def scripted_faults_from_cases(cases: Iterable[Any]) -> dict[str, tuple[ScriptedFault, ...]]:
+    """Extract frozen fault declarations from loaded benchmark cases."""
+
+    declared: dict[str, tuple[ScriptedFault, ...]] = {}
+    for case in cases:
+        faults: list[ScriptedFault] = []
+        for key, spec in getattr(case.environment, "faults", {}).items():
+            tool, _, resource = str(key).partition(":")
+            mode = spec.get("mode") if isinstance(spec, Mapping) else getattr(spec, "mode", "")
+            faults.append(
+                ScriptedFault(task_id=case.id, tool=tool, resource=resource, mode=str(mode))
+            )
+        if faults:
+            declared[case.id] = tuple(faults)
+    return declared
+
+
+def _matches_scripted_fault(
+    row: Mapping[str, Any], faults: Sequence[ScriptedFault]
+) -> ScriptedFault | None:
+    """Prove a sandbox failure is the task's DECLARED fault, as precisely as the
+    stored telemetry permits.
+
+    Matching uses task identity (the caller passes only this task's faults), the
+    declared mode's deterministic failure class, and the sandbox's exact
+    deterministic error string. For a malformed_response fault, which returns
+    success rather than an error, the row must positively record
+    ``fault_triggered``.
+    """
+
+    failure_class = str(row.get("failure_class") or "")
+    error = str(row.get("error") or "").strip().casefold()
+    triggered = row.get("fault_triggered") is True
+    for fault in faults:
+        expected_class = fault.expected_failure_class
+        expected_error = fault.expected_error
+        if expected_class is None:
+            # malformed_response: no failure class, so require positive evidence.
+            if not failure_class and triggered:
+                return fault
+            continue
+        if failure_class != expected_class:
+            continue
+        if expected_error is not None and expected_error.casefold() not in error:
+            continue
+        return fault
+    return None
+
+
+# --------------------------------------------------------------------------
+# Frozen per-cell identity
+# --------------------------------------------------------------------------
+
+#: Every identity field a returned row MUST carry and match. A missing field is a
+#: mismatch, never a pass: an unstamped row cannot be proved to belong to its cell.
+REQUIRED_IDENTITY_FIELDS: tuple[str, ...] = (
+    "task_id",
+    "seed",
+    "model",
+    "model_digest",
+    "qa_mode",
+    "benchmark_manifest_sha256",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class Cell:
+    """One frozen schedule position, carrying its own complete expectation.
+
+    The expectation is built from the frozen schedule and the frozen model
+    configuration. It is never derived from the row being checked.
+    """
+
+    index: int
+    arm: str
+    task_id: str
+    seed: int
+    model: str
+    model_digest: str
+    qa_mode: str
+    benchmark_manifest_sha256: str
+
+    @property
+    def key(self) -> str:
+        return f"{self.arm}|{self.task_id}|{self.seed}"
+
+    @property
+    def run_key(self) -> str:
+        """Deterministic cell identifier derived only from frozen inputs.
+
+        A future driver stamps this on the row it returns, so the binding can be
+        checked on a single opaque value as well as field by field.
+        """
+
+        material = "|".join(
+            [
+                str(self.index), self.arm, self.task_id, str(self.seed), self.model,
+                self.model_digest, self.qa_mode, self.benchmark_manifest_sha256,
+            ]
+        )
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
+
+    def expectation(self) -> dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "seed": self.seed,
+            "model": self.model,
+            "model_digest": self.model_digest,
+            "qa_mode": self.qa_mode,
+            "benchmark_manifest_sha256": self.benchmark_manifest_sha256,
+        }
+
+
+def bind_row_to_cell(row: Mapping[str, Any], cell: Cell) -> list[str]:
+    """Return the identity mismatches between a returned row and its frozen cell.
+
+    An empty list means the row provably belongs to this cell. Every required
+    field must be PRESENT and EQUAL; ``None`` and absence are both mismatches.
+    """
+
+    mismatches: list[str] = []
+    expected = cell.expectation()
+    for field_name in REQUIRED_IDENTITY_FIELDS:
+        if field_name not in row or row.get(field_name) is None:
+            mismatches.append(f"{field_name} is missing from the returned row")
+            continue
+        actual = row[field_name]
+        want = expected[field_name]
+        if field_name == "seed":
+            try:
+                actual = int(actual)
+            except (TypeError, ValueError):
+                mismatches.append(f"seed {actual!r} is not an integer")
+                continue
+        if actual != want:
+            mismatches.append(f"{field_name} is {actual!r}, frozen schedule expects {want!r}")
+    # Optional but checked when present: the derived cell identifier.
+    stamped = row.get("run_key")
+    if stamped is not None and stamped != cell.run_key:
+        mismatches.append(f"run_key is {stamped!r}, frozen schedule expects {cell.run_key!r}")
+    return mismatches
+
+
+# --------------------------------------------------------------------------
+# Classification of a raw row into the taxonomy
+# --------------------------------------------------------------------------
 
 
 def classify_row(
     row: Mapping[str, Any],
+    cell: Cell | None = None,
     *,
-    expected: Mapping[str, Any] | None = None,
-    scripted_fault_task_ids: Iterable[str] = (),
+    scripted_faults: Mapping[str, Sequence[ScriptedFault]] | None = None,
 ) -> tuple[str, str]:
     """Classify one completed cell into (failure_class, disposition).
 
-    ``expected`` optionally carries the frozen expectations for this cell
-    (``benchmark_manifest_sha256``, ``model``, ``model_digest``, ``seed``,
-    ``qa_mode``); any mismatch is a FROZEN_ARTIFACT_MISMATCH and stops the run.
+    When ``cell`` is supplied, the row must first be proved to belong to it. A
+    row that cannot be bound is a FROZEN_ARTIFACT_MISMATCH and stops the run.
     """
 
-    expected = expected or {}
-    for key, label in (
-        ("benchmark_manifest_sha256", "benchmark hash"),
-        ("model", "model identity"),
-        ("seed", "seed"),
-        ("qa_mode", "treatment"),
-    ):
-        if key in expected and row.get(key) != expected[key]:
-            return FROZEN_ARTIFACT_MISMATCH, IMMEDIATE_STOP
-    digest = expected.get("model_digest")
-    if digest is not None and row.get("model_digest") not in (None, digest):
+    if cell is not None and bind_row_to_cell(row, cell):
         return FROZEN_ARTIFACT_MISMATCH, IMMEDIATE_STOP
 
     # A harness-side regression is the narrow implementation-defect class.
     if row.get("tool_contract_regression_detected") is True:
         return INSTRUMENT_DEFECT, IMMEDIATE_STOP
-    failure_class = str(row.get("failure_class") or "")
-    if failure_class in _HARNESS_FAILURE_CLASSES or row.get("multi_call_overflow") is True:
-        return INSTRUMENT_DEFECT, IMMEDIATE_STOP
     if not row.get("provider_attempt_count"):
         # No attempt was preserved at all: the evidence for this cell is lost.
         return INSTRUMENT_DEFECT, IMMEDIATE_STOP
 
-    # THE PHASE-I CORRECTION. The model violated the advertised tool schema and
-    # the harness correctly rejected and recorded it. The cell is unusable; the
-    # instrument is fine; the schedule continues.
-    if failure_class in _MODEL_PROTOCOL_FAILURE_CLASSES:
+    failure_class = str(row.get("failure_class") or "")
+
+    if failure_class in PROVIDER_FAILURE_CLASSES:
+        return PROVIDER_INFRA_FAILURE, CELL_INVALID_CONTINUE
+
+    # Model-side protocol violations. Includes multi_call_overflow, which
+    # canonical failure_taxonomy documents as arising from the model's response.
+    if failure_class in MODEL_PROTOCOL_FAILURE_CLASSES:
         return MODEL_PROTOCOL_INVALID, CELL_INVALID_CONTINUE
     if row.get("tool_call_parse_failure") is True:
         return MODEL_PROTOCOL_INVALID, CELL_INVALID_CONTINUE
+    if row.get("multi_call_overflow") is True:
+        return MODEL_PROTOCOL_INVALID, CELL_INVALID_CONTINUE
 
-    if failure_class in _SANDBOX_OUTCOME_CLASSES:
-        if str(row.get("task_id")) in set(scripted_fault_task_ids):
+    if failure_class in SANDBOX_FAILURE_CLASSES:
+        task_id = str(row.get("task_id") or "")
+        declared = tuple((scripted_faults or {}).get(task_id, ()))
+        if declared and _matches_scripted_fault(row, declared) is not None:
             return EXPECTED_SCRIPTED_FAULT, CONTINUE
         if failure_class == "invalid_resource":
+            # The model addressed an identifier the sandbox could not resolve --
+            # a modality/selection observation, not a sandbox malfunction.
             return MODEL_MODALITY_MISS, CELL_INVALID_CONTINUE
-        return EXPECTED_SCRIPTED_FAULT, CONTINUE
+        return UNEXPECTED_SANDBOX_FAILURE, CELL_INVALID_AND_HOLD
+
+    # A malformed_response fault fires without a failure class, so recognise it
+    # only against the task's own declaration.
+    if row.get("fault_triggered") is True:
+        task_id = str(row.get("task_id") or "")
+        declared = tuple((scripted_faults or {}).get(task_id, ()))
+        if declared and _matches_scripted_fault(row, declared) is not None:
+            return EXPECTED_SCRIPTED_FAULT, CONTINUE
 
     if row.get("model_refusal") is True:
         return MODEL_REFUSAL, CONTINUE
@@ -236,20 +445,6 @@ def classify_row(
 # --------------------------------------------------------------------------
 # Machine-enforced stop controller
 # --------------------------------------------------------------------------
-
-
-@dataclass(frozen=True, slots=True)
-class Cell:
-    """One frozen schedule position."""
-
-    index: int
-    arm: str
-    task_id: str
-    seed: int
-
-    @property
-    def key(self) -> str:
-        return f"{self.arm}|{self.task_id}|{self.seed}"
 
 
 @dataclass(slots=True)
@@ -265,6 +460,7 @@ class ScheduleResult:
     stop_reason: str = ""
     stop_failure_class: str = ""
     stop_cell: str = ""
+    stop_detail: list[str] = field(default_factory=list)
     not_started: list[str] = field(default_factory=list)
 
     @property
@@ -280,26 +476,25 @@ class StopController:
     """Owns the frozen schedule so an immediate-stop condition cannot be ignored.
 
     The controller is deliberately the *iterator*. A caller cannot walk the
-    schedule itself and forget to consult the stop state, because the only way
-    to obtain the next cell is :meth:`cells`, which terminates the moment a stop
-    is armed, and :meth:`record` raises if called after that point.
+    schedule itself and forget to consult the stop state, because the only way to
+    obtain the next cell is :meth:`cells`, which terminates the moment a stop is
+    armed, and :meth:`record` raises if called after that point.
     """
 
     def __init__(
         self,
         schedule: Sequence[Cell],
         *,
-        expected: Mapping[str, Any] | None = None,
-        scripted_fault_task_ids: Iterable[str] = (),
+        scripted_faults: Mapping[str, Sequence[ScriptedFault]] | None = None,
     ) -> None:
         self._schedule = tuple(schedule)
-        self._expected = dict(expected or {})
-        self._fault_tasks = tuple(scripted_fault_task_ids)
+        self._faults = dict(scripted_faults or {})
         self._executed = 0
         self._stopped = False
         self._stop_reason = ""
         self._stop_failure_class = ""
         self._stop_cell = ""
+        self._stop_detail: list[str] = []
         self._rows: list[Mapping[str, Any]] = []
         self._classifications: list[dict[str, Any]] = []
         self._invalidated: list[str] = []
@@ -332,59 +527,69 @@ class StopController:
     # -- recording -----------------------------------------------------------
 
     def record(self, cell: Cell, row: Mapping[str, Any]) -> str:
-        """Classify a completed cell and update stop state. Returns the class."""
+        """Bind, classify and update stop state. Returns the failure class."""
 
         if self._stopped:
             raise ScheduleViolation(
                 f"cell {cell.key} was executed after the schedule stopped at "
                 f"{self._stop_cell} ({self._stop_failure_class})"
             )
+        # Schedule-order violations are protocol deviations, not identity drift.
         if cell.key in self._seen:
-            self._arm_stop(
-                cell, PROTOCOL_DEVIATION, f"cell {cell.key} was executed more than once"
-            )
+            self._arm_stop(cell, PROTOCOL_DEVIATION,
+                           IMMEDIATE_STOP_RATIONALE[PROTOCOL_DEVIATION],
+                           [f"cell {cell.key} was executed more than once"])
             return PROTOCOL_DEVIATION
         if cell.index != self._executed:
-            self._arm_stop(
-                cell,
-                PROTOCOL_DEVIATION,
-                f"cell {cell.key} ran out of frozen order at position "
-                f"{self._executed}, expected schedule index {cell.index}",
-            )
+            self._arm_stop(cell, PROTOCOL_DEVIATION,
+                           IMMEDIATE_STOP_RATIONALE[PROTOCOL_DEVIATION],
+                           [f"cell {cell.key} ran at schedule position {self._executed}, "
+                            f"frozen index is {cell.index}"])
             return PROTOCOL_DEVIATION
 
         self._seen.add(cell.key)
         self._rows.append(row)
         self._executed += 1
 
+        # THE K.1 BINDING. The row must provably belong to this exact cell.
+        mismatches = bind_row_to_cell(row, cell)
+        if mismatches:
+            self._classifications.append(
+                {"cell": cell.key, "index": cell.index,
+                 "failure_class": FROZEN_ARTIFACT_MISMATCH,
+                 "disposition": IMMEDIATE_STOP, "detail": mismatches}
+            )
+            self._arm_stop(cell, FROZEN_ARTIFACT_MISMATCH,
+                           IMMEDIATE_STOP_RATIONALE[FROZEN_ARTIFACT_MISMATCH], mismatches)
+            return FROZEN_ARTIFACT_MISMATCH
+
         failure_class, disposition = classify_row(
-            row, expected=self._expected, scripted_fault_task_ids=self._fault_tasks
+            row, cell, scripted_faults=self._faults
         )
         self._classifications.append(
-            {
-                "cell": cell.key,
-                "index": cell.index,
-                "failure_class": failure_class,
-                "disposition": disposition,
-            }
+            {"cell": cell.key, "index": cell.index,
+             "failure_class": failure_class, "disposition": disposition}
         )
         if disposition == IMMEDIATE_STOP:
-            self._arm_stop(
-                cell,
-                failure_class,
-                IMMEDIATE_STOP_RATIONALE.get(failure_class, failure_class),
-            )
+            self._arm_stop(cell, failure_class,
+                           IMMEDIATE_STOP_RATIONALE.get(failure_class, failure_class), [])
         elif disposition == CELL_INVALID_CONTINUE:
             self._invalidated.append(cell.key)
+        elif disposition == CELL_INVALID_AND_HOLD:
+            self._invalidated.append(cell.key)
+            self._hold_reasons.append(f"{cell.key}: {failure_class}")
         elif disposition == VERDICT_HOLD_AFTER_COMPLETION:
             self._hold_reasons.append(f"{cell.key}: {failure_class}")
         return failure_class
 
-    def _arm_stop(self, cell: Cell, failure_class: str, reason: str) -> None:
+    def _arm_stop(
+        self, cell: Cell, failure_class: str, reason: str, detail: Sequence[str]
+    ) -> None:
         self._stopped = True
         self._stop_cell = cell.key
         self._stop_failure_class = failure_class
         self._stop_reason = reason
+        self._stop_detail = list(detail)
 
     # -- results -------------------------------------------------------------
 
@@ -407,6 +612,7 @@ class StopController:
             stop_reason=self._stop_reason,
             stop_failure_class=self._stop_failure_class,
             stop_cell=self._stop_cell,
+            stop_detail=list(self._stop_detail),
             not_started=self.remaining(),
         )
 
@@ -423,6 +629,7 @@ class StopController:
             "stop_cell": result.stop_cell,
             "stop_failure_class": result.stop_failure_class,
             "stop_reason": result.stop_reason,
+            "stop_detail": result.stop_detail,
             "invalidated_cells": result.invalidated_cells,
             "hold_reasons": result.hold_reasons,
             "cells_not_started": result.not_started,
@@ -447,19 +654,12 @@ def run_schedule(
     schedule: Sequence[Cell],
     execute: Callable[[Cell], Mapping[str, Any]],
     *,
-    expected: Mapping[str, Any] | None = None,
-    scripted_fault_task_ids: Iterable[str] = (),
+    scripted_faults: Mapping[str, Sequence[ScriptedFault]] | None = None,
     partial_manifest_path: Path | None = None,
 ) -> ScheduleResult:
-    """Drive a frozen schedule under machine-enforced stop semantics.
+    """Drive a frozen schedule under machine-enforced stop semantics."""
 
-    The controller owns the iteration, so an immediate-stop condition prevents
-    the next cell from starting without the caller having to remember anything.
-    """
-
-    controller = StopController(
-        schedule, expected=expected, scripted_fault_task_ids=scripted_fault_task_ids
-    )
+    controller = StopController(schedule, scripted_faults=scripted_faults)
     for cell in controller.cells():
         row = execute(cell)
         controller.record(cell, row)
@@ -468,14 +668,43 @@ def run_schedule(
     return controller.result()
 
 
+@dataclass(frozen=True, slots=True)
+class ArmSpec:
+    """One frozen arm: its name and the exact model identity it must run."""
+
+    arm: str
+    model: str
+    model_digest: str
+
+
 def build_schedule(
-    arms: Sequence[str], task_ids: Sequence[str], seeds: Sequence[int]
+    arms: Sequence[ArmSpec],
+    task_ids: Sequence[str],
+    seeds: Sequence[int],
+    *,
+    qa_mode: str,
+    benchmark_manifest_sha256: str,
 ) -> list[Cell]:
-    """The frozen arm-major, task-major, seed-minor schedule."""
+    """The frozen arm-major, task-major, seed-minor schedule.
+
+    Every cell carries its complete expectation, so the binding check never has
+    to consult a global mapping that cannot distinguish one arm from another.
+    """
 
     cells: list[Cell] = []
-    for arm in arms:
+    for spec in arms:
         for task_id in task_ids:
             for seed in seeds:
-                cells.append(Cell(len(cells), arm, task_id, seed))
+                cells.append(
+                    Cell(
+                        index=len(cells),
+                        arm=spec.arm,
+                        task_id=task_id,
+                        seed=seed,
+                        model=spec.model,
+                        model_digest=spec.model_digest,
+                        qa_mode=qa_mode,
+                        benchmark_manifest_sha256=benchmark_manifest_sha256,
+                    )
+                )
     return cells
