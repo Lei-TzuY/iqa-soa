@@ -66,10 +66,18 @@ if str(SRC_ROOT) not in sys.path:
 
 from iqa_soa.failure_taxonomy import INFRASTRUCTURE_FAILURE_CLASSES  # noqa: E402
 from iqa_soa.instrument import (  # noqa: E402
-    INSTRUMENT_VERSION,
     NATIVE_TOOL_ADAPTER_VERSION,
-    RAW_SCHEMA_VERSION,
+    PROTOCOL_TELEMETRY_INSTRUMENT_VERSION,
+    PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
 )
+
+#: Phase I executed on instrument "2" / raw schema 3 and its results are frozen evidence.
+#: This analyzer pins the instrument its phase actually RAN under rather than
+#: whichever value is current, so a later additive instrument revision (Phase M
+#: -> "3", raw schema -> 4) can never retroactively fail a committed artifact.
+#: A frozen result is analyzable under the contract it was written under.
+INSTRUMENT_VERSION = PROTOCOL_TELEMETRY_INSTRUMENT_VERSION
+RAW_SCHEMA_VERSION = PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION
 
 # --------------------------------------------------------------------------
 # Frozen Phase-I constants

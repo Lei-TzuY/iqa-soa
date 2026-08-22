@@ -39,6 +39,11 @@ if str(REPO_ROOT / "src") not in sys.path:  # pragma: no cover - import shim
 
 from iqa_soa.benchmark import BenchmarkCase, load_frozen_pilot  # noqa: E402
 
+if str(REPO_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import instrument_revision  # noqa: E402
+
 BENCHMARK_VERSION = "pilot-v7-rc3"
 RC3_ROOT = REPO_ROOT / "benchmark" / BENCHMARK_VERSION
 CANONICAL_BASE_COMMIT = "978c8cb1dcb1b6dc5a2ec51a7233a26c114e2569"
@@ -165,11 +170,37 @@ def check_historical_immutability() -> list[str]:
         ("phaseF_results_tree", "results/phaseF-qualification"),
         ("phaseD_results_tree", "results/phaseD-qualification"),
         ("phaseA_results_tree", "results/phaseA-privacy-ablation"),
-        ("src_iqa_soa_tree", "src/iqa_soa"),
     ):
         actual = tree_digest(relative)
         if actual != pinned[key]:
             failures.append(f"A: {relative} tree digest moved (pinned {pinned[key]}, actual {actual})")
+
+    # The INSTRUMENT is checked on different terms from frozen DATA, because the
+    # two claims are different. See scripts/instrument_revision.py.
+    #
+    #   (A) The historical Phase-K freeze assertion -- "src/iqa_soa was tree
+    #       1825ca11... when rc3 was frozen" -- is proved against the freeze
+    #       commit itself, from committed bytes. The pin below is quoted from the
+    #       freeze record and is NOT overwritten; it stays true forever.
+    #
+    #   (B) The CURRENT instrument is pinned separately, and more strictly than a
+    #       lone tree digest: it must match an approved revision record that names
+    #       its parent digest, every changed file, that file's own SHA-256, and a
+    #       scientific reason for the change.
+    #
+    # Phase L-A stopped because (A) was being asserted by checking (B): the rc3
+    # validator required the live tree to equal the frozen digest, so repairing
+    # the instrument defect that Phase L-A had just discovered would itself fail
+    # rc3 validation. Separating the claims strengthens provenance -- the repo now
+    # records what changed, to what bytes, against which parent and why, instead
+    # of only "nothing changed" -- while an unapproved edit under src/iqa_soa
+    # still fails, because it is not in the approved set.
+    if pinned["src_iqa_soa_tree"] != instrument_revision.PHASE_K_SRC_TREE:
+        failures.append(
+            "A: the rc3 freeze record's src_iqa_soa_tree pin does not match the "
+            "digest scripts/instrument_revision.py verifies against history"
+        )
+    failures += instrument_revision.check_instrument_provenance(label="A")
     for key, relative in (
         ("preregistration_v3", "docs/preregistration_coverage_extension_v3.md"),
         ("preregistration_v1", "docs/preregistration_coverage_extension_v1.md"),
@@ -184,9 +215,14 @@ def check_historical_immutability() -> list[str]:
             failures.append(f"A: {relative} moved (pinned {pinned[key]}, actual {actual})")
 
     # No mutation of anything at the canonical base; additions only.
+    # src/iqa_soa is deliberately NOT in this list: instrument changes are
+    # governed by the approved-revision check above, which is stricter than a
+    # blanket "no modification" rule because it also demands per-file hashes and
+    # reasons. Everything else -- benchmark bytes, historical results, the QA
+    # policy and every document -- remains absolutely immutable.
     diff = subprocess.run(
         ["git", "diff", "--name-only", "--diff-filter=MDRT", CANONICAL_BASE_COMMIT, "--",
-         "benchmark", "results", "src/iqa_soa", "configs/policies", "docs"],
+         "benchmark", "results", "configs/policies", "docs"],
         cwd=REPO_ROOT, capture_output=True, text=True, check=False,
     ).stdout.strip()
     if diff:

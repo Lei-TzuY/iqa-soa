@@ -18,9 +18,9 @@ from iqa_soa.failure_taxonomy import (
 from iqa_soa.instrument import (
     PRE_REPAIR_INSTRUMENT_VERSION,
     PRE_REPAIR_RAW_SCHEMA_VERSION,
-    RAW_SCHEMA_VERSION,
+    READABLE_PILOT_RAW_SCHEMA_VERSIONS,
 )
-from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS, PILOT_RAW_FIELDS_V3
+from iqa_soa.metrics.definitions import RAW_FIELDS_BY_SCHEMA_VERSION
 from iqa_soa.metrics.statistics import AnalysisError, analyze_before_after, pair_before_after
 
 
@@ -250,13 +250,16 @@ def _validate_pilot_manifest(
     if missing:
         raise AnalysisError(f"real-pilot manifest is missing fields: {sorted(missing)}")
     raw_schema = manifest.get("raw_schema_version")
-    if manifest.get("schema_version") != 2 or raw_schema not in {
-        PRE_REPAIR_RAW_SCHEMA_VERSION,
-        RAW_SCHEMA_VERSION,
-    }:
+    # Every pilot raw schema ever written stays readable.  A frozen artifact is
+    # analyzable under the contract it was WRITTEN under; a newer schema never
+    # retroactively invalidates it and its bytes are never rewritten.
+    if (
+        manifest.get("schema_version") != 2
+        or raw_schema not in READABLE_PILOT_RAW_SCHEMA_VERSIONS
+    ):
         raise AnalysisError(
             "real-pilot manifest schema_version must be 2 and raw_schema_version "
-            f"must be {PRE_REPAIR_RAW_SCHEMA_VERSION} or {RAW_SCHEMA_VERSION}"
+            f"must be one of {list(READABLE_PILOT_RAW_SCHEMA_VERSIONS)}"
         )
     if manifest.get("experiment_kind") != "real_model_pilot":
         raise AnalysisError(
@@ -306,10 +309,10 @@ def _validate_pilot_manifest(
         for mode in ("off", "full")
     }
     seen: set[tuple[str, int, str]] = set()
-    post_repair = manifest.get("raw_schema_version") == RAW_SCHEMA_VERSION
-    required_row_fields = (
-        set(PILOT_RAW_FIELDS_V3) if post_repair else set(PILOT_RAW_FIELDS)
-    )
+    # "Post-repair" means anything at or beyond the protocol-telemetry schema;
+    # each schema demands exactly the fields it defined, never a later one's.
+    post_repair = int(raw_schema) > PRE_REPAIR_RAW_SCHEMA_VERSION
+    required_row_fields = set(RAW_FIELDS_BY_SCHEMA_VERSION[int(raw_schema)])
     manifest_instrument = manifest.get("instrument_version")
     manifest_adapter = manifest.get("native_tool_adapter_version")
     if post_repair:

@@ -30,6 +30,7 @@ from iqa_soa.agent.providers import (
 )
 from iqa_soa.benchmark import BenchmarkCase, FrozenPilotBenchmark, load_benchmark_cases
 from iqa_soa.evidence import EvidenceLogger
+from iqa_soa.experiment.fault_provenance import observed_fault_telemetry
 from iqa_soa.experiment.treatments import Treatment, treatment_for
 from iqa_soa.iqa.chain import build_guard_chain
 from iqa_soa.iqa.gateway import ServiceGateway
@@ -42,7 +43,7 @@ from iqa_soa.instrument import (
     RAW_SCHEMA_VERSION,
 )
 from iqa_soa.metrics.definitions import (
-    PILOT_RAW_FIELDS_V3,
+    PILOT_RAW_FIELDS_V4,
     REQUIRED_RAW_FIELDS,
 )
 from iqa_soa.tools import SandboxState, ToolRegistry
@@ -286,7 +287,7 @@ class ExperimentRunner:
                 "a deterministic provider cannot be labeled as a real-model experiment"
             )
         pilot_schema = frozen_benchmark is not None
-        raw_fields = PILOT_RAW_FIELDS_V3 if pilot_schema else REQUIRED_RAW_FIELDS
+        raw_fields = PILOT_RAW_FIELDS_V4 if pilot_schema else REQUIRED_RAW_FIELDS
 
         experiment_id, experiment_dir = create_experiment_directory(self.config.output_root)
         jsonl_path = experiment_dir / self.config.raw_jsonl
@@ -653,6 +654,13 @@ class ExperimentRunner:
             ),
             "multi_call_overflow": agent_run.multi_call_overflow,
             "native_tool_adapter_version": NATIVE_TOOL_ADAPTER_VERSION,
+            # (Phase M) Runtime fault provenance, derived from the live
+            # GatewayOutcome sequence before it is discarded.  The callee sees
+            # ONLY agent_run.outcomes: it has no access to `case`, `case.fault`,
+            # ground truth or any declaration, so the observation cannot restate
+            # the answer it will later be checked against.  See
+            # iqa_soa.experiment.fault_provenance.
+            **observed_fault_telemetry(agent_run.outcomes),
             "proposed_action_count": len(agent_run.proposed_action_bytes),
             "proposed_action_digest": _proposal_digest(
                 agent_run.proposed_action_bytes

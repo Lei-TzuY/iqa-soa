@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Mapping
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,14 +161,50 @@ PROTOCOL_TELEMETRY_FIELDS: tuple[str, ...] = (
 PILOT_RAW_FIELDS_V3: tuple[str, ...] = PILOT_RAW_FIELDS + PROTOCOL_TELEMETRY_FIELDS
 
 
+# (Phase M) Runtime-derived observed-fault provenance.  Phase L-A found the
+# Phase-K.2 contract unsatisfiable because a QA-OFF cell persisted none of it;
+# ``iqa_soa.experiment.fault_provenance`` now derives these from the live
+# ``GatewayOutcome`` sequence.  They are a strict superset of
+# PILOT_RAW_FIELDS_V3 on exactly the same terms as PROTOCOL_TELEMETRY_FIELDS
+# were of PILOT_RAW_FIELDS: frozen schema-3 artifacts do not contain them, must
+# never be required to, and are never rewritten.  Demanded only of
+# raw_schema_version 4 rows.
+FAULT_PROVENANCE_TELEMETRY_FIELDS: tuple[str, ...] = (
+    "observed_fault_tool",
+    "observed_fault_resource",
+    "observed_fault_mode",
+    "observed_fault_provenance",
+    "observed_fault_observation_count",
+)
+
+PILOT_RAW_FIELDS_V4: tuple[str, ...] = (
+    PILOT_RAW_FIELDS_V3 + FAULT_PROVENANCE_TELEMETRY_FIELDS
+)
+
+
+#: The required field set for each raw schema version, so a reader selects the
+#: contract a row was WRITTEN under rather than the contract that happens to be
+#: current.  This is what keeps historical rows analyzable across an additive
+#: schema revision; entries are permanent.
+RAW_FIELDS_BY_SCHEMA_VERSION: Mapping[int, tuple[str, ...]] = {
+    1: REQUIRED_RAW_FIELDS,
+    2: PILOT_RAW_FIELDS,
+    3: PILOT_RAW_FIELDS_V3,
+    4: PILOT_RAW_FIELDS_V4,
+}
+
+
 METRIC_BY_NAME = {item.name: item for item in METRIC_DEFINITIONS}
 
 __all__ = [
+    "FAULT_PROVENANCE_TELEMETRY_FIELDS",
     "METRIC_BY_NAME",
     "METRIC_DEFINITIONS",
     "MetricDefinition",
     "PILOT_RAW_FIELDS",
     "PILOT_RAW_FIELDS_V3",
+    "PILOT_RAW_FIELDS_V4",
     "PROTOCOL_TELEMETRY_FIELDS",
+    "RAW_FIELDS_BY_SCHEMA_VERSION",
     "REQUIRED_RAW_FIELDS",
 ]

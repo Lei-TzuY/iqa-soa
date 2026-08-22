@@ -57,6 +57,11 @@ from iqa_soa.iqa.chain import build_guard_chain
 from iqa_soa.tools.registry import ToolRegistry
 from iqa_soa.types import Action, Decision, QAMode, RuntimeContext
 
+if str(REPO_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import instrument_revision  # noqa: E402
+
 
 RC2_DIR = REPO_ROOT / "benchmark" / "pilot-v7-rc2"
 RC2_MANIFEST = RC2_DIR / "manifest.json"
@@ -136,8 +141,13 @@ def tree_digest(relative_root: str) -> str:
 
 # Pinned from canonical main HEAD da6ccdc552c2e085cf6a3d0131c108f86bd32a7e.
 # Phase H is additive: none of these bytes may move.
+# src/iqa_soa is NOT pinned here as a frozen tree. The instrument is governed by
+# scripts/instrument_revision.py, which proves the historical freeze assertion
+# against the commit that made it and separately requires the CURRENT tree to
+# match an approved, per-file hash-pinned revision record. See the extended note
+# in scripts/validate_pilot_v7_rc3.py: asserting the historical claim by checking
+# the live tree is what blocked the Phase-L-A instrument repair.
 FROZEN_TREES: Mapping[str, str] = {
-    "src/iqa_soa": "1825ca11de6723c10fa557d641b4c3585b20c2f9a1c634e9247d46821a53c4d3",
     "benchmark/pilot-v7-rc1": "025a7c2d962759e622efa286a80bf512e956cd50ebef03d636352782a041eb30",
     "benchmark/pilot-v6.1": "ebf27513105e2dbae73a71b529f954c3ee2a562446e6cfe8284acef065b9ff48",
     "results/phaseF-qualification": "4b4ea6309028f22d75264a9350ce6f66850daf163fcfe910ada4c1a91e353040",
@@ -234,6 +244,7 @@ RC2_NEW_CASE_FILES: Mapping[str, str] = {
 
 def check_historical_immutability() -> list[str]:
     failures: list[str] = []
+    failures += instrument_revision.check_instrument_provenance(label="A")
     for relative, expected in FROZEN_TREES.items():
         if not (REPO_ROOT / relative).is_dir():
             failures.append(f"A: frozen tree is missing: {relative}")
@@ -275,11 +286,15 @@ def check_historical_immutability() -> list[str]:
 # --------------------------------------------------------------------------- #
 
 def load_provenance() -> Mapping[str, Any]:
-    return json.loads(RC2_PROVENANCE.read_text(encoding="utf-8"))
+    # Annotated rather than returned bare, matching the idiom already used in
+    # validate_pilot_v7_rc3.py, so this module is clean under mypy --strict.
+    parsed: Mapping[str, Any] = json.loads(RC2_PROVENANCE.read_text(encoding="utf-8"))
+    return parsed
 
 
 def load_contract() -> Mapping[str, Any]:
-    return json.loads(RC2_CONTRACT.read_text(encoding="utf-8"))
+    parsed: Mapping[str, Any] = json.loads(RC2_CONTRACT.read_text(encoding="utf-8"))
+    return parsed
 
 
 def check_manifest_integrity() -> list[str]:

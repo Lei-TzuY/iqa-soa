@@ -38,10 +38,16 @@ if str(SRC_ROOT) not in sys.path:
 from iqa_soa.benchmark import load_frozen_pilot
 from iqa_soa.experiment.runner import load_experiment_config, load_provider
 from iqa_soa.instrument import (
-    INSTRUMENT_VERSION,
     NATIVE_TOOL_ADAPTER_VERSION,
-    RAW_SCHEMA_VERSION,
+    PROTOCOL_TELEMETRY_INSTRUMENT_VERSION,
+    PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
 )
+
+#: Phase F is frozen evidence produced by instrument "2" / raw schema 3.  These
+#: tests pin the instrument that phase RAN under, not whichever is current, so a later
+#: additive instrument revision cannot retroactively fail a frozen artifact.
+INSTRUMENT_VERSION = PROTOCOL_TELEMETRY_INSTRUMENT_VERSION
+RAW_SCHEMA_VERSION = PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "phaseF-qualification.yaml"
 MODELS_PATH = PROJECT_ROOT / "configs" / "phaseF-models.yaml"
@@ -50,6 +56,13 @@ PLAN_PATH = PROJECT_ROOT / "docs" / "phaseF_real_model_qualification_plan.md"
 PLAN_SIDECAR = PROJECT_ROOT / "docs" / "phaseF_real_model_qualification_plan.sha256"
 
 CANONICAL_BASE = "f79ffe55b2ae0f059b67a1cb1e22f081adaca8d0"
+#: The commit that concluded Phase F (PR #4).  Phase-F assertions about what
+#: PHASE F itself did are evaluated over the range CANONICAL_BASE..PHASE_COMMIT,
+#: which is a fact of history and stays true forever.  Evaluating them against
+#: the live working tree instead would silently upgrade "Phase F changed
+#: nothing" into "nothing may ever change", freezing the instrument against
+#: every future repair -- which is precisely what blocked Phase L-A.
+PHASE_COMMIT = "da6ccdc552c2e085cf6a3d0131c108f86bd32a7e"
 
 _GIT = shutil.which("git")
 requires_git = pytest.mark.skipif(_GIT is None, reason="git executable not available")
@@ -335,11 +348,24 @@ def test_pilot_v7_rc1_benchmark_is_byte_identical_to_canonical_main() -> None:
 
 
 @requires_git
-def test_no_src_iqa_soa_file_differs_from_canonical_main() -> None:
+def test_phase_f_itself_changed_no_src_iqa_soa_file() -> None:
+    """Phase F was instrument-neutral, asserted over Phase F's own commit range.
+
+    Phase F must not have touched the instrument it was measuring with, and it
+    did not.  That is a closed historical fact and this test proves it from git
+    history, so it remains verifiable no matter what a later phase does.
+
+    It deliberately does NOT compare against the working tree.  Phase M repairs
+    the instrument under its own separately hash-pinned revision record
+    (``docs/phaseM_instrument_revision.json``); a working-tree comparison here
+    would make this Phase-F test the veto on every future instrument repair,
+    while proving nothing additional about Phase F.
+    """
+
     diff = _git(
-        "diff", "--name-only", CANONICAL_BASE, "--", "src/iqa_soa"
+        "diff", "--name-only", CANONICAL_BASE, PHASE_COMMIT, "--", "src/iqa_soa"
     ).decode("utf-8").strip()
-    assert diff == "", f"src/iqa_soa must not change in Phase F: {diff}"
+    assert diff == "", f"src/iqa_soa changed during Phase F: {diff}"
 
 
 PROTECTED_PATHS = (
