@@ -38,16 +38,15 @@ if str(SRC_ROOT) not in sys.path:
 from iqa_soa.benchmark import load_frozen_pilot
 from iqa_soa.experiment.runner import load_experiment_config, load_provider
 from iqa_soa.instrument import (
+    INSTRUMENT_VERSION,
     NATIVE_TOOL_ADAPTER_VERSION,
-    PROTOCOL_TELEMETRY_INSTRUMENT_VERSION,
-    PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
+    RAW_SCHEMA_VERSION,
 )
 
-#: Phase F is frozen evidence produced by instrument "2" / raw schema 3.  These
-#: tests pin the instrument that phase RAN under, not whichever is current, so a later
-#: additive instrument revision cannot retroactively fail a frozen artifact.
-INSTRUMENT_VERSION = PROTOCOL_TELEMETRY_INSTRUMENT_VERSION
-RAW_SCHEMA_VERSION = PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION
+if str(PROJECT_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+
+import instrument_revision  # noqa: E402
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "phaseF-qualification.yaml"
 MODELS_PATH = PROJECT_ROOT / "configs" / "phaseF-models.yaml"
@@ -359,13 +358,46 @@ def test_phase_f_itself_changed_no_src_iqa_soa_file() -> None:
     the instrument under its own separately hash-pinned revision record
     (``docs/phaseM_instrument_revision.json``); a working-tree comparison here
     would make this Phase-F test the veto on every future instrument repair,
-    while proving nothing additional about Phase F.
+    while proving nothing additional about Phase F.  The live half of the
+    original assertion is not dropped -- it is asserted, more strictly, by
+    ``test_the_live_instrument_differs_only_by_the_approved_revision`` below.
     """
 
     diff = _git(
         "diff", "--name-only", CANONICAL_BASE, PHASE_COMMIT, "--", "src/iqa_soa"
     ).decode("utf-8").strip()
     assert diff == "", f"src/iqa_soa changed during Phase F: {diff}"
+
+
+@requires_git
+def test_the_live_instrument_differs_only_by_the_approved_revision() -> None:
+    """The WORKING TREE half, restored and strengthened rather than relaxed.
+
+    The pre-Phase-M form of the test above compared ``src/iqa_soa`` in the
+    working tree against the canonical base and required an empty diff.  That
+    predicate is strictly weaker than this one: it could only say "nothing
+    moved", and it had no way to distinguish a reviewed, hash-pinned instrument
+    repair from a drive-by edit -- it simply forbade both, which is what
+    deadlocked Phase L-A.
+
+    Here every file that differs under ``src/iqa_soa`` must be an entry in the
+    approved Phase-M revision record, and ``check_instrument_provenance`` then
+    requires that entry to name the file's exact SHA-256 and a scientific
+    reason, that the record's parent digest be the previously frozen instrument
+    tree, and that the whole tree digest to the approved value.  An unapproved
+    byte under ``src/iqa_soa`` still fails this test, exactly as before.
+    """
+
+    assert instrument_revision.check_instrument_provenance(label="F") == []
+    changed = {
+        line
+        for line in _git(
+            "diff", "--name-only", CANONICAL_BASE, "--", "src/iqa_soa"
+        ).decode("utf-8").splitlines()
+        if line.strip()
+    }
+    approved = set(instrument_revision.load_revision()["changed_files"])
+    assert changed <= approved, f"unapproved instrument change: {sorted(changed - approved)}"
 
 
 PROTECTED_PATHS = (

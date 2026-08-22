@@ -73,7 +73,11 @@ REASONS: dict[str, str] = {
         "qualification contract, a task-id fault table) is structurally out of "
         "scope and cannot manufacture an observation it will later be compared "
         "against. Multiple runtime faults collapse by distinct identity and two "
-        "or more DISTINCT identities fail closed by withholding all four fields."
+        "or more DISTINCT identities fail closed by withholding all four fields. "
+        "The count field is named observed_fault_identity_count, prospectively, "
+        "because it counts distinct fault IDENTITIES and not runtime fault "
+        "occurrences; no committed artifact carries the field, so the rename "
+        "changes no scientific behaviour and no recorded value."
     ),
     "src/iqa_soa/experiment/runner.py": (
         "Stamps the derived fault provenance onto the raw row in _run_one, from "
@@ -97,7 +101,9 @@ REASONS: dict[str, str] = {
         "Adds FAULT_PROVENANCE_TELEMETRY_FIELDS and PILOT_RAW_FIELDS_V4 as a "
         "strict superset of PILOT_RAW_FIELDS_V3, plus "
         "RAW_FIELDS_BY_SCHEMA_VERSION so a reader selects the field contract a "
-        "row was WRITTEN under. No schema-3 field changed name, type or meaning."
+        "row was WRITTEN under. No schema-3 field changed name, type or meaning. "
+        "The schema-4 count column is named observed_fault_identity_count for "
+        "precision; it is a schema-4-only field and no committed row carries it."
     ),
     "src/iqa_soa/metrics/pilot.py": (
         "Accepts every readable pilot raw schema instead of only the current "
@@ -189,13 +195,40 @@ def build_record() -> dict[str, object]:
         "historical_rows": (
             "Committed Phase-D, Phase-F and Phase-I raw rows are neither "
             "rewritten nor re-run. They remain readable and analyzable under the "
-            "schema they were written with; their analyzers now pin the "
-            "instrument version their phase actually executed under."
+            "schema they were written with. Their analyzers are NOT edited to "
+            "achieve that: Phase M.1 restored every frozen historical script to "
+            "its frozen bytes and moved compatibility into "
+            "scripts/phaseM_historical_analysis.py, which executes each frozen "
+            "script from the commit that froze it, where the instrument constant "
+            "it imports genuinely is the one its phase ran under."
         ),
+        "frozen_historical_inputs": (
+            "This revision changes no prospectively frozen scientific input. "
+            "scripts/analyze_phaseI_requalification.py, bound by "
+            "results/phaseI-rc2-requalification/phaseI-provenance.json to "
+            "2ec5e5f40618e27400a534465d380be0092fb0b0cd1bd013aac562f99f80798e, "
+            "still hashes to exactly that in the current tree, as do every other "
+            "bound input and every .sha256 sidecar. Audited by "
+            "scripts/phaseM_frozen_input_audit.py."
+        ),
+        "superseded_live_assertions": {
+            "scripts/validate_pilot_v7_rc2.py": (
+                "The frozen rc2 validator pins src/iqa_soa to the Phase-H "
+                "instrument tree and asserts it against the LIVE working tree. "
+                "Phase M revises the instrument, so that one claim is now false "
+                "in the current tree and remains true at its own commit. Its "
+                "bytes are NOT edited; the supersession is recorded in "
+                "scripts/phaseM_historical_analysis.py and is required to be "
+                "exactly that one assertion. Every other claim the frozen "
+                "validator makes still holds live."
+            )
+        },
         "model_inference_performed": False,
         "phase_l_execution_authorized": False,
         "offline_validator": "scripts/instrument_revision.py",
         "offline_tests": "tests/integration/test_phaseM_fault_provenance_instrument.py",
+        "frozen_input_audit": "scripts/phaseM_frozen_input_audit.py",
+        "historical_analysis_compatibility": "scripts/phaseM_historical_analysis.py",
     }
 
 

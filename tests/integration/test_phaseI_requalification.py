@@ -46,16 +46,15 @@ if str(SRC_ROOT) not in sys.path:
 from iqa_soa.benchmark import load_frozen_pilot
 from iqa_soa.experiment.runner import load_experiment_config, load_provider
 from iqa_soa.instrument import (
+    INSTRUMENT_VERSION,
     NATIVE_TOOL_ADAPTER_VERSION,
-    PROTOCOL_TELEMETRY_INSTRUMENT_VERSION,
-    PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
+    RAW_SCHEMA_VERSION,
 )
 
-#: Phase I is frozen evidence produced by instrument "2" / raw schema 3.  These
-#: tests pin the instrument that phase RAN under, not whichever is current, so a later
-#: additive instrument revision cannot retroactively fail a frozen artifact.
-INSTRUMENT_VERSION = PROTOCOL_TELEMETRY_INSTRUMENT_VERSION
-RAW_SCHEMA_VERSION = PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION
+if str(PROJECT_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+
+import instrument_revision  # noqa: E402
 
 CANONICAL_BASE = "6ba6595f6c3d6be0edd702541e70abafaaf2aa9c"
 #: The commit that concluded Phase I (PR #6).  See the Phase-F note: an
@@ -1652,11 +1651,35 @@ def test_phase_i_itself_changed_no_src_iqa_soa_file() -> None:
     working tree.  Phase M revises the instrument additively under its own
     hash-pinned revision record; the Phase-I evidence bytes are untouched, which
     ``test_no_historical_result_or_frozen_artifact_differs_from_canonical_main``
-    still checks live, against the working tree.
+    still checks live, against the working tree.  The live half of the original
+    ``src/iqa_soa`` assertion is not dropped either: see
+    ``test_the_live_instrument_differs_only_by_the_approved_revision`` below.
     """
 
     diff = _git("diff", "--name-only", CANONICAL_BASE, PHASE_COMMIT, "--", "src/iqa_soa")
     assert diff.decode().strip() == ""
+
+
+def test_the_live_instrument_differs_only_by_the_approved_revision() -> None:
+    """The WORKING TREE half, restored and strengthened rather than relaxed.
+
+    See the companion test in ``tests/integration/test_phaseF_qualification.py``
+    for the full rationale.  Every current difference under ``src/iqa_soa`` must
+    be an approved, individually hash-pinned entry in
+    ``docs/phaseM_instrument_revision.json``; anything else fails here just as
+    the pre-Phase-M empty-diff predicate would have.
+    """
+
+    assert instrument_revision.check_instrument_provenance(label="I") == []
+    changed = {
+        line
+        for line in _git(
+            "diff", "--name-only", CANONICAL_BASE, "--", "src/iqa_soa"
+        ).decode().splitlines()
+        if line.strip()
+    }
+    approved = set(instrument_revision.load_revision()["changed_files"])
+    assert changed <= approved, f"unapproved instrument change: {sorted(changed - approved)}"
 
 
 def test_no_historical_result_or_frozen_artifact_differs_from_canonical_main() -> None:
@@ -1677,38 +1700,13 @@ def test_no_historical_result_or_frozen_artifact_differs_from_canonical_main() -
         "docs/preregistration_coverage_extension_v3.md",
         "docs/hash_basis_policy.md",
         ".gitattributes",
+        "scripts/analyze_phaseF_qualification.py",
         "scripts/run_phaseF_qualification.py",
         "scripts/validate_pilot_v7_rc1.py",
+        "scripts/validate_pilot_v7_rc2.py",
     ]
     diff = _git(
         "diff", "--name-only", "--diff-filter=MDRT", CANONICAL_BASE, "--", *protected
-    )
-    assert diff.decode().strip() == "", diff.decode()
-
-
-#: Readers of frozen evidence, as opposed to the frozen evidence itself.  Phase M
-#: had to pin these to the instrument version their phase actually RAN under
-#: (``PROTOCOL_TELEMETRY_INSTRUMENT_VERSION``) instead of to whichever value is
-#: current, or an additive instrument revision would have retroactively failed a
-#: committed artifact.  Their immutability during PHASE I is still asserted, from
-#: history; their verdict over the committed results is asserted to be unchanged
-#: by ``tests/integration/test_phaseM_fault_provenance_instrument.py``.
-FROZEN_EVIDENCE_READERS = (
-    "scripts/analyze_phaseF_qualification.py",
-    "scripts/analyze_phaseI_requalification.py",
-    # The rc2 validator delegated its src/iqa_soa pin to
-    # scripts/instrument_revision.py, which proves the historical freeze
-    # assertion from git history and pins the current instrument to an approved
-    # revision. Its verdict over rc2 is unchanged and asserted in the Phase-M
-    # suite; rc2 benchmark BYTES stay live-pinned in the list above.
-    "scripts/validate_pilot_v7_rc2.py",
-)
-
-
-def test_phase_i_itself_changed_no_frozen_evidence_reader() -> None:
-    diff = _git(
-        "diff", "--name-only", "--diff-filter=MDRT", CANONICAL_BASE, PHASE_COMMIT,
-        "--", *FROZEN_EVIDENCE_READERS,
     )
     assert diff.decode().strip() == "", diff.decode()
 

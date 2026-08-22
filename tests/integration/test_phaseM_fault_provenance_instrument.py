@@ -43,6 +43,7 @@ for _root in (SRC_ROOT, SCRIPTS_ROOT):
         sys.path.insert(0, str(_root))
 
 import instrument_revision  # noqa: E402
+import phaseM_historical_analysis as historical_analysis  # noqa: E402
 import qualification_harness as harness  # noqa: E402
 from iqa_soa.agent.providers import DeterministicStubProvider  # noqa: E402
 from iqa_soa.benchmark import load_frozen_pilot  # noqa: E402
@@ -262,7 +263,7 @@ def test_a_fault_mode_is_never_inferred_from_a_failure_class_or_error_string() -
     assert runtime_fault_observations([outcome]) == ()
     telemetry = observed_fault_telemetry([outcome])
     assert all(telemetry[name] is None for name in OBSERVED_FAULT_FIELDS)
-    assert telemetry["observed_fault_observation_count"] == 0
+    assert telemetry["observed_fault_identity_count"] == 0
 
 
 def test_an_empty_or_blank_fault_mode_stamps_nothing() -> None:
@@ -351,7 +352,7 @@ def test_an_ordinary_benign_task_emits_no_observed_fault_fields(qa_off_run: Any)
         row = rows[task_id]
         for name in OBSERVED_FAULT_FIELDS:
             assert row[name] is None, f"{task_id}.{name}"
-        assert row["observed_fault_observation_count"] == 0
+        assert row["observed_fault_identity_count"] == 0
         assert harness.classify_row(row, scripted_faults={}) == (
             harness.CELL_OK,
             harness.CONTINUE,
@@ -380,7 +381,7 @@ def test_the_no_fault_counterfactual_removes_the_observation(
         row = rows[0]
         for name in OBSERVED_FAULT_FIELDS:
             assert row[name] is None, f"{task_id}.{name}"
-        assert row["observed_fault_observation_count"] == 0
+        assert row["observed_fault_identity_count"] == 0
         # The action still ran; only the fault is gone.
         assert row["completion_steps"] >= 1
 
@@ -618,14 +619,14 @@ def test_bud_016_really_does_stamp_three_identical_fault_observations(
     assert len({item.identity for item in observations}) == 1
     assert len(distinct_fault_identities(outcomes)) == 1
     telemetry = observed_fault_telemetry(outcomes)
-    assert telemetry["observed_fault_observation_count"] == 1
+    assert telemetry["observed_fault_identity_count"] == 1
     assert telemetry["observed_fault_mode"] == "timeout"
 
 
 def test_repeated_identical_faults_are_agreement_not_ambiguity() -> None:
     outcomes = [_outcome("api.call", "r", fault_mode="timeout") for _ in range(5)]
     telemetry = observed_fault_telemetry(outcomes)
-    assert telemetry["observed_fault_observation_count"] == 1
+    assert telemetry["observed_fault_identity_count"] == 1
     assert telemetry["observed_fault_tool"] == "api.call"
 
 
@@ -652,7 +653,7 @@ def test_disagreeing_fault_identities_fail_closed(
         _outcome(second[0], second[1], fault_mode=second[2]),
     ]
     telemetry = observed_fault_telemetry(outcomes)
-    assert telemetry["observed_fault_observation_count"] == 2
+    assert telemetry["observed_fault_identity_count"] == 2
     for name in OBSERVED_FAULT_FIELDS:
         assert telemetry[name] is None, name
 
@@ -682,8 +683,8 @@ def test_ambiguity_is_distinguishable_from_absence() -> None:
     assert all(none_seen[name] is None for name in OBSERVED_FAULT_FIELDS)
     assert all(ambiguous[name] is None for name in OBSERVED_FAULT_FIELDS)
     # ... and distinguishable anyway.
-    assert none_seen["observed_fault_observation_count"] == 0
-    assert ambiguous["observed_fault_observation_count"] == 2
+    assert none_seen["observed_fault_identity_count"] == 0
+    assert ambiguous["observed_fault_identity_count"] == 2
 
 
 def test_the_same_identity_from_two_sources_is_treated_as_disagreement() -> None:
@@ -694,7 +695,7 @@ def test_the_same_identity_from_two_sources_is_treated_as_disagreement() -> None
         _outcome("api.call", "r", fault_mode="timeout", executed=False),
     ]
     telemetry = observed_fault_telemetry(outcomes)
-    assert telemetry["observed_fault_observation_count"] == 2
+    assert telemetry["observed_fault_identity_count"] == 2
     assert telemetry["observed_fault_provenance"] is None
 
 
@@ -797,7 +798,7 @@ def test_the_observed_fault_columns_are_exactly_five() -> None:
     assert OBSERVED_FAULT_FIELDS == harness.REQUIRED_FAULT_PROVENANCE_FIELDS
     assert OBSERVED_FAULT_TELEMETRY_FIELDS == (
         *OBSERVED_FAULT_FIELDS,
-        "observed_fault_observation_count",
+        "observed_fault_identity_count",
     )
     assert FAULT_PROVENANCE_TELEMETRY_FIELDS == OBSERVED_FAULT_TELEMETRY_FIELDS
 
@@ -857,60 +858,56 @@ def test_committed_historical_rows_are_untouched_and_still_declare_schema_3() ->
     assert seen > 0, "expected committed historical rows to check"
 
 
-def test_the_historical_analyzers_pin_their_own_instrument_version() -> None:
-    """A frozen phase must not follow whichever version happens to be current."""
+def test_the_unfrozen_phase_d_scripts_pin_their_own_instrument_version() -> None:
+    """A frozen phase must not follow whichever version happens to be current.
 
-    for name in (
-        "analyze_phaseD_qualification.py",
-        "analyze_phaseF_qualification.py",
-        "analyze_phaseI_requalification.py",
-        "phaseD_preflight.py",
-    ):
+    PHASE M.1. This applies only to the two Phase-D scripts, because they are the
+    only historical analysis scripts Phase M still modifies. The Phase-F and
+    Phase-I analyzers were restored to their frozen bytes: Phase I binds its
+    analyzer by SHA-256 inside its own provenance, so editing it -- however
+    correct the edit -- retracts a prospective freeze. Their compatibility is
+    handled outside frozen paths by ``scripts/phaseM_historical_analysis.py``,
+    and ``tests/integration/test_phaseM_frozen_input_immutability.py`` proves
+    both that their bytes are untouched and that they still reproduce their
+    committed verdicts.
+
+    That these two may be edited at all is proved, not assumed, by
+    ``test_the_modified_historical_scripts_carry_no_freeze_contract``: no
+    committed provenance binds them and no sidecar covers them.
+    """
+
+    for name in ("analyze_phaseD_qualification.py", "phaseD_preflight.py"):
         source = (SCRIPTS_ROOT / name).read_text(encoding="utf-8")
         assert "PROTOCOL_TELEMETRY_INSTRUMENT_VERSION" in source, name
         # It must not import the moving alias, which would drift on every bump.
         assert "\n    INSTRUMENT_VERSION,\n" not in source, name
 
 
-def test_the_frozen_phase_analyzers_still_read_committed_results(
+def test_the_frozen_phase_analyzers_are_not_edited_to_read_committed_results(
     tmp_path: Path,
 ) -> None:
-    """VERDICT INVARIANCE: the analyzer edits changed no committed verdict.
+    """VERDICT INVARIANCE, obtained without editing a frozen scientific input.
 
-    This is what makes the pin refactor safe rather than merely convenient. If
-    the analyzers had kept following the current instrument constant, they would
-    now reject their own frozen artifacts for declaring instrument "2".
+    The frozen Phase-F and Phase-I analyzers still hash to what their freeze
+    commits and their provenance records say they do, and executed from those
+    commits they still reproduce their committed verdicts exactly. The
+    instrument constant they import is "2" there because at that commit the
+    instrument WAS "2" -- nothing is patched and nothing is substituted.
 
-    Output is redirected into ``tmp_path``: these analyzers regenerate their
-    report and provenance files, and Phase M must not rewrite one byte under
-    ``results/``. The committed tree digest is asserted unchanged afterwards.
+    Running them must also leave the repository alone, so the committed
+    ``results`` digest is asserted unchanged afterwards.
     """
 
     before = instrument_revision.tree_digest("results")
-    for script, results in (
-        ("analyze_phaseF_qualification.py", "results/phaseF-qualification"),
-        ("analyze_phaseI_requalification.py", "results/phaseI-rc2-requalification"),
-    ):
-        if not (PROJECT_ROOT / results).is_dir():  # pragma: no cover
-            pytest.skip(f"{results} is absent")
-        out = tmp_path / script
-        out.mkdir(parents=True, exist_ok=True)
-        completed = subprocess.run(
-            [sys.executable, str(SCRIPTS_ROOT / script), "--out", str(out)],
-            cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
-        )
-        combined = completed.stdout + completed.stderr
-        assert "Traceback" not in combined, f"{script} crashed:\n{combined}"
-        # The specific way an unpinned analyzer would break on a frozen artifact.
-        for broken in (
-            "instrument_version must be",
-            "raw_schema_version must be",
-            "row instrument_version=",
-            "manifest instrument_version=",
-        ):
-            assert broken not in combined, f"{script} rejected a frozen artifact: {broken}"
+    for name in ("phaseF", "phaseI"):
+        spec = next(s for s in historical_analysis.FROZEN_ANALYSES if s.name == name)
+        assert historical_analysis.check_frozen_script_bytes(spec) == [], name
+        result = historical_analysis.reproduce(spec, tmp_path / name)
+        assert result["failures"] == [], result["failures"]
+        assert result["verdict_reproduced"] == result["verdict_committed"]
+        assert result["bound_inputs_reproduced_exactly"] is True
     assert instrument_revision.tree_digest("results") == before, (
-        "running a historical analyzer must not modify committed results"
+        "reproducing a historical analysis must not modify committed results"
     )
 
 

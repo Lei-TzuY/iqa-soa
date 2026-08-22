@@ -11,8 +11,8 @@
   },
   "changed_files": {
     "src/iqa_soa/experiment/fault_provenance.py": {
-      "reason": "NEW. Derives the four Phase-K.2 observed-fault fields from the live GatewayOutcome sequence. Its public functions accept Sequence[GatewayOutcome] and nothing else, so the benchmark declaration (BenchmarkCase, case.fault, ground_truth, ScriptedFault, the qualification contract, a task-id fault table) is structurally out of scope and cannot manufacture an observation it will later be compared against. Multiple runtime faults collapse by distinct identity and two or more DISTINCT identities fail closed by withholding all four fields.",
-      "sha256": "c5a0dd8e043b9a33fb8e8cefdab58cae26fd988f6ef7f3d5aa367ac8d08b49c5"
+      "reason": "NEW. Derives the four Phase-K.2 observed-fault fields from the live GatewayOutcome sequence. Its public functions accept Sequence[GatewayOutcome] and nothing else, so the benchmark declaration (BenchmarkCase, case.fault, ground_truth, ScriptedFault, the qualification contract, a task-id fault table) is structurally out of scope and cannot manufacture an observation it will later be compared against. Multiple runtime faults collapse by distinct identity and two or more DISTINCT identities fail closed by withholding all four fields. The count field is named observed_fault_identity_count, prospectively, because it counts distinct fault IDENTITIES and not runtime fault occurrences; no committed artifact carries the field, so the rename changes no scientific behaviour and no recorded value.",
+      "sha256": "080ba53926f3a8e77f512334c8e86c7bfcc42784994b78075c8d14729cdd7f27"
     },
     "src/iqa_soa/experiment/runner.py": {
       "reason": "Stamps the derived fault provenance onto the raw row in _run_one, from agent_run.outcomes, before the outcomes are discarded; and writes the schema-4 pilot field set. This is the persistence gap Phase L-A found: AgentRun.outcomes was never serialized, SandboxState.operation_log reached disk only inside an irreversible fingerprint, and QA-OFF evidence is non-detailed by treatment definition. No treatment, guard, prompt, policy, tool dispatch or metric changed.",
@@ -23,8 +23,8 @@
       "sha256": "455c21a4f248e2a92661bb0bef9673ff93bad7579ffc749d1cd33d308f2bd77f"
     },
     "src/iqa_soa/metrics/definitions.py": {
-      "reason": "Adds FAULT_PROVENANCE_TELEMETRY_FIELDS and PILOT_RAW_FIELDS_V4 as a strict superset of PILOT_RAW_FIELDS_V3, plus RAW_FIELDS_BY_SCHEMA_VERSION so a reader selects the field contract a row was WRITTEN under. No schema-3 field changed name, type or meaning.",
-      "sha256": "755c0d7e0405f9b7bc5eb719eea75b82188cac9a7d2820f87ee3b3c7d2dd9048"
+      "reason": "Adds FAULT_PROVENANCE_TELEMETRY_FIELDS and PILOT_RAW_FIELDS_V4 as a strict superset of PILOT_RAW_FIELDS_V3, plus RAW_FIELDS_BY_SCHEMA_VERSION so a reader selects the field contract a row was WRITTEN under. No schema-3 field changed name, type or meaning. The schema-4 count column is named observed_fault_identity_count for precision; it is a schema-4-only field and no committed row carries it.",
+      "sha256": "6252c7ddc5108bbbbefd934ed5bf9fa8a7c3f65641de4bd007c525d0d8dcaa42"
     },
     "src/iqa_soa/metrics/pilot.py": {
       "reason": "Accepts every readable pilot raw schema instead of only the current one, and requires each row to carry the fields of its own schema version. This is what keeps frozen schema-2 and schema-3 artifacts analyzable across the revision. The instrument-pooling refusal is unchanged and now also separates instrument 2 from instrument 3.",
@@ -36,9 +36,12 @@
     "instrument_version": "3",
     "native_tool_adapter_version": "native-tools-adapter-2",
     "raw_schema_version": 4,
-    "src_iqa_soa_tree": "c86a091298b0caaa480de729fcfc8e820eb0ce72317827932be1946f9c8b83da"
+    "src_iqa_soa_tree": "598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135"
   },
-  "historical_rows": "Committed Phase-D, Phase-F and Phase-I raw rows are neither rewritten nor re-run. They remain readable and analyzable under the schema they were written with; their analyzers now pin the instrument version their phase actually executed under.",
+  "frozen_historical_inputs": "This revision changes no prospectively frozen scientific input. scripts/analyze_phaseI_requalification.py, bound by results/phaseI-rc2-requalification/phaseI-provenance.json to 2ec5e5f40618e27400a534465d380be0092fb0b0cd1bd013aac562f99f80798e, still hashes to exactly that in the current tree, as do every other bound input and every .sha256 sidecar. Audited by scripts/phaseM_frozen_input_audit.py.",
+  "frozen_input_audit": "scripts/phaseM_frozen_input_audit.py",
+  "historical_analysis_compatibility": "scripts/phaseM_historical_analysis.py",
+  "historical_rows": "Committed Phase-D, Phase-F and Phase-I raw rows are neither rewritten nor re-run. They remain readable and analyzable under the schema they were written with. Their analyzers are NOT edited to achieve that: Phase M.1 restored every frozen historical script to its frozen bytes and moved compatibility into scripts/phaseM_historical_analysis.py, which executes each frozen script from the commit that froze it, where the instrument constant it imports genuinely is the one its phase ran under.",
   "model_inference_performed": false,
   "offline_tests": "tests/integration/test_phaseM_fault_provenance_instrument.py",
   "offline_validator": "scripts/instrument_revision.py",
@@ -61,5 +64,8 @@
   },
   "qa_off_treatment_invariant": "treatment_for('off').detailed_evidence remains False and the evidence guard remains disabled under QA OFF. The repair is raw protocol telemetry, not evidence-guard activation: no tool output, no malformed-response sentinel, no protected value, no SandboxState.operation_log and no AgentRun.outcomes block is persisted.",
   "record_kind": "instrument_revision",
+  "superseded_live_assertions": {
+    "scripts/validate_pilot_v7_rc2.py": "The frozen rc2 validator pins src/iqa_soa to the Phase-H instrument tree and asserts it against the LIVE working tree. Phase M revises the instrument, so that one claim is now false in the current tree and remains true at its own commit. Its bytes are NOT edited; the supersession is recorded in scripts/phaseM_historical_analysis.py and is required to be exactly that one assertion. Every other claim the frozen validator makes still holds live."
+  },
   "title": "QA-OFF runtime fault-provenance persistence repair"
 }

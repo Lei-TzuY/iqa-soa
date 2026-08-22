@@ -1,5 +1,10 @@
 # Phase M — QA-OFF runtime fault-provenance persistence repair and instrument requalification
 
+**Revision M.1 — restore frozen historical input immutability.** The Phase-M
+runtime repair passed adversarial review; the way it obtained historical
+compatibility did not. M.1 restores every prospectively frozen script to its
+frozen bytes and moves compatibility outside frozen paths. See §12.
+
 **ZERO MODEL INFERENCE WAS PERFORMED IN THIS PHASE.**
 No provider was contacted. No Ollama endpoint was probed. No `/api/chat`,
 `/api/generate` or OpenAI-compatible completion request was issued. No cloud
@@ -23,6 +28,9 @@ writes them to the raw row under a new additive raw schema. QA-OFF treatment
 semantics are unchanged, no tool output or protected value is persisted, the
 historical Phase-K instrument pin is preserved rather than overwritten, and the
 current instrument is separately hash-pinned in an additive revision record.
+No prospectively frozen scientific input changed: revision M.1 restored every
+frozen historical script to its frozen bytes and solved the
+historical-compatibility problem outside frozen paths (§12).
 Both BUD-016 and FAULT-004 now satisfy K.2 prospectively through the real
 runner with a deterministic stub, while a wrong tool, a wrong resource, a
 missing stamp, a declaration-derived source and an ambiguous multi-fault run all
@@ -129,15 +137,27 @@ Supporting scripts and tests:
 | --- | --- |
 | `scripts/instrument_revision.py` | **NEW.** Separates the historical freeze assertion from the approved current revision. |
 | `scripts/phaseM_write_instrument_revision.py` | **NEW.** Regenerates the revision record deterministically. |
-| `tests/integration/test_phaseM_fault_provenance_instrument.py` | **NEW.** 63 adversarial tests. |
-| `scripts/validate_pilot_v7_rc3.py`, `scripts/validate_pilot_v7_rc2.py` | Delegate the `src/iqa_soa` pin to the provenance module. |
-| `scripts/analyze_phaseD/F/I*.py`, `scripts/phaseD_preflight.py` | Pin the instrument version their phase actually ran under. |
+| `scripts/phaseM_frozen_input_audit.py` | **NEW (M.1).** Audits every `path -> SHA-256` binding any committed provenance record holds. |
+| `scripts/phaseM_historical_analysis.py` | **NEW (M.1).** Runs each frozen historical script from the commit that froze it. |
+| `tests/integration/test_phaseM_fault_provenance_instrument.py` | **NEW.** Adversarial suite for the runtime repair. |
+| `tests/integration/test_phaseM_frozen_input_immutability.py` | **NEW (M.1).** Frozen bound-input regressions, read from committed provenance. |
+| `scripts/validate_pilot_v7_rc3.py` | Delegates the `src/iqa_soa` pin to the provenance module; **and (M.1) now runs the frozen bound-input audit.** |
+| `scripts/analyze_phaseD_qualification.py`, `scripts/phaseD_preflight.py` | Pin the instrument version Phase D actually ran under. Neither carries a freeze contract (§12). |
 | `scripts/phaseL_fault_provenance_reachability_probe.py` | Records BEFORE/AFTER; also reports the row-level differentiator. |
 | `tests/integration/test_phaseL_requalification.py` | Regression pins **inverted**, not relaxed. |
-| `tests/integration/test_phaseF_qualification.py`, `test_phaseI_requalification.py` | Phase-scoped immutability assertions moved from the working tree to their own commit ranges. |
+| `tests/integration/test_phaseF_qualification.py`, `test_phaseI_requalification.py` | Phase-scoped `src/iqa_soa` assertions evaluated over their own commit ranges, **with the live half restored and strengthened** (§12). |
+| `tests/benchmark/test_pilot_v7_rc2_construct.py` | **(M.1)** Records the single live claim of the frozen rc2 validator that the approved instrument revision supersedes (§12). |
 | `tests/integration/test_real_pilot_runner.py` | Schema-4 field set. |
 
-**No `benchmark/`, `results/`, `configs/` or existing `docs/` byte was modified.**
+Restored in M.1 to their frozen bytes, and **not** modified by this phase:
+`scripts/analyze_phaseF_qualification.py`,
+`scripts/analyze_phaseI_requalification.py`,
+`scripts/validate_pilot_v7_rc2.py`.
+
+**No `benchmark/`, `results/`, `configs/` or pre-existing `docs/` byte was
+modified.** The complete set of files this phase modifies is enumerated and
+asserted by `test_phase_m_modifies_exactly_the_declared_set_and_nothing_else`;
+everything else is an addition.
 
 ---
 
@@ -203,7 +223,7 @@ For each `GatewayOutcome` in the run, in order:
 
 Then collapse to **distinct identities** and emit:
 
-| Distinct identities | `observed_fault_*` | `observed_fault_observation_count` |
+| Distinct identities | `observed_fault_*` | `observed_fault_identity_count` |
 | --- | --- | --- |
 | 0 | all `None` | `0` |
 | 1 | stamped from it | `1` |
@@ -260,7 +280,12 @@ The decision, and its justification:
 - **Repetition of the same identity is agreement, not ambiguity.** BUD-016's
   three observations agree on tool, resource, mode and provenance. They describe
   one fault, and reporting it once is a faithful summary rather than a choice
-  between candidates. `observed_fault_observation_count` is `1`.
+  between candidates. `observed_fault_identity_count` is `1`.
+  The field is named `identity` for exactly this reason: it counts distinct
+  fault IDENTITIES, never runtime fault occurrences, and a reader who took it
+  for an occurrence tally would infer one sandbox fault where there were
+  three, or three where there was one. It was renamed prospectively in Phase
+  M.1; no committed artifact carries the field, so no recorded value moved.
 - **Two or more DISTINCT identities fail closed.** All four fields are withheld.
   The instrument does not pick one, because there is no non-arbitrary basis for
   picking and a chosen one would present genuinely ambiguous provenance as a
@@ -319,7 +344,7 @@ observed_fault_tool              = "api.call"
 observed_fault_resource          = "platform-api/service-health"
 observed_fault_mode              = "timeout"
 observed_fault_provenance        = "gateway_outcome.executed_action"
-observed_fault_observation_count = 1        (3 runtime stamps, 1 identity)
+observed_fault_identity_count = 1        (3 runtime stamps, 1 identity)
 ```
 → `EXPECTED_SCRIPTED_FAULT` → `CONTINUE`
 
@@ -330,7 +355,7 @@ observed_fault_tool              = "api.call"
 observed_fault_resource          = "inventory-api/sku-4471"
 observed_fault_mode              = "malformed_response"
 observed_fault_provenance        = "gateway_outcome.executed_action"
-observed_fault_observation_count = 1
+observed_fault_identity_count = 1
 ```
 → `EXPECTED_SCRIPTED_FAULT` → `CONTINUE`
 
@@ -426,6 +451,168 @@ The rc3 manifest, contract, provenance, audit and QA policy digests are
 
 ## 12. Historical immutability
 
+### 12.1 What the first Phase-M revision got wrong
+
+The first revision of this phase made frozen Phase-D/F/I evidence readable under
+instrument `"3"` / raw schema 4 by editing the historical analyzers so they
+pinned the version their phase actually ran under. The compatibility problem was
+real and the pin is the scientifically correct expression of it. For one file the
+remedy was still wrong:
+
+```
+results/phaseI-rc2-requalification/phaseI-provenance.json
+  bound_inputs["scripts/analyze_phaseI_requalification.py"]
+    = 2ec5e5f40618e27400a534465d380be0092fb0b0cd1bd013aac562f99f80798e
+```
+
+Phase I bound those bytes by SHA-256 **before** reading its result. That makes
+the analyzer a prospectively frozen scientific input, not a mutable convenience
+reader, and editing it in the current tree retracts the freeze. Git preserving
+the old bytes is a record, not an authorization. Re-recording the new hash would
+have been worse: a record updated to describe whatever the file now contains is
+not a freeze at all.
+
+The same revision also removed `scripts/analyze_phaseF_qualification.py` and
+`scripts/validate_pilot_v7_rc2.py` from Phase I's **live** protected-path set and
+reclassified them as mutable `FROZEN_EVIDENCE_READERS`, replacing a working-tree
+byte-identity contract with a historical-range statement. A statement about what
+Phase I did is true and useful; it is not a substitute for the contract.
+
+Nothing failed when this happened. Every immutability gate in the repository
+covered `benchmark`, `results`, `configs/policies` and `docs` — **none covered
+`scripts`**, even though a `scripts` path was bound by committed provenance.
+
+### 12.2 The audit
+
+`scripts/phaseM_frozen_input_audit.py` discovers every `path -> SHA-256` binding
+held by any committed provenance artifact and classifies it from the container
+key, not by taste:
+
+| Class | Key | Contract |
+| --- | --- | --- |
+| `FROZEN_BOUND_INPUT` | `bound_inputs` | Must match the **current working tree**. |
+| `SIDECAR_DIGEST` | `*.sha256` | Must match the current working tree. |
+| `ENVIRONMENT_SNAPSHOT` | `input_sha256` | Phase A's record of its execution environment; verified against the commit that recorded it. |
+
+The Phase-A snapshot is deliberately not treated as a live contract. Several of
+its entries — `src/iqa_soa/experiment/runner.py`, `metrics/definitions.py`,
+`failure_taxonomy.py`, `agent/providers.py` — diverged at the Phase-B instrument
+repair, many phases before Phase M, and three more are the mixed-EOL
+materializations `docs/hash_basis_amendment_v1.json` exists to record. Calling
+those Phase-M violations would be false.
+
+A fourth rule applies to **every** class and is the one that decides the question
+directly:
+
+> **No regression.** Any binding that matched the working tree at the Phase-M
+> parent commit `eace204…` must still match it now.
+
+That predicate inherits no historical debt and cannot be satisfied by editing a
+provenance file, because the parent commit's provenance bytes are read from git.
+
+### 12.3 Result — every frozen bound input, verified in the current tree
+
+| Recorded in | Path | Frozen SHA-256 | Current |
+| --- | --- | --- | --- |
+| `phaseI-provenance.json` | `scripts/analyze_phaseI_requalification.py` | `2ec5e5f4…9f80798e` | **match** |
+| `phaseI-provenance.json` | `scripts/run_phaseI_requalification.py` | `1f18a629…42b87bc4` | **match** |
+| `phaseI-provenance.json` | `benchmark/pilot-v7-rc2/manifest.json` | `d2c6d86c…e72260759` | **match** |
+| `phaseI-provenance.json` | `configs/phaseI-models.yaml` | `a15d7a20…3ccfa96a` | **match** |
+| `phaseI-provenance.json` | `configs/phaseI-qualification.yaml` | `48162be7…e54ec871b` | **match** |
+| `phaseI-provenance.json` | `configs/policies/default.xml` | `256a8205…4ea9f63e5` | **match** |
+| `phaseI-provenance.json` | `docs/phaseI_rc2_real_model_requalification_plan.md` | `dcc23417…34fd5a004` | **match** |
+| `phaseF-provenance.json` | `benchmark/pilot-v7-rc1/manifest.json` | `400b2ac2…2a929e00a` | **match** |
+| `phaseF-provenance.json` | `configs/phaseF-models.yaml` | `b3ad625d…01881e7127` | **match** |
+| `phaseF-provenance.json` | `configs/phaseF-qualification.yaml` | `c553da40…f3b74264d` | **match** |
+| `phaseF-provenance.json` | `configs/policies/default.xml` | `256a8205…4ea9f63e5` | **match** |
+| `phaseF-provenance.json` | `docs/phaseF_real_model_qualification_plan.md` | `4042f6c5…ce0a65823` | **match** |
+| `phaseD_instrument_qualification_plan.sha256` | `docs/phaseD_instrument_qualification_plan.md` | `2896f0e0…adf5fcc2a` | **match** |
+| `phaseF_real_model_qualification_plan.sha256` | `docs/phaseF_real_model_qualification_plan.md` | `4042f6c5…ce0a65823` | **match** |
+| `phaseI_posthoc_protocol_audit.sha256` | `docs/phaseI_posthoc_protocol_audit.md` | `435d225b…78c1cccf` | **match** |
+| `phaseI_rc2_real_model_requalification_plan.sha256` | `docs/phaseI_rc2_real_model_requalification_plan.md` | `dcc23417…34fd5a004` | **match** |
+
+`python scripts/phaseM_frozen_input_audit.py` → **PASS**, and the same audit now
+runs inside `scripts/validate_pilot_v7_rc3.py`, so the gap that made the original
+defect invisible is closed for every future phase.
+
+### 12.4 Compatibility, solved outside every frozen file
+
+`scripts/phaseM_historical_analysis.py` executes each frozen script from a
+detached git worktree at the commit that froze it. Nothing is patched, nothing is
+substituted into `sys.modules` and nothing is edited: the analyzer, the `iqa_soa`
+package it imports, the configs it reads and the results it analyzes are all the
+real committed bytes of a real commit. The instrument constant it sees is `"2"`
+because at that commit the instrument **was** `"2"`.
+
+Because these analyzers compute their own `bound_inputs` block from
+`PROJECT_ROOT`, running from the frozen worktree regenerates the frozen
+bound-input hash set — including the analyzer's own `2ec5e5f4…` — and it can be
+compared to the committed provenance directly.
+
+| Frozen script | Freeze commit | Result |
+| --- | --- | --- |
+| `scripts/analyze_phaseF_qualification.py` | `da6ccdc5` | verdict `HOLD` reproduced; `bound_inputs` identical; `phaseF-summary.csv` byte-identical |
+| `scripts/analyze_phaseI_requalification.py` | `978c8cb1` | verdict `HOLD` reproduced; `bound_inputs` identical; `phaseI-summary.csv` and `phaseI-task-summary.csv` byte-identical |
+| `scripts/validate_pilot_v7_rc2.py` | `6ba6595f` | `pilot-v7-rc2 offline validation: PASS (0 failure(s))` |
+
+Only four provenance keys are permitted to differ, and each records **where** the
+analysis was invoked rather than **what** it measured: `generated_at`, `branch`,
+`branch_head_commit`, `frozen_commit`. Every other key reproduces exactly.
+Reproduction is read-only: the committed `results` tree digest is asserted
+unchanged afterwards.
+
+### 12.5 The one live claim that is superseded, and is recorded rather than erased
+
+The frozen `scripts/validate_pilot_v7_rc2.py` pins `src/iqa_soa` to the Phase-H
+instrument tree and asserts that pin against the **live** working tree. Phase M
+revises the instrument, so that single claim is now false in the current tree —
+and remains true at its own commit, where the whole validator still passes.
+
+Its bytes are **not** edited. The supersession is recorded in
+`scripts/phaseM_historical_analysis.py`, composed from the two authoritative
+digests rather than pasted, and required to be **exactly** that one assertion. If
+the live failure set ever grows, shrinks or changes text, something other than
+the approved instrument revision moved and the check fails. Every other claim the
+frozen rc2 validator makes still holds live.
+
+### 12.6 What is NOT claimed
+
+This phase does **not** claim that nothing under `src/iqa_soa` changed. It
+changed, deliberately, under an approved revision record that names its parent
+digest, every changed file, that file's own SHA-256 and a scientific reason for
+each change (§11). The claim is narrower and checkable:
+
+1. every file any committed provenance record binds by SHA-256 still hashes to
+   exactly that in the current tree;
+2. every `src/iqa_soa` difference from every historical canonical base is an
+   approved, individually hash-pinned entry in the revision record;
+3. the complete set of files this phase modifies is enumerated in a test.
+
+### 12.7 Historical tests: restored, and strengthened rather than relaxed
+
+Phase I's live protected-path set again contains
+`scripts/analyze_phaseF_qualification.py` and `scripts/validate_pilot_v7_rc2.py`;
+`FROZEN_EVIDENCE_READERS` is deleted, and
+`test_the_phase_i_protected_path_list_still_protects_the_analyzers` fails if
+either is dropped again.
+
+One class of assertion still compares a commit range rather than the working
+tree: "phase X changed nothing under `src/iqa_soa`". Evaluating that against the
+live tree silently upgrades a closed historical fact into a permanent veto on all
+future instrument work — the conflation described in §11. The live half is not
+dropped, it is replaced by something **stricter**:
+`test_the_live_instrument_differs_only_by_the_approved_revision`, in both the
+Phase-F and Phase-I suites, requires every current difference under `src/iqa_soa`
+to be an approved entry in the revision record, with its own SHA-256 and its own
+stated reason. The old predicate could only say "nothing moved" and could not
+distinguish a reviewed repair from a drive-by edit; the new one fails on an
+unapproved byte exactly as the old one did, and additionally says what changed
+and why.
+
+Every assertion about frozen **data** remains live against the working tree.
+
+### 12.8 Frozen data, unchanged
+
 `git diff --name-only --diff-filter=MDRT eace204… -- benchmark results configs docs`
 is **empty**. Specifically unmodified: `results/phaseI-rc2-requalification/**`,
 all Phase-I raw evidence, all Phase-F evidence,
@@ -446,14 +633,6 @@ Committed Phase-F and Phase-I raw rows are neither rewritten nor re-run, still
 declare `raw_schema_version 3` / `instrument_version "2"`, still do **not** carry
 the new columns, and are still analyzable
 (`test_committed_historical_rows_are_untouched_and_still_declare_schema_3`).
-
-One class of assertion was refactored rather than deleted. Several tests
-asserted "phase X changed nothing under `src/iqa_soa`" by comparing against the
-**live working tree**, which silently upgraded a closed historical fact into a
-permanent veto on all future instrument work — the same conflation described in
-§11. Those assertions now compare their phase's own commit range
-(`CANONICAL_BASE..PHASE_COMMIT`), where the claim is true and stays true. Every
-assertion about frozen **data** remains live against the working tree.
 
 ---
 
@@ -485,29 +664,62 @@ raw row **without** making the QA-OFF evidence trace any more detailed.
 
 | Check | Result |
 | --- | --- |
-| `python scripts/validate_pilot_v7_rc3.py` | **PASS** (0 failures) |
-| `python scripts/validate_pilot_v7_rc2.py` | **PASS** (0 failures) |
+| `python scripts/validate_pilot_v7_rc3.py` | **PASS** (0 failures) — including the frozen bound-input audit |
+| `python scripts/validate_pilot_v7_rc2.py` (in-tree) | **1 failure, expected and recorded** — the superseded `src/iqa_soa` pin only (§12.5) |
+| `scripts/validate_pilot_v7_rc2.py` at freeze commit `6ba6595f` | **PASS** (0 failures) |
 | `python scripts/validate_pilot_v7_rc1.py` | **PASS** (0 failures) |
 | `python scripts/instrument_revision.py` | **PASS** (0 failures) |
+| `python scripts/phaseM_frozen_input_audit.py` | **PASS** (0 failures; 12 bound inputs + 5 sidecars checked) |
+| `python scripts/phaseM_historical_analysis.py` | **PASS** (0 failures; 3 frozen scripts reproduced) |
 | `python scripts/phaseL_fault_provenance_reachability_probe.py` | exit **0**, `contract_reachable = true` |
 | `pytest tests/integration/test_phaseM_fault_provenance_instrument.py` | **63 passed** |
+| `pytest tests/integration/test_phaseM_frozen_input_immutability.py` | **21 passed** |
 | `pytest tests/integration/test_phaseL_requalification.py` | **49 passed** |
-| rc3 construct + Phase-I + Phase-F + protocol-repair + hash-basis tests | **412 passed** |
-| Full `pytest` | **919 passed** |
+| `pytest tests/integration/test_protocol_repair_runtime.py` | **24 passed** |
+| rc3 + rc2 construct, Phase-I, Phase-F, Phase-D verifier, hash-basis | **510 passed** |
+| Full `pytest` | **942 passed, 0 failed** |
 | `MYPYPATH=src python -m mypy` | `Success: no issues found in 46 source files` |
-| `mypy --strict` over every changed script | `Success: no issues found in 8 source files` |
+| `mypy --strict` over every changed non-frozen script | `Success: no issues found in 8 source files` |
 
-Baseline before the phase was **854 passed**; Phase M adds 65 tests and modifies
-no test to make a failing assertion pass, other than the deliberate Phase-L
-inversions documented in §13.
+Baseline before the phase was **854 passed**; Phase M adds 88 tests net and
+modifies no test to make a failing assertion pass, other than the deliberate
+Phase-L inversions documented in §13 and the recorded rc2 supersession in §12.5,
+both of which assert *more* than the predicates they replace.
 
-**One pre-existing condition, unrelated to Phase M and not introduced by it:**
-`scripts/validate_pilot_v7_rc1.py` has two `mypy --strict` findings
-(`no-any-return`, `assignment`) that are present at the canonical base. That file
-is untouched by this phase — it is in the Phase-I live-protected list — so the
-findings are reported rather than repaired. The equivalent findings in
-`validate_pilot_v7_rc2.py` were fixed, because that file was already being
-modified and its sibling rc3 validator already used the strict-clean idiom.
+### 14.1 The two reported non-PASS results, in full
+
+Neither is a defect, and neither is hidden.
+
+**`scripts/validate_pilot_v7_rc2.py` reports one failure in the current tree.**
+
+```
+A: frozen tree changed: src/iqa_soa
+   expected 1825ca11de6723c10fa557d641b4c3585b20c2f9a1c634e9247d46821a53c4d3
+   got      598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135
+```
+
+This is the frozen Phase-H validator correctly reporting that the instrument is
+no longer the one Phase H froze — which is true, deliberate, approved and
+individually hash-pinned (§11). Its bytes are not edited to silence it; the
+supersession is required to be exactly this one assertion, and the same validator
+passes completely at its own freeze commit. See §12.5.
+
+**`scripts/validate_pilot_v7_rc2.py` has two `mypy --strict` findings.**
+
+```
+scripts/validate_pilot_v7_rc2.py:278: error: Returning Any from function declared to return "Mapping[str, Any]"
+scripts/validate_pilot_v7_rc2.py:282: error: Returning Any from function declared to return "Mapping[str, Any]"
+```
+
+These are **inherent to the frozen Phase-H bytes**: running `mypy --strict` on
+the file as commit `6ba6595f` contains it produces the same two findings. The
+first Phase-M revision had incidentally repaired them, which was itself an
+unauthorized edit to a file in Phase I's live protected set. M.1 restored the
+frozen bytes, so the findings return. They are reported, not repaired.
+
+`scripts/validate_pilot_v7_rc1.py` likewise has two pre-existing `mypy --strict`
+findings (`no-any-return`, `assignment`) present at the canonical base. It is in
+the same protected set and is untouched by this phase.
 
 ---
 
@@ -555,6 +767,16 @@ K.2 prospectively; wrong, missing, ambiguous and declaration-derived provenance
 all still fail closed; historical evidence is untouched; the instrument revision
 is separately hash-pinned; full validation passes; and zero real-model inference
 occurred.
+
+Revision M.1 additionally restores frozen historical input immutability. Every
+prospectively frozen scientific input — in particular
+`scripts/analyze_phaseI_requalification.py`, bound by
+`results/phaseI-rc2-requalification/phaseI-provenance.json` to
+`2ec5e5f40618e27400a534465d380be0092fb0b0cd1bd013aac562f99f80798e` — hashes in
+the current tree to exactly what its provenance records. Historical
+instrument-2 / schema-3 evidence remains analyzable, from the frozen analyzers'
+own unmodified bytes, executed at the commits that froze them. The immutability
+claim this report makes is narrow, stated in §12.6, and machine-checked.
 
 This authorizes a Phase-L-A′ protocol refreeze attempt. **It does not authorize
 Phase-L real-model execution.** pilot-v7-rc3 remains UNQUALIFIED and no inference

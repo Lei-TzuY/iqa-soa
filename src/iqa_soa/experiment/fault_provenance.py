@@ -63,16 +63,25 @@ OBSERVED_FAULT_FIELDS: tuple[str, ...] = (
     "observed_fault_provenance",
 )
 
-#: The complete set of columns this module contributes to the raw row.  The
-#: count is a single non-sensitive integer that makes the collapse in
-#: :func:`observed_fault_telemetry` legible: ``0`` means no runtime fault was
-#: stamped anywhere in the run, ``1`` means exactly one distinct fault identity
-#: was observed and is stamped, and any value ``>= 2`` means the run observed
-#: DISAGREEING fault identities and the four fields are deliberately withheld.
-#: Without it, a fail-closed ambiguity would be indistinguishable from a clean
-#: no-fault run in the persisted record.
+#: The complete set of columns this module contributes to the raw row.
+#:
+#: ``observed_fault_identity_count`` is the number of DISTINCT fault IDENTITIES
+#: -- distinct ``(tool, resource, mode, provenance)`` 4-tuples -- observed in the
+#: run.  It is NOT the number of runtime fault occurrences.  Three identical
+#: timeout stamps on three attempted actions are three occurrences of ONE
+#: identity and this field is ``1``; the name says ``identity`` for exactly that
+#: reason, because a reader who took it for an occurrence tally would infer a
+#: single sandbox fault where there had been several, or vice versa.
+#:
+#: The three cases the value distinguishes: ``0`` means no runtime fault was
+#: stamped anywhere in the run; ``1`` means exactly one distinct identity was
+#: observed and is stamped into the four contract fields; any value ``>= 2``
+#: means the run observed DISAGREEING identities and the four fields are
+#: deliberately withheld so the cell fails closed.  Without the count, that
+#: fail-closed ambiguity would be indistinguishable in the persisted record from
+#: a clean no-fault run.
 OBSERVED_FAULT_TELEMETRY_FIELDS: tuple[str, ...] = OBSERVED_FAULT_FIELDS + (
-    "observed_fault_observation_count",
+    "observed_fault_identity_count",
 )
 
 
@@ -216,7 +225,7 @@ def observed_fault_telemetry(
         "observed_fault_resource": None,
         "observed_fault_mode": None,
         "observed_fault_provenance": None,
-        "observed_fault_observation_count": len(identities),
+        "observed_fault_identity_count": len(identities),
     }
     if len(identities) == 1:
         only = identities[0]

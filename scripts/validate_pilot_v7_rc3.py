@@ -43,6 +43,7 @@ if str(REPO_ROOT / "scripts") not in sys.path:  # pragma: no cover - import shim
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import instrument_revision  # noqa: E402
+import phaseM_frozen_input_audit  # noqa: E402
 
 BENCHMARK_VERSION = "pilot-v7-rc3"
 RC3_ROOT = REPO_ROOT / "benchmark" / BENCHMARK_VERSION
@@ -213,6 +214,19 @@ def check_historical_immutability() -> list[str]:
         actual = sha256_of(REPO_ROOT / relative)
         if actual != pinned[key]:
             failures.append(f"A: {relative} moved (pinned {pinned[key]}, actual {actual})")
+
+    # Every file any committed provenance record binds by SHA-256 must still
+    # hash to exactly that.  This is checked from the provenance itself, so it
+    # covers phases that did not exist when this validator was written.
+    #
+    # PHASE M.1. This check is here because its absence was exploitable, and was
+    # exploited. The blanket no-mutation diff below covers `benchmark`, `results`,
+    # `configs/policies` and `docs` -- it has never covered `scripts`. Phase I
+    # nevertheless bound `scripts/analyze_phaseI_requalification.py` by SHA-256
+    # inside its own provenance, making those bytes a prospectively frozen
+    # scientific input, and the first Phase-M revision edited them with nothing
+    # failing. A freeze that only one reviewer's memory enforces is not a freeze.
+    failures += [f"A: {failure}" for failure in phaseM_frozen_input_audit.audit()]
 
     # No mutation of anything at the canonical base; additions only.
     # src/iqa_soa is deliberately NOT in this list: instrument changes are

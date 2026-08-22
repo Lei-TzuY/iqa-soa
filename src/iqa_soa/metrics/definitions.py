@@ -169,12 +169,16 @@ PILOT_RAW_FIELDS_V3: tuple[str, ...] = PILOT_RAW_FIELDS + PROTOCOL_TELEMETRY_FIE
 # were of PILOT_RAW_FIELDS: frozen schema-3 artifacts do not contain them, must
 # never be required to, and are never rewritten.  Demanded only of
 # raw_schema_version 4 rows.
+#
+# ``observed_fault_identity_count`` counts DISTINCT fault identities, not
+# runtime fault occurrences; see
+# ``iqa_soa.experiment.fault_provenance.OBSERVED_FAULT_TELEMETRY_FIELDS``.
 FAULT_PROVENANCE_TELEMETRY_FIELDS: tuple[str, ...] = (
     "observed_fault_tool",
     "observed_fault_resource",
     "observed_fault_mode",
     "observed_fault_provenance",
-    "observed_fault_observation_count",
+    "observed_fault_identity_count",
 )
 
 PILOT_RAW_FIELDS_V4: tuple[str, ...] = (
