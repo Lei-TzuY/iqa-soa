@@ -72,7 +72,7 @@ Verified at the canonical start:
 | Approved `src/iqa_soa` tree | `598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135` |
 | Phase-K historical pin | `1825ca11de6723c10fa557d641b4c3585b20c2f9a1c634e9247d46821a53c4d3`, **preserved, not overwritten** |
 | `scripts/instrument_revision.py` | **PASS** (0 failures) |
-| `scripts/phaseM_frozen_input_audit.py` | **PASS** (0 failures; 12 bound inputs + 5 sidecars) |
+| `scripts/phaseM_frozen_input_audit.py` | **PASS** (0 failures; 12 bound inputs + 6 sidecars) |
 | `scripts/phaseM_historical_analysis.py` | **PASS** (0 failures; 3 frozen scripts reproduced) |
 | `scripts/phaseL_fault_provenance_reachability_probe.py` | exit **0**, `contract_reachable = true`, `fields unreachable: []`, `tasks held/stopped: []` |
 
@@ -543,9 +543,13 @@ The Phase-L-A HOLD report, `docs/phaseL_rc3_prospective_seed_derivation.json` an
 `scripts/phaseL_seed_derivation.py` are asserted byte-identical, live, against
 the working tree.
 
-`python scripts/phaseM_frozen_input_audit.py` → **PASS**, 12 bound inputs and 5
+`python scripts/phaseM_frozen_input_audit.py` → **PASS**, 12 bound inputs and 6
 sidecars, including `scripts/analyze_phaseI_requalification.py` at
-`2ec5e5f40618e27400a534465d380be0092fb0b0cd1bd013aac562f99f80798e`.
+`2ec5e5f40618e27400a534465d380be0092fb0b0cd1bd013aac562f99f80798e`. The sidecar
+count rises from 5 to 6 because the audit now discovers
+`docs/phaseL_rc3_real_model_requalification_plan_v2.sha256` as well, so the
+Phase-M standing audit covers the new Phase-L plan without any change to the
+audit's own bytes.
 
 No unresolved scientific or instrument defect was discovered in this phase.
 
@@ -562,7 +566,7 @@ All offline. No model was run at any point.
 | `scripts/validate_pilot_v7_rc2.py` at freeze commit `6ba6595f` | **PASS** (0 failures), via `phaseM_historical_analysis.py` |
 | `python scripts/validate_pilot_v7_rc2.py` in-tree | **1 failure — the exact recorded Phase-M supersession**, the superseded `src/iqa_soa` pin and nothing else. Its frozen bytes are NOT edited. |
 | `python scripts/instrument_revision.py` | **PASS** (0 failures) |
-| `python scripts/phaseM_frozen_input_audit.py` | **PASS** (0 failures) |
+| `python scripts/phaseM_frozen_input_audit.py` | **PASS** (0 failures; 12 bound inputs + 6 sidecars) |
 | `python scripts/phaseM_historical_analysis.py` | **PASS** (0 failures; 3 frozen scripts reproduced) |
 | `python scripts/phaseL_fault_provenance_reachability_probe.py` | exit **0**, `contract_reachable = true` |
 | `python scripts/phaseL_protocol.py` | **PASS** (0 failures) |
