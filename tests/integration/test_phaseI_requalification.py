@@ -1667,9 +1667,41 @@ def test_no_historical_result_or_frozen_artifact_differs_from_canonical_main() -
     assert diff.decode().strip() == "", diff.decode()
 
 
-def test_phase_i_adds_no_file_to_a_frozen_benchmark_namespace() -> None:
-    diff = _git("diff", "--name-only", CANONICAL_BASE, "--", "benchmark")
+def test_no_benchmark_file_is_ever_mutated(  # noqa: D401 - see Phase-K note
+) -> None:
+    """No committed benchmark byte may be edited, deleted, renamed or retyped.
+
+    PHASE-K AMENDMENT. This assertion previously required the whole ``benchmark``
+    diff to be empty, which conflates two invariants: the one it exists to
+    protect (immutability) and one it enforced by accident (that ``benchmark/``
+    may never grow). The second forbids exactly the additive successor work a
+    new release candidate consists of, while protecting nothing extra. The diff
+    is now filtered to ``MDRT``, so every mutation it previously caught still
+    fails it and only pure additions pass. The weaker case that would otherwise
+    be admitted -- a file ADDED inside an already-frozen version namespace -- is
+    closed by the companion test below, which uses no filter at all.
+
+    This is the same amendment, for the same reason, that Phase H had to make to
+    the equivalent Phase-F assertion; see benchmark/pilot-v7-rc2/AUDIT.md.
+    """
+
+    diff = _git("diff", "--name-only", "--diff-filter=MDRT", CANONICAL_BASE, "--", "benchmark")
     assert diff.decode().strip() == ""
+
+
+def test_no_frozen_benchmark_version_namespace_gains_or_loses_a_file() -> None:
+    """A frozen version namespace may not even gain a file.
+
+    Deliberately unfiltered: adding a file inside an already-published version
+    changes what that version denotes without changing any pinned byte.
+    """
+
+    for namespace in ("pilot-v7-rc1", "pilot-v7-rc2", "pilot-v6.1"):
+        path = f"benchmark/{namespace}"
+        if not (PROJECT_ROOT / path).is_dir():
+            continue
+        diff = _git("diff", "--name-only", CANONICAL_BASE, "--", path)
+        assert diff.decode().strip() == "", f"{namespace} changed: {diff.decode()}"
 
 
 def test_no_preregistration_v4_is_created() -> None:
