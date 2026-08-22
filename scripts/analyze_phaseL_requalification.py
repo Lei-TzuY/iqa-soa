@@ -1400,52 +1400,89 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def _trace_events(
-    root: Path, row: Mapping[str, Any]
+    root: Path, row: Mapping[str, Any], cell: harness.Cell
 ) -> tuple[list[dict[str, Any]], list[str]]:
-    """Resolve one cell's evidence trace, or report why it is LOST.
+    """Resolve ONE FROZEN CELL's evidence trace, or report why it is refused.
 
     (L-A'.1) This used to return a bare ``[]`` whenever the experiment directory
     was absent, the trace path was absent, or the resolved file did not exist.
     That silently turned lost evidence into "no proposals, no prerequisites, no
     exposure" -- a scoring outcome indistinguishable from a model that simply
-    did nothing, and one that can change the qualification verdict. Combined
-    with the Phase-L-A' path defect (the driver serialized
-    ``cell_experiment_dir`` relative to ``<output_root>/raw`` while this
-    function resolved from ``<output_root>``), EVERY real trace lookup would
-    have missed and every cell would have scored zero exposure.
+    did nothing, and one that can change the qualification verdict.
 
-    It now fails closed: the second element is a non-empty defect list whenever
-    the trace is declared-but-unavailable, and the caller must treat that as a
-    blocking ``INSTRUMENT_DEFECT``.  Nothing here synthesizes an empty trace and
-    nothing infers proposals from benchmark ground truth.
+    (L-A'.2) Two further gaps are closed here.
+
+    **An empty trace is lost evidence, not a zero-action observation.**
+    ``ExperimentRunner`` writes a structured ``run_terminal`` fragment whenever
+    ``agent_run.outcomes`` is empty -- including the zero-action and
+    provider-failure paths -- so a healthy persisted QA-OFF cell CANNOT
+    legitimately have a zero-byte or whitespace-only trace. A trace that parses
+    to no events at all is therefore corrupted or truncated, and is refused.
+
+    **The pointer is bound to the frozen cell.** The row is untrusted input.
+    Resolution no longer trusts it: ``cell_experiment_dir`` must be relative,
+    non-traversing and canonically beneath ``<output_root>/raw/cells/<slug>``
+    for THIS cell, and ``trace_path`` must be relative, non-traversing and
+    canonically beneath that validated experiment directory. Containment is
+    checked on resolved paths, before anything is read -- never by joining and
+    then testing ``is_file()``, which would happily accept another cell's real,
+    parseable, wrong evidence. Every event that carries an identity field must
+    also agree with the row it is filed under.
 
     Resolution follows ``protocol.CELL_EXPERIMENT_DIR_CONTRACT`` exactly:
     ``<output_root>/<cell_experiment_dir>/<trace_path>``.
     """
 
-    cell_key = str(row.get("cell_key") or row.get("run_key") or "?")
-    directory = str(row.get("cell_experiment_dir") or "").strip()
-    trace = str(row.get("trace_path") or "").strip()
-    if not directory:
+    cell_key = cell.key
+    directory = str(row.get("cell_experiment_dir") or "")
+    trace = str(row.get("trace_path") or "")
+    if not directory.strip():
         return [], [
             f"{cell_key}: the row declares no cell_experiment_dir, so its evidence "
             "trace cannot be located; lost evidence is never scored as zero exposure"
         ]
-    if not trace:
+    if not trace.strip():
         return [], [
             f"{cell_key}: the row declares no trace_path, so its evidence trace "
             "cannot be located; lost evidence is never scored as zero exposure"
         ]
-    path = protocol.resolve_cell_experiment_dir(root, directory) / trace
+
+    # (L-A'.2) The experiment directory must belong to THIS frozen cell.
+    experiment_dir, reason = protocol.contained_child(
+        root,
+        directory,
+        label=f"{cell_key}: cell_experiment_dir",
+        must_be_dir=True,
+    )
+    if experiment_dir is None:
+        return [], [f"{reason}; evidence is bound to its frozen cell"]
+    cell_root = protocol.cell_evidence_root(root, cell).resolve()
+    if cell_root not in experiment_dir.parents:
+        return [], [
+            f"{cell_key}: cell_experiment_dir {directory!r} resolves to "
+            f"{experiment_dir}, which is not beneath this cell's own evidence root "
+            f"{cell_root}; another cell's evidence is never this cell's evidence"
+        ]
+
+    # (L-A'.2) The trace must stay inside that validated directory.
+    path, reason = protocol.contained_child(
+        experiment_dir, trace, label=f"{cell_key}: trace_path"
+    )
+    if path is None:
+        return [], [f"{reason}; evidence is bound to its frozen cell"]
     if not path.is_file():
         return [], [
             f"{cell_key}: the declared evidence trace {directory}/{trace} does not "
             f"exist under {root}; lost evidence is never scored as zero exposure"
         ]
+
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
-        return [], [f"{cell_key}: the evidence trace {directory}/{trace} is unreadable: {exc}"]
+        return [], [
+            f"{cell_key}: the evidence trace {directory}/{trace} is unreadable: {exc}"
+        ]
+
     events: list[dict[str, Any]] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if not line.strip():
@@ -1463,7 +1500,69 @@ def _trace_events(
                 f"non-object record at line {number}"
             ]
         events.append(parsed)
+
+    # (L-A'.2) An empty trace is corruption, not a zero-action run.
+    if not events:
+        return [], [
+            f"{cell_key}: the evidence trace {directory}/{trace} parses to zero "
+            "events. ExperimentRunner writes a run_terminal fragment even for a "
+            "zero-action or provider-failure run, so an empty trace is lost or "
+            "corrupted evidence and is never scored as zero exposure"
+        ]
+
+    identity_defects = _trace_identity_defects(events, row, cell, directory, trace)
+    if identity_defects:
+        return [], identity_defects
     return events, []
+
+
+def _trace_identity_defects(
+    events: Sequence[Mapping[str, Any]],
+    row: Mapping[str, Any],
+    cell: harness.Cell,
+    directory: str,
+    trace: str,
+) -> list[str]:
+    """Every identity field an event supplies must match the row it is filed under.
+
+    ``iqa_soa.evidence.logger`` stamps ``task_id``, ``run_id`` and ``qa_mode``
+    onto every gateway record, and ``ExperimentRunner`` stamps them onto the
+    ``run_terminal`` fragment, so this is checkable for every event a real run
+    produces. A field is compared only when the EVENT supplies it -- nothing is
+    required of an event type that legitimately omits one -- but when an event
+    does supply it and the row cannot corroborate it, that fails closed too: an
+    uncorroborated pointer is exactly what this check exists to refuse.
+    """
+
+    defects: list[str] = []
+    for number, event in enumerate(events, start=1):
+        for field_name in protocol.TRACE_IDENTITY_FIELDS:
+            if field_name not in event or event.get(field_name) is None:
+                continue
+            observed = str(event.get(field_name))
+            expected = row.get(field_name)
+            if expected is None or not str(expected).strip():
+                defects.append(
+                    f"{cell.key}: evidence event {number} of {directory}/{trace} "
+                    f"declares {field_name}={observed!r} but the row carries no "
+                    f"{field_name} to corroborate it"
+                )
+                continue
+            if observed != str(expected):
+                defects.append(
+                    f"{cell.key}: evidence event {number} of {directory}/{trace} "
+                    f"declares {field_name}={observed!r}, the row filed under this "
+                    f"cell carries {str(expected)!r}; this is not this cell's evidence"
+                )
+        # task_id is additionally bound to the FROZEN cell, not only to the row.
+        observed_task = event.get("task_id")
+        if observed_task is not None and str(observed_task) != cell.task_id:
+            defects.append(
+                f"{cell.key}: evidence event {number} of {directory}/{trace} "
+                f"declares task_id={str(observed_task)!r}, the frozen cell is "
+                f"{cell.task_id!r}"
+            )
+    return sorted(dict.fromkeys(defects))
 
 
 def analyze(
@@ -1505,7 +1604,7 @@ def analyze(
         )
         independent[cell.key] = (failure_class, disposition)
 
-        events, defects = _trace_events(root, row)
+        events, defects = _trace_events(root, row, cell)
         trace_defects.extend(defects)
         # (L-A'.1) LOST EVIDENCE IS NOT ZERO EXPOSURE.  A cell whose trace could
         # not be resolved is scored as an INSTRUMENT_DEFECT so it can never

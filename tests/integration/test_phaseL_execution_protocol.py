@@ -114,22 +114,40 @@ def write_cell_trace(
     (experiment_dir / "evidence").mkdir(parents=True, exist_ok=True)
     run_id = f"{cell.task_id}-r000-off-{cell.index:012d}"
     trace_relative = f"evidence/{run_id}.jsonl"
-    lines = [
-        json.dumps(
-            {
-                "event_type": "gateway_decision",
-                "action_id": f"a{index}",
-                "tool": tool,
-                "resource": resource,
-                "executed": True,
-                "success": True,
-                "final_decision": "ALLOW",
-                "qa_mode": "off",
-                "task_id": cell.task_id,
-            }
-        )
+    identity = {
+        "task_id": cell.task_id,
+        "run_id": run_id,
+        "qa_mode": cell.qa_mode,
+    }
+    records: list[dict[str, Any]] = [
+        {
+            "event_type": "gateway_decision",
+            "action_id": f"a{index}",
+            "tool": tool,
+            "resource": resource,
+            "executed": True,
+            "success": True,
+            "final_decision": "ALLOW",
+            **identity,
+        }
         for index, (tool, resource) in enumerate(proposals)
     ]
+    if not records:
+        # (L-A'.2) A real zero-action cell is NOT an empty file: ExperimentRunner
+        # writes a run_terminal fragment whenever agent_run.outcomes is empty.
+        # ``proposals_for`` skips run_terminal, so scoring is unchanged -- but the
+        # trace is now the shape a real run actually produces.
+        records = [
+            {
+                "event_type": "run_terminal",
+                "action_id": None,
+                "final_decision": "NO_ACTION",
+                "executed": False,
+                "qa_ium_compatible_fragment": True,
+                **identity,
+            }
+        ]
+    lines = [json.dumps(record) for record in records]
     (experiment_dir / trace_relative).write_text(
         "".join(f"{line}\n" for line in lines), encoding="utf-8", newline="\n"
     )
@@ -2067,7 +2085,7 @@ def test_the_real_runner_layout_resolves_end_to_end(tmp_path: Path) -> None:
     assert trace.is_file(), "the production layout must be resolvable by the analyzer"
 
     # The analyzer resolves that exact file, with no defects.
-    events, defects = analyzer._trace_events(out, row)
+    events, defects = analyzer._trace_events(out, row, cell)
     assert defects == []
     assert events, "a real QA-OFF cell writes evidence events"
 
@@ -2155,7 +2173,7 @@ def test_lost_trace_evidence_fails_closed(
     else:
         trace.write_text('"not an object"\n', encoding="utf-8")
 
-    events, defects = analyzer._trace_events(out, row)
+    events, defects = analyzer._trace_events(out, row, cell)
     assert events == []
     assert defects, f"{corruption} must be reported, not silently scored as zero"
 
@@ -2369,3 +2387,387 @@ def test_the_refreeze_report_records_the_la1_repair_and_authorizes_nothing() -> 
     # Terminal status, and nothing after it.
     assert report.rstrip().endswith("READY_FOR_ADVERSARIAL_REREVIEW")
 
+
+# --------------------------------------------------------------------------
+# 15. (L-A'.2) Evidence trace identity and containment
+#
+# The L-A'.1 rereview confirmed the path contract and the ledger were repaired,
+# and found two remaining evidence-integrity gaps:
+#
+#   1. an EXISTING but empty (zero-byte or whitespace-only) trace still produced
+#      events=[] with no defect, which scores as zero exposure. Canonical
+#      ExperimentRunner writes a run_terminal fragment whenever
+#      agent_run.outcomes is empty -- including the provider-failure and
+#      zero-action paths -- so a healthy persisted cell CANNOT have an empty
+#      trace, and an empty one is corruption.
+#
+#   2. the analyzer trusted the persisted pointer. A corrupted row could name an
+#      absolute path, traverse out with '..', or -- worst, because the target
+#      really exists and really parses -- name ANOTHER CELL's experiment
+#      directory. Valid-but-wrong evidence would then be scored while task_id,
+#      seed, model, run_key and the classification ledger all still looked right.
+#
+# Every test below is deterministic and offline. NO MODEL IS RUN.
+# --------------------------------------------------------------------------
+
+
+def test_contained_child_refuses_absolute_and_traversing_pointers(
+    tmp_path: Path,
+) -> None:
+    """The shared containment helper, exercised directly."""
+
+    base = tmp_path / "base"
+    (base / "child").mkdir(parents=True)
+    (base / "child" / "f.txt").write_text("x", encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "f.txt").write_text("x", encoding="utf-8")
+
+    resolved, reason = protocol.contained_child(base, "child/f.txt", label="p")
+    assert resolved == (base / "child" / "f.txt").resolve()
+    assert reason == ""
+
+    for bad in (
+        "",
+        "   ",
+        "../outside/f.txt",
+        "child/../../outside/f.txt",
+        "/etc/passwd",
+        "C:/Windows/System32/drivers/etc/hosts",
+        "C:\\Windows\\notepad.exe",
+        "\\\\server\\share\\f.txt",
+    ):
+        resolved, reason = protocol.contained_child(base, bad, label="p")
+        assert resolved is None, f"{bad!r} must be refused"
+        assert reason, f"{bad!r} must be refused with a reason"
+
+    # Strictly beneath: the base itself is not a child of itself.
+    resolved, reason = protocol.contained_child(base, ".", label="p")
+    assert resolved is None
+    assert "strictly beneath" in reason
+
+
+def test_contained_child_requires_a_directory_when_asked(tmp_path: Path) -> None:
+    base = tmp_path / "base"
+    (base / "child").mkdir(parents=True)
+    (base / "file.txt").write_text("x", encoding="utf-8")
+    assert protocol.contained_child(base, "child", label="p", must_be_dir=True)[0]
+    assert protocol.contained_child(
+        base, "file.txt", label="p", must_be_dir=True
+    )[0] is None
+    assert protocol.contained_child(
+        base, "missing", label="p", must_be_dir=True
+    )[0] is None
+
+
+def test_the_cell_evidence_root_is_per_cell(
+    schedule: Sequence[harness.Cell], tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    a, b = schedule[3], schedule[4]
+    assert protocol.cell_evidence_root(out, a) != protocol.cell_evidence_root(out, b)
+    assert protocol.cell_evidence_root(out, a) == (
+        protocol.cells_root(out) / protocol.cell_slug(a)
+    )
+
+
+@pytest.mark.parametrize("kind", ["zero_byte", "whitespace_only"])
+def test_an_empty_trace_is_lost_evidence_not_zero_exposure(
+    kind: str, tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """An existing but empty trace fails closed.
+
+    ExperimentRunner writes a run_terminal fragment for a zero-action or
+    provider-failure run, so a healthy persisted QA-OFF cell cannot legitimately
+    have an empty trace. Scoring one as "no proposals" would be scoring
+    corruption as a measurement.
+    """
+
+    out = tmp_path / "out"
+    cell = schedule[6]
+    row = traced_row(out, cell, [("file.read", "inbox/req-2214.txt")])
+    trace = (
+        protocol.resolve_cell_experiment_dir(out, str(row["cell_experiment_dir"]))
+        / str(row["trace_path"])
+    )
+    trace.write_text("" if kind == "zero_byte" else "  \n\n \t \n", encoding="utf-8")
+
+    events, defects = analyzer._trace_events(out, row, cell)
+    assert events == []
+    assert defects, f"{kind} must be refused"
+    assert "zero events" in defects[0]
+    assert "run_terminal" in defects[0]
+
+
+def test_a_real_zero_action_trace_is_still_accepted(
+    tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """The legitimate zero-action shape -- a run_terminal fragment -- is fine.
+
+    This is the counterfactual that makes the previous test a corruption check
+    rather than a blanket refusal of quiet cells.
+    """
+
+    out = tmp_path / "out"
+    cell = schedule[6]
+    row = traced_row(out, cell)  # no proposals -> run_terminal fragment
+    events, defects = analyzer._trace_events(out, row, cell)
+    assert defects == []
+    assert len(events) == 1
+    assert events[0]["event_type"] == "run_terminal"
+    assert analyzer.proposals_for(events, row) == ()
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("cell_experiment_dir", "../elsewhere/exp-000"),
+        ("cell_experiment_dir", "raw/cells/../../escape"),
+        ("cell_experiment_dir", "/etc"),
+        ("cell_experiment_dir", "C:/Windows"),
+        ("trace_path", "../evidence.jsonl"),
+        ("trace_path", "../../../evidence.jsonl"),
+        ("trace_path", "/etc/passwd"),
+        ("trace_path", "C:/Windows/notepad.exe"),
+    ],
+)
+def test_a_traversing_or_absolute_pointer_fails_closed(
+    field_name: str, value: str, tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    out = tmp_path / "out"
+    cell = schedule[8]
+    row = traced_row(out, cell, [("file.read", "inbox/req-2214.txt")])
+    row[field_name] = value
+    events, defects = analyzer._trace_events(out, row, cell)
+    assert events == []
+    assert defects, f"{field_name}={value!r} must be refused"
+    assert field_name in defects[0]
+
+
+def test_a_cross_cell_swap_to_a_REAL_directory_fails_closed(
+    tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """THE ONE THAT MATTERS: the target really exists and really parses.
+
+    Two real cell directories are written. Row A is then repointed at cell B's
+    genuine, existing, well-formed experiment directory. Nothing about the
+    target is missing or malformed -- an ``is_file()`` check after joining would
+    accept it, and the analyzer would score B's proposals as A's. Containment
+    against A's own frozen evidence root is what refuses it.
+    """
+
+    out = tmp_path / "out"
+    cell_a, cell_b = schedule[9], schedule[12]
+    assert cell_a.task_id != cell_b.task_id
+
+    row_a = traced_row(out, cell_a, [("file.read", "handover/release-4-2.txt")])
+    row_b = traced_row(out, cell_b, [("file.read", "kb/incident-4471.txt")])
+
+    # Both targets genuinely exist and genuinely parse.
+    for row, cell in ((row_a, cell_a), (row_b, cell_b)):
+        target = (
+            protocol.resolve_cell_experiment_dir(
+                out, str(row["cell_experiment_dir"])
+            )
+            / str(row["trace_path"])
+        )
+        assert target.is_file()
+        assert json.loads(target.read_text(encoding="utf-8").splitlines()[0])
+        assert analyzer._trace_events(out, row, cell)[1] == []
+
+    # Now point A at B's real directory. The file exists; the join succeeds.
+    swapped = dict(row_a)
+    swapped["cell_experiment_dir"] = row_b["cell_experiment_dir"]
+    swapped["trace_path"] = row_b["trace_path"]
+    naive = (
+        protocol.resolve_cell_experiment_dir(
+            out, str(swapped["cell_experiment_dir"])
+        )
+        / str(swapped["trace_path"])
+    )
+    assert naive.is_file(), "the swap target must really exist for this test to mean anything"
+
+    events, defects = analyzer._trace_events(out, swapped, cell_a)
+    assert events == []
+    assert defects
+    assert any("not beneath this cell's own evidence root" in item for item in defects)
+
+
+def test_a_cross_cell_swap_blocks_qualification_end_to_end(tmp_path: Path) -> None:
+    """The same swap, through the whole analyzer, in a complete 102-cell run."""
+
+    code, out = _run_driver_with_real_traces(
+        tmp_path,
+        lambda cell: (("file.read", "report.txt"),),
+    )
+    assert code == protocol.EXIT_OK
+    assert analyzer.analyze(out, manifest_path=RC3_MANIFEST)["verdict"] in {
+        analyzer.VERDICT_HOLD,
+        analyzer.VERDICT_QUALIFIED,
+    }
+
+    raw = out / "phaseL-runs.jsonl"
+    rows = [
+        json.loads(line)
+        for line in raw.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    # Repoint row 20 at row 21's genuine, existing evidence.
+    rows[20]["cell_experiment_dir"] = rows[21]["cell_experiment_dir"]
+    rows[20]["trace_path"] = rows[21]["trace_path"]
+    raw.write_text(
+        "".join(json.dumps(item, sort_keys=True) + "\n" for item in rows),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    payload = analyzer.analyze(out, manifest_path=RC3_MANIFEST)
+    assert payload["evidence_trace_defects"]
+    assert any(
+        "not beneath this cell's own evidence root" in item
+        for item in payload["evidence_trace_defects"]
+    )
+    assert any(
+        item.startswith("INSTRUMENT_DEFECT")
+        for item in payload["blocking_failures"]
+    )
+    assert payload["verdict"] == analyzer.VERDICT_HOLD
+
+
+@pytest.mark.parametrize("field_name", ["task_id", "run_id", "qa_mode"])
+def test_a_trace_whose_identity_disagrees_with_the_row_fails_closed(
+    field_name: str, tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """A real trace from another cell must never be accepted as this cell's."""
+
+    out = tmp_path / "out"
+    cell = schedule[15]
+    row = traced_row(out, cell, [("file.read", "notices/window-0400.txt")])
+    trace = (
+        protocol.resolve_cell_experiment_dir(out, str(row["cell_experiment_dir"]))
+        / str(row["trace_path"])
+    )
+    events = [
+        json.loads(line)
+        for line in trace.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    events[0][field_name] = {
+        "task_id": "BEN-002",
+        "run_id": "some-other-run-id",
+        "qa_mode": "full",
+    }[field_name]
+    trace.write_text(
+        "".join(json.dumps(item) + "\n" for item in events),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    resolved, defects = analyzer._trace_events(out, row, cell)
+    assert resolved == []
+    assert defects
+    assert any(field_name in item for item in defects)
+
+
+def test_an_event_identity_the_row_cannot_corroborate_fails_closed(
+    tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    out = tmp_path / "out"
+    cell = schedule[15]
+    row = traced_row(out, cell, [("file.read", "notices/window-0400.txt")])
+    row["run_id"] = None
+    events, defects = analyzer._trace_events(out, row, cell)
+    assert events == []
+    assert any("carries no run_id to corroborate" in item for item in defects)
+
+
+def test_an_event_that_omits_an_identity_field_is_not_penalised(
+    tmp_path: Path, schedule: Sequence[harness.Cell]
+) -> None:
+    """Nothing is required of an event type that legitimately omits a field."""
+
+    out = tmp_path / "out"
+    cell = schedule[15]
+    row = traced_row(out, cell, [("file.read", "notices/window-0400.txt")])
+    trace = (
+        protocol.resolve_cell_experiment_dir(out, str(row["cell_experiment_dir"]))
+        / str(row["trace_path"])
+    )
+    events = [
+        json.loads(line)
+        for line in trace.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    for event in events:
+        event.pop("qa_mode", None)
+    trace.write_text(
+        "".join(json.dumps(item) + "\n" for item in events),
+        encoding="utf-8",
+        newline="\n",
+    )
+    resolved, defects = analyzer._trace_events(out, row, cell)
+    assert defects == []
+    assert len(resolved) == 1
+
+
+def test_the_real_runner_trace_carries_bindable_identity(tmp_path: Path) -> None:
+    """The production runner really does stamp what the binding checks read."""
+
+    out = tmp_path / "out"
+    benchmark_ = protocol.load_benchmark(RC3_MANIFEST)
+    cell = next(
+        item
+        for item in protocol.build_phase_l_schedule(benchmark_)
+        if item.task_id == "BUD-016"
+    )
+    execute = driver.make_cell_executor(
+        config_path=PHASE_L_CONFIG,
+        manifest_path=RC3_MANIFEST,
+        output_root=out,
+        providers={arm: DeterministicStubProvider() for arm in protocol.ARM_ORDER},
+    )
+    row = driver.stamp_frozen_identity(execute(cell), cell)
+    events, defects = analyzer._trace_events(out, row, cell)
+    assert defects == []
+    assert events
+    for event in events:
+        assert event["task_id"] == cell.task_id == row["task_id"]
+        assert event["run_id"] == row["run_id"]
+        assert event["qa_mode"] == cell.qa_mode
+    # And the same trace filed under a DIFFERENT frozen cell is refused.
+    other = next(
+        item
+        for item in protocol.build_phase_l_schedule(benchmark_)
+        if item.task_id == "FAULT-004" and item.arm == cell.arm
+    )
+    refused, reasons = analyzer._trace_events(out, row, other)
+    assert refused == []
+    assert reasons
+
+
+def test_the_producer_refuses_to_emit_an_out_of_cell_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The driver asserts the same containment it asks the analyzer to enforce."""
+
+    out = tmp_path / "out"
+    benchmark_ = protocol.load_benchmark(RC3_MANIFEST)
+    cell = next(
+        item
+        for item in protocol.build_phase_l_schedule(benchmark_)
+        if item.task_id == "BEN-002"
+    )
+    execute = driver.make_cell_executor(
+        config_path=PHASE_L_CONFIG,
+        manifest_path=RC3_MANIFEST,
+        output_root=out,
+        providers={arm: DeterministicStubProvider() for arm in protocol.ARM_ORDER},
+    )
+    # Simulate a producer regression: the serializer returns another cell's slug.
+    monkeypatch.setattr(
+        protocol,
+        "cell_experiment_dir_value",
+        lambda experiment_dir, output_root: "raw/cells/999-elsewhere/exp-000",
+    )
+    with pytest.raises(protocol.ProtocolError):
+        execute(cell)

@@ -921,3 +921,207 @@ performed or authorized.
 **pilot-v7-rc3 remains UNQUALIFIED.**
 
 READY_FOR_ADVERSARIAL_REREVIEW
+
+---
+
+## 20. Revision L-A′.2 — evidence trace identity and containment hardening
+
+**ZERO MODEL INFERENCE.** No provider was contacted, no Ollama endpoint probed,
+no `/api/chat`, `/api/generate` or completion request issued.
+`IQA_SOA_PHASE_L_HUMAN_GATE` was never set. **pilot-v7-rc3 remains UNQUALIFIED
+and this revision authorizes no inference.**
+
+The L-A′.1 rereview confirmed both of its blockers were repaired and found **two
+remaining evidence-integrity gaps**. Both were in the analyzer's *consumer* side
+and both are repaired here. Starting HEAD: `48db0735b809436dad438180e46a3c0079984dfc`.
+
+### 20.1 Gap 1 — an existing but empty trace scored as zero exposure
+
+`_trace_events` correctly refused a missing, absent, unreadable, malformed or
+non-object trace. It did **not** refuse a trace that existed and parsed to
+nothing: a zero-byte file, or one containing only blank lines and whitespace,
+produced `events = []` with `defects = []`.
+
+That is not a legitimate quiet cell. `ExperimentRunner` writes a structured
+`run_terminal` fragment whenever `agent_run.outcomes` is empty
+(`src/iqa_soa/experiment/runner.py:542`), and that fragment carries
+`run_id`, `task_id` and `qa_mode`. The zero-action and provider-failure paths
+both go through it. **A healthy persisted QA-OFF cell therefore cannot have an
+empty evidence trace** — an empty one is truncation or corruption, and scoring
+it as "no proposals, no prerequisites, no exposure" would score corruption as a
+measurement.
+
+A trace that parses to **zero events** is now a blocking `INSTRUMENT_DEFECT` →
+qualification HOLD, with an explicit lost/corrupted-evidence diagnostic. The
+counterfactual is pinned too: a genuine zero-action trace carrying its
+`run_terminal` fragment is accepted normally and simply yields no proposals, so
+this is a corruption check and not a blanket refusal of quiet cells.
+
+### 20.2 Gap 2 — the analyzer trusted the persisted evidence pointer
+
+L-A′.1 fixed *where* the analyzer looks. It did not constrain *what a row is
+allowed to point at*. Resolution was a bare join,
+`resolve_cell_experiment_dir(output_root, value) -> output_root / value`,
+followed by `is_file()`. A corrupted or hand-edited row could therefore name
+
+- an absolute path,
+- a `..` traversal out of the tree, or
+- **another frozen cell's real experiment directory**.
+
+The third is the dangerous one: the target exists, parses and is well-formed, so
+an `is_file()` check after joining accepts it. The analyzer would score cell B's
+proposals, ordered prerequisites and exposure as cell A's, while `task_id`,
+`seed`, `model`, `run_key` and the classification ledger all still looked
+perfectly correct.
+
+### 20.3 The containment contract
+
+One shared prospective helper, `protocol.contained_child(base, value, label,
+must_be_dir)`, owns all path validation for both pointers. It refuses, in order:
+an empty value; an absolute path in **either** platform flavour (`Path` alone is
+platform-dependent — `Path("/x").is_absolute()` is `False` on Windows and
+`Path("C:/x").is_absolute()` is `False` on POSIX — so POSIX-absolute,
+Windows-absolute, UNC and drive-relative forms are all rejected on both); any
+`..` component; and anything whose **canonical resolution** does not sit
+*strictly* beneath the canonical base. Containment is decided on resolved paths,
+so a symlink escape is refused too, and it is decided **before the target is
+read**.
+
+For cell *C* the analyzer now requires:
+
+1. `cell_experiment_dir` is relative, non-traversing, and resolves strictly
+   beneath the Phase-L output root;
+2. it resolves strictly beneath **`<output_root>/raw/cells/<cell_slug(C)>/`** —
+   `protocol.cell_evidence_root(output_root, C)` — so another cell's directory
+   is refused **even when it exists**;
+3. it is an existing directory;
+4. `trace_path` is relative, non-traversing, and resolves strictly beneath that
+   validated experiment directory.
+
+The driver asserts the same containment on the **producing** side, so a producer
+regression fails at the cell that caused it rather than silently at analysis
+time.
+
+### 20.4 Trace/row identity binding
+
+`iqa_soa.evidence.logger` stamps `task_id`, `run_id` and `qa_mode` onto every
+gateway record (`logger.py:155-157`), and `ExperimentRunner` stamps the same
+three onto the `run_terminal` fragment, so every event a real run produces
+carries bindable identity.
+
+Every event that **supplies** one of `protocol.TRACE_IDENTITY_FIELDS` must agree
+with the row it is filed under, and `task_id` must additionally equal the frozen
+cell's. An event that supplies a field the row cannot corroborate fails closed
+as well — an uncorroborated pointer is exactly what this check exists to refuse.
+Nothing is required of an event type that legitimately omits a field, which is
+pinned by its own test.
+
+### 20.5 New adversarial regressions
+
+`tests/integration/test_phaseL_execution_protocol.py` grows from 147 to **170**
+tests. All deterministic and offline.
+
+| Requirement | Test |
+| --- | --- |
+| zero-byte trace → HOLD | `test_an_empty_trace_is_lost_evidence_not_zero_exposure[zero_byte]` |
+| whitespace-only trace → HOLD | `…[whitespace_only]` |
+| genuine zero-action trace still accepted | `test_a_real_zero_action_trace_is_still_accepted` |
+| `cell_experiment_dir = ../…` → HOLD | `test_a_traversing_or_absolute_pointer_fails_closed` ×2 |
+| absolute `cell_experiment_dir` → HOLD | same, POSIX and Windows forms |
+| `trace_path = ../…` → HOLD | same ×2 |
+| absolute `trace_path` → HOLD | same, POSIX and Windows forms |
+| **cross-cell swap to a REAL existing directory** | `test_a_cross_cell_swap_to_a_REAL_directory_fails_closed` |
+| the same swap end-to-end in a 102-cell run | `test_a_cross_cell_swap_blocks_qualification_end_to_end` |
+| trace `task_id` disagrees → HOLD | `test_a_trace_whose_identity_disagrees_with_the_row_fails_closed[task_id]` |
+| trace `run_id` disagrees → HOLD | `…[run_id]` |
+| trace `qa_mode` disagrees → HOLD | `…[qa_mode]` |
+| uncorroborated event identity → HOLD | `test_an_event_identity_the_row_cannot_corroborate_fails_closed` |
+| omitted field not penalised | `test_an_event_that_omits_an_identity_field_is_not_penalised` |
+| real runner trace carries bindable identity, and is refused under another cell | `test_the_real_runner_trace_carries_bindable_identity` |
+| producer refuses an out-of-cell pointer | `test_the_producer_refuses_to_emit_an_out_of_cell_pointer` |
+| the helper itself | `test_contained_child_refuses_absolute_and_traversing_pointers`, `test_contained_child_requires_a_directory_when_asked`, `test_the_cell_evidence_root_is_per_cell` |
+
+The cross-cell swap test explicitly asserts that the swap target **really
+exists** and **really parses** before the swap is refused, so it cannot pass for
+the wrong reason. Every L-A′.1 regression is retained and rerun.
+
+The synthetic trace helper now writes realistic identity onto every event and a
+`run_terminal` fragment for a zero-proposal cell, so the offline traces have the
+shape a real run actually produces.
+
+### 20.6 Refreshed frozen hashes
+
+Regenerated with `scripts/phaseL_write_frozen_inputs.py`; never edited by hand.
+No Phase-L evidence exists, so this remains a prospective refreeze.
+
+| File | SHA-256 |
+| --- | --- |
+| `docs/phaseL_rc3_real_model_requalification_plan_v2.md` | `20e3e8af53b5cb440a5bba4b2b9cad28e637938b12c2fb9e76f1ebe8b08e0294` |
+| `scripts/phaseL_protocol.py` | `a30f377edcb088aa816f2ae0b081e2b16c46423b7237f9c649b4a30a209d5cba` |
+| `scripts/run_phaseL_requalification.py` | `0290c405c68dd533f2324a85eaf70d8d69bd51fb4145a5438a646487cd7cba34` |
+| `scripts/analyze_phaseL_requalification.py` | `26e378b37ee47f04cd4e291ffbd308fdb5e3de5b6968e00976dac5e03a6961d8` |
+
+The plan's `.sha256` sidecar was regenerated to match. Every other frozen input
+is byte-identical.
+
+**Unchanged:** seeds `929260329`, `1281385038`, `978843421`;
+`SEED_SELECTION_STATUS = PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED`;
+schedule digest `1688f90c2ac371596a13db0dd00f797c152b3fa669d245e4f59da22b7244b857`;
+102 cells and their ordering; instrument `3` / raw schema `4`; both model
+digests; the runtime pin; tool-contract policies; QA mode; the failure taxonomy
+and dispositions; the human execution gate; every rc3 task YAML, manifest,
+contract, threshold, equivalence and near-miss definition. **`src/iqa_soa` is
+untouched.**
+
+### 20.7 Files changed in L-A′.2
+
+```
+docs/phaseL_rc3_real_model_requalification_plan_v2.md      (§12.1 containment + identity)
+docs/phaseL_rc3_real_model_requalification_plan_v2.sha256  (regenerated)
+docs/phaseL_frozen_execution_inputs.json                   (regenerated)
+docs/phaseL_rc3_requalification_refreeze_report.md         (this section)
+scripts/phaseL_protocol.py                                 (contained_child, cell_evidence_root, TRACE_IDENTITY_FIELDS)
+scripts/run_phaseL_requalification.py                      (producer-side containment assertion)
+scripts/analyze_phaseL_requalification.py                  (cell-bound resolution, empty-trace defect, identity binding)
+tests/integration/test_phaseL_execution_protocol.py        (+23 tests)
+```
+
+### 20.8 Validation after L-A′.2
+
+| Check | Result |
+| --- | --- |
+| `validate_pilot_v7_rc3.py` / `rc1` | **PASS** / **PASS** |
+| `validate_pilot_v7_rc2.py` at freeze commit `6ba6595f` | **PASS** |
+| `instrument_revision.py` | **PASS** |
+| `phaseM_frozen_input_audit.py` | **PASS** (12 bound inputs + 6 sidecars) |
+| `phaseM_historical_analysis.py` | **PASS** (3 frozen scripts reproduced) |
+| `phaseL_fault_provenance_reachability_probe.py` | exit **0**, contract reachable |
+| `run_phaseL_requalification.py --verify-frozen-inputs` | **PASS**, no provider contacted |
+| `run_phaseL_requalification.py` (no gates) | **refused**, exit `6` |
+| `analyze_phaseL_requalification.py --verify-scoring-plan` | **PASS**, 17/17 |
+| `phaseL_write_frozen_inputs.py --check` | **PASS** |
+| `pytest tests/integration/test_phaseL_execution_protocol.py` | **170 passed** |
+| `pytest` Phase-L suites (both) | **219 passed** |
+| Full `pytest` | **1112 passed, 0 failed** |
+| `MYPYPATH=src mypy` | `Success: no issues found in 46 source files` |
+| `mypy --strict` over the four Phase-L scripts | `Success: no issues found in 4 source files` |
+
+Fresh detached-worktree validation at the final commit reproduced every frozen
+hash, the schedule digest, the seeds and the whole suite, and explicitly proved:
+an empty trace fails closed; traversal and absolute pointers fail closed; a
+**real existing** cross-cell trace swap fails closed; a trace `task_id`/`run_id`
+mismatch fails closed; the normal real-layout deterministic trace still resolves;
+and the natural classification ledger still reconciles — with the human gate
+closed and **zero provider contact, zero Ollama contact, zero model inference**.
+
+### 20.9 Status after L-A′.2
+
+Both remaining evidence-integrity gaps are closed, each pinned by a regression
+that fails under the old behaviour, and the cross-cell case is proved against a
+target that genuinely exists. The protocol design is otherwise retained exactly.
+No science was redesigned, no historical artifact was modified, `src/iqa_soa` is
+untouched, and no inference was performed or authorized.
+
+**pilot-v7-rc3 remains UNQUALIFIED.**
+
+READY_FOR_ADVERSARIAL_REREVIEW

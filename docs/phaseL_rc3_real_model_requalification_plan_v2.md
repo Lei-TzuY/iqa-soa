@@ -373,6 +373,40 @@ evidence could change the qualification verdict. Nothing synthesizes an empty
 trace, and no proposal is ever inferred from benchmark ground truth. A malformed
 raw record is likewise refused rather than skipped.
 
+**An empty trace is corruption, not a quiet cell.** `ExperimentRunner` writes a
+structured `run_terminal` fragment whenever `agent_run.outcomes` is empty —
+including the zero-action and provider-failure paths — so a healthy persisted
+QA-OFF cell cannot legitimately have a zero-byte or whitespace-only trace. A
+trace that parses to **zero events** is therefore lost or truncated evidence and
+is a blocking `INSTRUMENT_DEFECT`. A genuine zero-action cell, which carries its
+`run_terminal` fragment, is accepted normally and simply yields no proposals.
+
+**Every evidence pointer is bound to its frozen cell.** The persisted row is
+untrusted input. For cell *C*, `cell_experiment_dir` must be relative, free of
+`..`, and canonically resolve **strictly beneath**
+
+```
+<output_root>/raw/cells/<cell_slug(C)>/
+```
+
+and `trace_path` must be relative, free of `..`, and canonically resolve
+strictly beneath that validated experiment directory. Containment is decided on
+**resolved** paths, before anything is read — never by joining and then testing
+`is_file()`, which would accept another cell's real, parseable, wrong evidence.
+An absolute path in either platform flavour, a traversal, or a directory
+belonging to a different frozen cell is refused **even when the target exists**.
+One shared helper, `protocol.contained_child`, owns this for both pointers, and
+the driver asserts the same containment on the producing side so a producer
+regression fails at the cell that caused it.
+
+**Trace identity is bound to the row.** `iqa_soa.evidence.logger` stamps
+`task_id`, `run_id` and `qa_mode` onto every gateway record, and
+`ExperimentRunner` stamps them onto the `run_terminal` fragment. Every event that
+supplies one of those fields must agree with the row it is filed under, and
+`task_id` must additionally equal the frozen cell's. An event that supplies a
+field the row cannot corroborate fails closed as well. Nothing is required of an
+event type that legitimately omits a field.
+
 ### 12.2 The classification ledger (L-A′.1)
 
 The final run manifest persists `ScheduleResult.classifications` **verbatim** —

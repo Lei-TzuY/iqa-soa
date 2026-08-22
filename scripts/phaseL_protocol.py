@@ -42,7 +42,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import sys
 from typing import Any, Mapping, Sequence
 
@@ -743,9 +743,103 @@ def cell_experiment_dir_value(experiment_dir: Path, output_root: Path) -> str:
 
 
 def resolve_cell_experiment_dir(output_root: Path, value: str) -> Path:
-    """The analyzer's half of the same contract."""
+    """Join a stored pointer to the output root, WITHOUT validating it.
+
+    This is the bare join only. It is used to LOCATE a file whose pointer has
+    already been validated, and by tests. The analyzer must never consume a
+    persisted pointer through this function alone -- see
+    :func:`contained_child`, which is what binds a pointer to its frozen cell.
+    """
 
     return output_root / value
+
+
+# --------------------------------------------------------------------------
+# (L-A'.2) Evidence pointer containment, owned in ONE place
+# --------------------------------------------------------------------------
+#
+# L-A'.1 fixed WHERE the analyzer looks. It did not constrain WHAT a persisted
+# row is allowed to point at. A corrupted or hand-edited row could name an
+# absolute path, traverse out with ``..``, or -- worst, because the target
+# really exists and really parses -- name ANOTHER CELL's experiment directory.
+# The analyzer would then read valid-but-wrong evidence while ``task_id``,
+# ``seed``, ``model``, ``run_key`` and the classification ledger all still
+# looked correct, and the proposals, ordered prerequisites and exposure of one
+# cell would be scored as another's.
+#
+# Every evidence pointer is therefore bound to the frozen cell it claims to
+# belong to, structurally, before anything is read.
+
+
+def cell_evidence_root(output_root: Path, cell: harness.Cell) -> Path:
+    """The ONLY directory a given frozen cell's evidence may live beneath."""
+
+    return cells_root(output_root) / cell_slug(cell)
+
+
+def _is_absolute_anywhere(value: str) -> bool:
+    """True for a POSIX-absolute, Windows-absolute or drive-relative path.
+
+    ``Path`` alone is platform-dependent: ``Path("/x").is_absolute()`` is False
+    on Windows and ``Path("C:/x").is_absolute()`` is False on POSIX. A persisted
+    pointer is untrusted input that may have been written anywhere, so both
+    flavours are rejected on both platforms.
+    """
+
+    return (
+        PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
+        or bool(PureWindowsPath(value).drive)
+        or Path(value).is_absolute()
+    )
+
+
+def _traverses(value: str) -> bool:
+    parts = set(PurePosixPath(value).parts) | set(PureWindowsPath(value).parts)
+    return ".." in parts
+
+
+def contained_child(
+    base: Path, value: str, *, label: str, must_be_dir: bool = False
+) -> tuple[Path | None, str]:
+    """Resolve ``value`` strictly beneath ``base``, or say why it is refused.
+
+    THE shared containment helper. Returns ``(resolved, "")`` on success and
+    ``(None, reason)`` otherwise. Refuses, in order: an empty value, an absolute
+    path in either platform flavour, any ``..`` component, and anything whose
+    CANONICAL resolution does not sit strictly beneath the canonical ``base``.
+
+    Containment is checked on resolved paths, so a symlink pointing out of the
+    tree is refused too, and it is checked BEFORE the target is read -- never by
+    joining and then testing ``is_file()``, which would accept a wrong-but-real
+    target.
+    """
+
+    text = value.strip()
+    if not text:
+        return None, f"{label} is empty"
+    if _is_absolute_anywhere(text):
+        return None, f"{label} {value!r} is an absolute path; it must be relative"
+    if _traverses(text):
+        return None, f"{label} {value!r} traverses with '..'"
+    resolved = (base / text).resolve()
+    anchor = base.resolve()
+    if resolved == anchor or anchor not in resolved.parents:
+        return None, (
+            f"{label} {value!r} resolves to {resolved}, which is not strictly "
+            f"beneath {anchor}"
+        )
+    if must_be_dir and not resolved.is_dir():
+        return None, f"{label} {value!r} is not an existing directory"
+    return resolved, ""
+
+
+#: Identity fields an evidence event carries that MUST agree with the row it is
+#: filed under.  ``iqa_soa.evidence.logger`` stamps all three onto every gateway
+#: record, and ``ExperimentRunner`` stamps them onto the ``run_terminal``
+#: fragment it writes for a zero-action or provider-failure run, so an event
+#: that supplies one and disagrees is not this cell's evidence.
+TRACE_IDENTITY_FIELDS: tuple[str, ...] = ("task_id", "run_id", "qa_mode")
 
 
 def schedule_digest(schedule: Sequence[harness.Cell]) -> str:

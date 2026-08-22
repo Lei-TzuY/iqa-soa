@@ -360,9 +360,21 @@ def make_cell_executor(
         )
         row = _row_from_cell_directory(experiment_dir)
         row["cell_elapsed_ms"] = (time.perf_counter() - started) * 1000.0
-        row["cell_experiment_dir"] = protocol.cell_experiment_dir_value(
-            experiment_dir, output_root
+        stored = protocol.cell_experiment_dir_value(experiment_dir, output_root)
+        # (L-A'.2) Producer-side half of the containment contract. The analyzer
+        # binds every evidence pointer to its frozen cell; asserting the same
+        # thing here means a producer regression fails at the cell that caused
+        # it rather than silently at analysis time.
+        resolved, reason = protocol.contained_child(
+            output_root, stored, label="cell_experiment_dir", must_be_dir=True
         )
+        cell_root = protocol.cell_evidence_root(output_root, cell).resolve()
+        if resolved is None or cell_root not in resolved.parents:
+            raise protocol.ProtocolError(
+                f"cell {cell.key} produced an evidence pointer that is not beneath "
+                f"its own evidence root {cell_root}: {reason or stored}"
+            )
+        row["cell_experiment_dir"] = stored
         return row
 
     return execute
