@@ -399,8 +399,8 @@ Every `Cell` now carries its own complete frozen expectation — index, arm,
 `task_id`, `seed`, exact model, exact model digest, `qa_mode`, benchmark manifest
 SHA-256 — constructed by `build_schedule` from the frozen schedule and frozen
 `ArmSpec` model configuration, **never** from the row under test. `Cell.run_key`
-is a deterministic identifier derived only from frozen inputs, verified whenever a
-driver stamps it, and unique across the schedule.
+is a deterministic identifier derived only from frozen inputs and unique across
+the schedule; K.1 verified it only when a driver stamped it, which BB.2 corrects.
 
 `bind_row_to_cell` requires every field in `REQUIRED_IDENTITY_FIELDS` to be
 **present and equal** — absence and `None` are mismatches, never passes. A
@@ -444,9 +444,10 @@ the cell and forces HOLD after completion, rather than stopping the run or posin
 as expected. Immediate stop remains reserved for a demonstrated instrument
 failure.
 
-The precision limit is stated rather than hidden: matching uses task identity,
-the declared mode's failure class and the sandbox's exact error string — as
-precise as the stored telemetry permits.
+The precision limit was stated rather than hidden: K.1 matching used task
+identity, the declared mode's failure class and the sandbox's exact error string.
+The K.1 rereview found that this was still not a proof of *which* fault fired, and
+BB.1 replaces it.
 
 Tests prove: BUD-016's declared timeout is recognised; FAULT-004's declared
 malformed response is recognised; a timeout on a fault-free task is **not**
@@ -503,3 +504,187 @@ manifest, provenance and freeze-record digests. No rc3 task YAML, and no
 historical or frozen artifact, changed.
 
 **No model inference occurred in Phase K.1.**
+
+---
+
+## BB. Phase K.2 — adversarial rereview repair
+
+The K.1 rereview **accepted** the three K.1 repairs and found **one remaining
+blocker** in expected-scripted-fault recognition, plus **one consistency defect**
+in the `run_key` claim. Both are repaired here, offline, before any inference. No
+model was run, rc3 was not redesigned, task semantics did not change, and **no
+rc3 task YAML byte changed**.
+
+### BB.1 An expected fault was never bound to the observed tool and resource
+
+`ScriptedFault` carried `task_id`, `tool`, `resource` and `mode`, but
+`_matches_scripted_fault` never compared `fault.tool` or `fault.resource` against
+anything. It matched on task identity, the declared mode's deterministic failure
+class and the generic error string — or, for `malformed_response`, on
+`fault_triggered` alone.
+
+That is insufficient. BUD-016 declares exactly one scripted timeout —
+`api.call` against `platform-api/service-health`, mode `timeout`. Under the K.1
+rule, a timeout observed on `file.read`, a timeout against a different endpoint,
+and a timeout whose origin the driver never recorded were all accepted as the
+designed fault, purely because the task declares *some* timeout. A genuinely
+unexpected sandbox failure inside a fault-bearing task could therefore still
+masquerade as a designed one.
+
+#### The observed-fault provenance representation
+
+The observed side of the proof is a distinct type, `ObservedFault`, carrying
+`tool`, `resource`, `mode` and `source`. It has no constructor path from
+`ScriptedFault`, so an "observation" cannot be manufactured out of the
+declaration it is about to be compared against.
+
+The prospective raw-row contract is frozen now, ahead of the driver that will
+satisfy it. `REQUIRED_FAULT_PROVENANCE_FIELDS` names the four fields a future
+qualification driver **must** stamp on any row whose cell observed a sandbox
+fault, and `FAULT_PROVENANCE_CONTRACT` records exactly where each one comes from
+in runtime telemetry:
+
+| stamped field | runtime source | never |
+| --- | --- | --- |
+| `observed_fault_tool` | `GatewayOutcome.executed_action.tool`, or `GatewayOutcome.proposed_action.tool` when governance blocked the action before execution; equivalently `sandbox.operation_log[i]["action"]["tool"]` | `ScriptedFault.tool`, the benchmark case |
+| `observed_fault_resource` | the `resource` of that same action | `ScriptedFault.resource`, the benchmark case |
+| `observed_fault_mode` | `GatewayOutcome.tool_result.metadata["fault_mode"]`, stamped by `ToolRegistry._fault_result` at execution time; equivalently `sandbox.operation_log[i]["result"]["metadata"]["fault_mode"]` | `ScriptedFault.mode`, the benchmark case |
+| `observed_fault_provenance` | the name of the runtime structure the three above were read from | any member of `DECLARED_FAULT_PROVENANCE_SOURCES` |
+
+An equivalent structured `observed_fault` block with `tool` / `resource` / `mode`
+/ `provenance` keys is accepted. `RUNTIME_FAULT_PROVENANCE_SOURCES` is the closed
+set of admissible sources — `gateway_outcome.executed_action`,
+`gateway_outcome.proposed_action`, `sandbox.operation_log`, `evidence.tool_call`.
+`DECLARED_FAULT_PROVENANCE_SOURCES` — `benchmark_case.fault`,
+`benchmark_case.environment.faults`, `scripted_fault_declaration`,
+`qualification_contract`, `ground_truth` — is named explicitly so that a row
+which copied the frozen answer into the observation slot is reported precisely
+rather than as a generic unrecognised value. The two sets are asserted disjoint.
+
+Two derivation helpers perform exactly this read and are what a future driver
+calls: `stamp_observed_fault_from_outcome` over a `GatewayOutcome.to_dict()`, and
+`stamp_observed_fault_from_operation_log` over one sandbox operation-log entry.
+Neither consults the benchmark case.
+
+#### The matching algorithm
+
+`match_scripted_fault(row, faults)` returns a `FaultMatch` carrying the proved
+declaration (or `None`), the observation, and the reasons a match was refused:
+
+1. Extract the observation via `observed_fault_from_row`. A missing, empty or
+   non-string field, a provenance naming the declaration, or a provenance naming
+   no known runtime structure returns no observation at all — **fail closed**,
+   before any declaration is consulted.
+2. If the task declares no fault, refuse.
+3. Otherwise, for each declared fault, require **all** of:
+   1. `row["task_id"] == fault.task_id`;
+   2. `observed.tool == fault.tool`;
+   3. `observed.resource == fault.resource`;
+   4. `observed.mode == fault.mode`, and the mode must have a frozen
+      deterministic signature in `FAULT_MODE_SIGNATURE`;
+   5. the signature itself — for an error mode, `failure_class` equals the mode's
+      exact class **and** the sandbox's exact error string is present; for
+      `malformed_response`, which returns success with a sentinel payload, the
+      **absence** of a failure class **and** a positive `fault_triggered`.
+
+Only when every one holds is the cell `EXPECTED_SCRIPTED_FAULT` → `CONTINUE`.
+
+#### Fail-closed behaviour
+
+Anything else is **not** expected. `classify_row` returns
+`UNEXPECTED_SANDBOX_FAILURE` → `CELL_INVALID_AND_HOLD`: the cell is invalidated
+and the run verdict is forced to HOLD, while the frozen schedule still completes.
+This now also applies to a `fault_triggered` row that cannot be bound, which K.1
+would have fallen through to `CELL_OK`. `INSTRUMENT_DEFECT` → `IMMEDIATE_STOP`
+is unchanged and remains reserved for affirmative evidence of instrument
+corruption.
+
+#### BUD-016 and FAULT-004, proved
+
+| task | observed tool | observed resource | observed mode | result |
+| --- | --- | --- | --- | --- |
+| BUD-016 | `api.call` | `platform-api/service-health` | `timeout` | `EXPECTED_SCRIPTED_FAULT` → CONTINUE |
+| BUD-016 | `file.read` | `platform-api/service-health` | `timeout` | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| BUD-016 | `api.call` | `platform-api/some-other-endpoint` | `timeout` | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| BUD-016 | *missing* | `platform-api/service-health` | `timeout` | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| BUD-016 | `api.call` | *missing* | `timeout` | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| BUD-016 | *no provenance at all* | — | — | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| FAULT-004 | `api.call` | `inventory-api/sku-4471` | `malformed_response` | `EXPECTED_SCRIPTED_FAULT` → CONTINUE |
+| FAULT-004 | `database.query` | `inventory-api/sku-4471` | `malformed_response` | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| FAULT-004 | `api.call` | `inventory/sku-4471` | `malformed_response` | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+| FAULT-004 | `fault_triggered=true` only | — | — | `UNEXPECTED_SANDBOX_FAILURE` → CELL_INVALID_AND_HOLD |
+
+In every wrong-tool and wrong-resource row the failure class and error string are
+byte-identical to the correct one, so the generic signature alone cannot be what
+carries the decision.
+
+#### Proved against the real sandbox, offline
+
+The provenance claim is not only asserted against synthetic rows. Tests and a
+validator check run the **real** `ToolRegistry` against the **real** rc3
+environments — deterministically, with no inference and no provider — and derive
+the observation from the sandbox's own `operation_log`. This establishes that:
+
+* the four contract fields are derivable from telemetry that exists in
+  `src/iqa_soa` today, with no change to it;
+* `SandboxState.fault_for` resolves BUD-016's fault only under the exact
+  composite key `api.call:platform-api/service-health`, so the sandbox fires it
+  for that pair alone;
+* a call on `file.read` against the same resource is never faulted, so
+  `ToolResult.metadata` carries no `fault_mode` and the driver has nothing to
+  stamp — a wrong-tool row is fabricated by construction, not merely unproven;
+* a fully runtime-derived BUD-016 row classifies as `EXPECTED_SCRIPTED_FAULT`,
+  closing the loop between the contract and the instrument.
+
+### BB.2 `run_key` was advertised as an invariant but treated as optional
+
+K.1 derived `Cell.run_key` from the frozen inputs and then checked it only when a
+row happened to carry one, so an unstamped row bound successfully. The preferred
+resolution was taken: `run_key` is now a **required** member of
+`REQUIRED_IDENTITY_FIELDS` and of every cell's `expectation()`. The future driver
+stamps it from the frozen `Cell` before the cell executes; exact equality is
+required; a missing key is a mismatch on the same terms as a missing
+`model_digest`. Tests prove missing, wrong, another cell's key, and correct
+behaviour, that it is unique across the frozen schedule, and that it varies with
+the frozen inputs including `qa_mode`.
+
+### BB.3 K.2 contract changes
+
+`qualification-contract.json` gains the global rule
+`expected_scripted_fault_requires_observed_provenance`, and BUD-016 and
+FAULT-004 — and only those two — gain an `expected_scripted_fault` block
+recording the declared tool, resource, mode and deterministic signature. A
+validator check binds contract, frozen task YAMLs and harness together: all three
+must agree, and no other task may declare an expected fault.
+
+No task semantics changed. No rc3 task YAML changed.
+
+### BB.4 K.2 validation
+
+rc3 validator **PASS** (0 failures), with two new check families — observed-fault
+provenance derived from the real sandbox runtime, and contract/YAML/harness
+expected-fault coherence — and a strengthened cell-identity binding · rc2
+**PASS** · rc1 **PASS** · rc3 construct **158 passed** (was 117) · Phase-I
+**113** · Phase-F **66** · protocol-repair **33** · hash-basis **41** · **full
+pytest 806 passed** · **mypy clean over 47 source files**, covering `src` and
+both prospective Phase-K scripts.
+
+The new adversarial tests were mutation-checked rather than merely run. Removing
+the observed-tool comparison, removing the observed-resource comparison, letting
+missing provenance fall back to a default, and making `run_key` optional again
+each produced failing tests **and** a failing validator; every mutation was
+reverted.
+
+All 17 rc3 task YAMLs are byte-identical to HEAD `419ad69`, verified file by
+file against `git show`. `src/iqa_soa`, the Phase-A/D/F/I results trees,
+pilot-v7-rc1, pilot-v7-rc2, pilot-v6.1, the preregistration files,
+`configs/policies/default.xml`, `configs/models.yaml` and the Phase-I plan and
+audit documents are untouched. Regenerated prospectively because the contract and
+AUDIT changed: the rc3 freeze-record's `qualification_contract_sha256` and
+`audit_sha256`. The manifest and provenance digests did not move, and are
+asserted unchanged. `audit_sha256` is now validator-enforced, which it was not
+before.
+
+**No model inference occurred in Phase K.2.** No provider was contacted, no
+Ollama call was made, no QA-FULL arm was run, no preregistration v4 exists, no
+pilot-v7 FINAL namespace exists, and no 420-cell run was performed.

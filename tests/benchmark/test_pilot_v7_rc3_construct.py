@@ -14,7 +14,9 @@ The suite is organised around the Phase-I forensic findings:
   which must be preserved rather than churned;
 * the constructs Phase I proved unsound (BUD-012 dominance, PRIV-015 narrow-route
   dominance, FAULT-003 modality), which must be repaired;
-* the closed failure taxonomy and the machine-enforced stop controller.
+* the closed failure taxonomy and the machine-enforced stop controller;
+* (K.2) the binding of an expected scripted fault to the exact runtime-observed
+  tool, resource and sandbox-stamped mode, and the required ``run_key``.
 """
 
 from __future__ import annotations
@@ -588,19 +590,46 @@ def _schedule() -> Any:
 
 
 def _row(cell: Any, **over: Any) -> dict[str, Any]:
-    """A fully stamped row. The K.1 helpers stamp every required identity field."""
+    """A fully stamped row.
+
+    The K.1 helpers stamp every required identity field; K.2 adds ``run_key``,
+    which the future driver stamps from the frozen cell before the cell executes.
+    """
 
     base = {
         "run_id": cell.key, "task_id": cell.task_id, "seed": cell.seed,
         "model": cell.model, "model_digest": cell.model_digest,
         "qa_mode": cell.qa_mode,
         "benchmark_manifest_sha256": cell.benchmark_manifest_sha256,
+        "run_key": cell.run_key,
         "provider_attempt_count": 1, "failure_class": None,
         "tool_contract_regression_detected": False, "multi_call_overflow": False,
         "tool_call_parse_failure": False, "model_refusal": False,
     }
     base.update(over)
     return base
+
+
+def _observed(
+    tool: str,
+    resource: str,
+    mode: str,
+    source: str = "gateway_outcome.executed_action",
+) -> dict[str, Any]:
+    """A runtime-derived observed-fault stamp, in the prospective row contract.
+
+    These four fields are what a future driver reads out of the GatewayOutcome or
+    the sandbox operation log for the action it actually attempted. They are NEVER
+    copied from the benchmark declaration; the adversarial tests below prove the
+    matcher refuses a row that says otherwise.
+    """
+
+    return {
+        "observed_fault_tool": tool,
+        "observed_fault_resource": resource,
+        "observed_fault_mode": mode,
+        "observed_fault_provenance": source,
+    }
 
 
 def test_cell_identity_binding_checks_pass() -> None:
@@ -635,12 +664,14 @@ def test_a_correctly_stamped_row_binds() -> None:
         ("MISSING model_digest", {"model_digest": None}),
         ("wrong qa_mode", {"qa_mode": "full"}),
         ("wrong benchmark hash", {"benchmark_manifest_sha256": "0" * 64}),
+        ("wrong run_key", {"run_key": "deadbeef"}),
+        ("MISSING run_key", {"run_key": None}),
     ],
 )
 def test_each_identity_mismatch_stops_the_schedule(
     label: str, override: dict[str, Any]
 ) -> None:
-    """All seven adversarial mismatches must stop before another cell starts."""
+    """Every adversarial identity mismatch must stop before another cell starts."""
 
     schedule = _schedule()
     started: list[str] = []
@@ -720,14 +751,58 @@ def test_identity_mismatch_preserves_evidence_and_writes_a_partial_manifest(
     assert len(payload["preserved_row_ids"]) == 5
 
 
+# ==========================================================================
+# K.2 REPAIR 2 -- run_key is a REQUIRED identity field, not an optional stamp
+# ==========================================================================
+
+
+def test_run_key_is_a_required_identity_field() -> None:
+    """K.1 advertised run_key as a binding invariant while treating it as
+    optional, so an unstamped row bound successfully and the invariant proved
+    nothing. It is now part of the raw-row contract."""
+
+    assert "run_key" in harness.REQUIRED_IDENTITY_FIELDS
+    schedule = _schedule()
+    assert "run_key" in schedule[0].expectation()
+
+
 def test_run_key_is_derived_from_frozen_inputs_and_unique() -> None:
     schedule = _schedule()
     assert len({c.run_key for c in schedule}) == len(schedule)
-    # Stamping the correct key binds; a wrong one does not.
+    # Derived only from frozen inputs: change one, and the key changes.
+    other = harness.build_schedule(
+        [harness.ArmSpec("qwen", "qwen3.5:27b", "a" * 64),
+         harness.ArmSpec("mistral", "mistral-small3.2:24b", "b" * 64)],
+        ["T1", "T2"], [1, 2, 3],
+        qa_mode="full", benchmark_manifest_sha256="c" * 64,
+    )
+    assert other[0].run_key != schedule[0].run_key
+    assert schedule[0].run_key == harness.build_schedule(
+        [harness.ArmSpec("qwen", "qwen3.5:27b", "a" * 64),
+         harness.ArmSpec("mistral", "mistral-small3.2:24b", "b" * 64)],
+        ["T1", "T2"], [1, 2, 3],
+        qa_mode="off", benchmark_manifest_sha256="c" * 64,
+    )[0].run_key
+
+
+def test_correct_run_key_binds_wrong_and_missing_do_not() -> None:
+    schedule = _schedule()
     assert harness.bind_row_to_cell(
         _row(schedule[0], run_key=schedule[0].run_key), schedule[0]
     ) == []
     assert harness.bind_row_to_cell(_row(schedule[0], run_key="deadbeef"), schedule[0])
+    stripped = _row(schedule[0])
+    stripped.pop("run_key")
+    mismatches = harness.bind_row_to_cell(stripped, schedule[0])
+    assert mismatches, "a row carrying no run_key at all was accepted"
+    assert "run_key" in " ".join(mismatches)
+
+
+def test_a_run_key_from_another_cell_does_not_bind() -> None:
+    schedule = _schedule()
+    assert harness.bind_row_to_cell(
+        _row(schedule[0], run_key=schedule[1].run_key), schedule[0]
+    )
 
 
 def test_schedule_ordering_violations_remain_protocol_deviations() -> None:
@@ -845,31 +920,203 @@ def test_scripted_fault_recognition_checks_pass() -> None:
     assert validator.check_scripted_fault_recognition(list(FROZEN.cases)) == []
 
 
+def test_observed_fault_provenance_validator_check_passes() -> None:
+    assert validator.check_observed_fault_provenance_is_runtime_derived() == []
+
+
+def test_the_validator_asserts_the_same_frozen_declarations_as_this_suite() -> None:
+    assert validator.RC3_DECLARED_FAULTS == {
+        "BUD-016": BUD016_FAULT, "FAULT-004": FAULT004_FAULT
+    }
+
+
 def test_only_bud016_and_fault004_declare_faults() -> None:
     assert set(_declared()) == {"BUD-016", "FAULT-004"}
 
 
-def test_bud016_declared_timeout_is_recognised_as_scripted() -> None:
+#: BUD-016's ONLY expected scripted timeout, and FAULT-004's ONLY expected
+#: malformed response, restated from the frozen task YAMLs.
+BUD016_FAULT = ("api.call", "platform-api/service-health", "timeout")
+FAULT004_FAULT = ("api.call", "inventory-api/sku-4471", "malformed_response")
+
+
+def _bud016_row(**over: Any) -> dict[str, Any]:
+    """BUD-016's declared timeout, observed on exactly the declared endpoint."""
+
     row = {"run_id": "b", "task_id": "BUD-016", "provider_attempt_count": 1,
-           "failure_class": "tool_timeout", "error": "simulated tool timeout"}
-    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+           "failure_class": "tool_timeout", "error": "simulated tool timeout",
+           **_observed(*BUD016_FAULT)}
+    row.update(over)
+    return row
+
+
+def _fault004_row(**over: Any) -> dict[str, Any]:
+    """FAULT-004's declared malformed response, observed on the declared endpoint."""
+
+    row = {"run_id": "f", "task_id": "FAULT-004", "provider_attempt_count": 1,
+           "failure_class": None, "fault_triggered": True,
+           **_observed(*FAULT004_FAULT)}
+    row.update(over)
+    return row
+
+
+def test_the_frozen_declarations_are_the_ones_these_tests_assert_against() -> None:
+    """If a task YAML ever moved, these tests must fail rather than drift."""
+
+    declared = _declared()
+    bud = declared["BUD-016"]
+    fault = declared["FAULT-004"]
+    assert len(bud) == 1 and len(fault) == 1
+    assert (bud[0].tool, bud[0].resource, bud[0].mode) == BUD016_FAULT
+    assert (fault[0].tool, fault[0].resource, fault[0].mode) == FAULT004_FAULT
+
+
+def test_bud016_declared_timeout_is_recognised_as_scripted() -> None:
+    """(1) The exact declared tool and resource, timing out as designed."""
+
+    name, disposition = harness.classify_row(_bud016_row(), scripted_faults=_declared())
     assert name == harness.EXPECTED_SCRIPTED_FAULT
     assert disposition == harness.CONTINUE
 
 
+def test_bud016_timeout_on_the_wrong_tool_is_an_unexpected_sandbox_failure() -> None:
+    """(2) The same timeout, the same endpoint, a tool BUD-016 never faulted."""
+
+    row = _bud016_row(**_observed("file.read", "platform-api/service-health", "timeout"))
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_bud016_timeout_on_the_wrong_resource_is_an_unexpected_sandbox_failure() -> None:
+    """(3) The same timeout, the declared tool, a different endpoint."""
+
+    row = _bud016_row(**_observed("api.call", "platform-api/some-other-endpoint", "timeout"))
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_bud016_timeout_with_a_missing_observed_tool_is_not_expected() -> None:
+    """(4) Missing provenance fails closed; it is not read from the declaration."""
+
+    row = _bud016_row()
+    row.pop("observed_fault_tool")
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_bud016_timeout_with_a_missing_observed_resource_is_not_expected() -> None:
+    """(5) Same, for the resource."""
+
+    row = _bud016_row()
+    row.pop("observed_fault_resource")
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+@pytest.mark.parametrize("field_name", list(harness.REQUIRED_FAULT_PROVENANCE_FIELDS))
+def test_every_missing_provenance_field_fails_closed(field_name: str) -> None:
+    row = _bud016_row()
+    row.pop(field_name)
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE, field_name
+    assert disposition == harness.CELL_INVALID_AND_HOLD, field_name
+
+
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_an_empty_provenance_field_is_not_provenance(value: Any) -> None:
+    row = _bud016_row(observed_fault_tool=value)
+    assert harness.classify_row(row, scripted_faults=_declared())[0] == (
+        harness.UNEXPECTED_SANDBOX_FAILURE
+    )
+
+
+def test_the_generic_error_string_alone_does_not_establish_expectation() -> None:
+    """The pre-K.2 row shape carried nothing but the deterministic error text."""
+
+    legacy = {"run_id": "b", "task_id": "BUD-016", "provider_attempt_count": 1,
+              "failure_class": "tool_timeout", "error": "simulated tool timeout"}
+    name, disposition = harness.classify_row(legacy, scripted_faults=_declared())
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_bud016_observed_mode_must_equal_the_declared_mode() -> None:
+    """An unregistered tool is stamped fault_mode=unavailable by the sandbox; that
+    is not BUD-016's declared timeout even on the declared endpoint."""
+
+    row = _bud016_row(
+        **_observed("api.call", "platform-api/service-health", "unavailable")
+    )
+    assert harness.classify_row(row, scripted_faults=_declared())[0] == (
+        harness.UNEXPECTED_SANDBOX_FAILURE
+    )
+
+
 def test_fault004_declared_malformed_response_is_recognised() -> None:
-    """A malformed_response fault returns success, so it carries no failure class."""
+    """(6) A malformed_response fault returns success, so it carries no failure
+    class -- but it must still be bound to the exact declared tool and resource."""
+
+    name, disposition = harness.classify_row(_fault004_row(), scripted_faults=_declared())
+    assert name == harness.EXPECTED_SCRIPTED_FAULT
+    assert disposition == harness.CONTINUE
+
+
+def test_fault004_triggered_on_the_wrong_tool_is_not_expected() -> None:
+    """(7) fault_triggered=True is not a proof; the tool must be the declared one."""
+
+    row = _fault004_row(
+        **_observed("database.query", "inventory-api/sku-4471", "malformed_response")
+    )
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_fault004_triggered_on_the_wrong_resource_is_not_expected() -> None:
+    """(8) Same, for the resource -- including FAULT-003's record-shaped one."""
+
+    row = _fault004_row(
+        **_observed("api.call", "inventory/sku-4471", "malformed_response")
+    )
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_fault004_with_no_observed_provenance_is_not_expected() -> None:
+    """(9) fault_triggered=True alone -- the pre-K.2 rule -- must establish nothing."""
 
     row = {"run_id": "f", "task_id": "FAULT-004", "provider_attempt_count": 1,
            "failure_class": None, "fault_triggered": True}
     name, disposition = harness.classify_row(row, scripted_faults=_declared())
-    assert name == harness.EXPECTED_SCRIPTED_FAULT
-    assert disposition == harness.CONTINUE
+    assert name != harness.EXPECTED_SCRIPTED_FAULT
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE
+    assert disposition == harness.CELL_INVALID_AND_HOLD
+
+
+def test_fault004_requires_positive_trigger_evidence() -> None:
+    """Correct provenance without a positive fault_triggered proves nothing either."""
+
+    row = _fault004_row(fault_triggered=False)
+    assert harness.classify_row(row, scripted_faults=_declared())[0] != (
+        harness.EXPECTED_SCRIPTED_FAULT
+    )
 
 
 def test_an_unexpected_timeout_on_a_fault_free_task_is_not_expected() -> None:
     row = {"run_id": "s", "task_id": "PRIV-017", "provider_attempt_count": 1,
-           "failure_class": "tool_timeout", "error": "simulated tool timeout"}
+           "failure_class": "tool_timeout", "error": "simulated tool timeout",
+           **_observed(*BUD016_FAULT)}
     name, disposition = harness.classify_row(row, scripted_faults=_declared())
     assert name == harness.UNEXPECTED_SANDBOX_FAILURE
     assert name != harness.EXPECTED_SCRIPTED_FAULT
@@ -888,20 +1135,227 @@ def test_a_fault_mode_mismatch_on_a_fault_bearing_task_is_not_expected() -> None
     """FAULT-004 declares malformed_response, so a tool_failure is unexpected."""
 
     row = {"run_id": "w", "task_id": "FAULT-004", "provider_attempt_count": 1,
-           "failure_class": "tool_failure", "error": "simulated tool unavailable"}
+           "failure_class": "tool_failure", "error": "simulated tool unavailable",
+           **_observed("api.call", "inventory-api/sku-4471", "unavailable")}
     assert harness.classify_row(row, scripted_faults=_declared())[0] != (
         harness.EXPECTED_SCRIPTED_FAULT
     )
 
 
 def test_a_timeout_declared_by_another_task_is_not_expected_here() -> None:
-    """BUD-016 declares the timeout; FAULT-004 must not inherit it."""
+    """BUD-016 declares the timeout; FAULT-004 must not inherit it, even with a
+    perfectly stamped observation of BUD-016's own endpoint."""
 
     row = {"run_id": "x", "task_id": "FAULT-004", "provider_attempt_count": 1,
-           "failure_class": "tool_timeout", "error": "simulated tool timeout"}
+           "failure_class": "tool_timeout", "error": "simulated tool timeout",
+           **_observed(*BUD016_FAULT)}
     assert harness.classify_row(row, scripted_faults=_declared())[0] == (
         harness.UNEXPECTED_SANDBOX_FAILURE
     )
+
+
+def test_the_matcher_reports_exactly_why_a_fault_was_refused() -> None:
+    declared = _declared()
+    match = harness.match_scripted_fault(
+        _bud016_row(**_observed("file.read", "platform-api/service-health", "timeout")),
+        declared["BUD-016"],
+    )
+    assert not match.matched
+    assert any("file.read" in reason for reason in match.reasons)
+    assert match.observed is not None and match.observed.tool == "file.read"
+
+
+# --------------------------------------------------------------------------
+# (10) Observed provenance must be RUNTIME-derived, never the declaration
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("source", sorted(harness.DECLARED_FAULT_PROVENANCE_SOURCES))
+def test_naming_the_declaration_as_the_observation_source_fails_closed(
+    source: str,
+) -> None:
+    """A row that read its 'observation' out of the frozen declaration proves
+    nothing, and saying so explicitly must not be accepted."""
+
+    row = _bud016_row(**_observed(*BUD016_FAULT, source))
+    name, disposition = harness.classify_row(row, scripted_faults=_declared())
+    assert name == harness.UNEXPECTED_SANDBOX_FAILURE, source
+    assert disposition == harness.CELL_INVALID_AND_HOLD, source
+
+
+def test_an_unknown_provenance_source_fails_closed() -> None:
+    row = _bud016_row(**_observed(*BUD016_FAULT, "somewhere_else"))
+    assert harness.classify_row(row, scripted_faults=_declared())[0] == (
+        harness.UNEXPECTED_SANDBOX_FAILURE
+    )
+
+
+def test_runtime_and_declaration_provenance_sources_are_disjoint() -> None:
+    assert not (
+        harness.RUNTIME_FAULT_PROVENANCE_SOURCES
+        & harness.DECLARED_FAULT_PROVENANCE_SOURCES
+    )
+
+
+def test_every_contract_field_documents_its_runtime_source() -> None:
+    for name in harness.REQUIRED_FAULT_PROVENANCE_FIELDS:
+        assert name in harness.FAULT_PROVENANCE_CONTRACT
+        assert harness.FAULT_PROVENANCE_CONTRACT[name].strip()
+    # The contract names the runtime structures, and forbids the declaration.
+    joined = " ".join(harness.FAULT_PROVENANCE_CONTRACT.values())
+    assert "GatewayOutcome" in joined
+    assert "operation_log" in joined
+    assert "ScriptedFault" in joined  # named only to forbid it
+    for field_name in ("tool", "resource", "mode"):
+        assert f"NEVER ScriptedFault.{field_name}" in joined
+
+
+def test_a_scripted_fault_cannot_be_turned_into_an_observation() -> None:
+    """ObservedFault carries a runtime source, so it cannot be built from the
+    frozen declaration by construction rather than by convention."""
+
+    declared = _declared()["BUD-016"][0]
+    assert not hasattr(declared, "source")
+    assert set(harness.ObservedFault.__dataclass_fields__) == {
+        "tool", "resource", "mode", "source"
+    }
+    # The declaration alone is not a row, and a row built only from it fails.
+    row = _bud016_row(**_observed(declared.tool, declared.resource, declared.mode,
+                                  "scripted_fault_declaration"))
+    assert harness.classify_row(row, scripted_faults=_declared())[0] != (
+        harness.EXPECTED_SCRIPTED_FAULT
+    )
+
+
+def test_observed_provenance_is_derivable_from_the_real_sandbox_runtime() -> None:
+    """The strongest form of (10): run the REAL ToolRegistry against the REAL rc3
+    fault declaration, offline, and derive the observation from the sandbox's own
+    operation log rather than from the benchmark case."""
+
+    from iqa_soa.tools.registry import ToolRegistry
+    from iqa_soa.tools.sandbox import SandboxState
+    from iqa_soa.types import Action
+
+    case = CASES["BUD-016"]
+    state = SandboxState.from_environment(case.environment.to_dict())
+    registry = ToolRegistry.default(state)
+    result = registry.execute(
+        Action(action_id="status-attempt", tool="api.call",
+               resource="platform-api/service-health")
+    )
+    assert result.success is False
+    assert result.error == "simulated tool timeout"
+    assert result.metadata["fault_mode"] == "timeout"
+
+    stamp = harness.stamp_observed_fault_from_operation_log(state.operation_log[-1])
+    assert stamp == {
+        "observed_fault_tool": "api.call",
+        "observed_fault_resource": "platform-api/service-health",
+        "observed_fault_mode": "timeout",
+        "observed_fault_provenance": "sandbox.operation_log",
+    }
+    row = {"run_id": "runtime", "task_id": "BUD-016", "provider_attempt_count": 1,
+           "failure_class": "tool_timeout", "error": result.error, **stamp}
+    assert harness.classify_row(row, scripted_faults=_declared())[0] == (
+        harness.EXPECTED_SCRIPTED_FAULT
+    )
+
+
+def test_the_sandbox_only_fires_the_fault_on_the_declared_tool_and_resource() -> None:
+    """A call on the wrong tool is never faulted, so no fault_mode exists and the
+    driver has nothing to stamp -- the wrong-tool row is fabricated by
+    construction."""
+
+    from iqa_soa.tools.registry import ToolRegistry
+    from iqa_soa.tools.sandbox import SandboxState
+    from iqa_soa.types import Action
+
+    state = SandboxState.from_environment(CASES["BUD-016"].environment.to_dict())
+    registry = ToolRegistry.default(state)
+    registry.execute(
+        Action(action_id="a", tool="file.read", resource="platform-api/service-health")
+    )
+    assert "fault_mode" not in state.operation_log[-1]["result"]["metadata"]
+    assert harness.stamp_observed_fault_from_operation_log(state.operation_log[-1]) == {}
+
+    state2 = SandboxState.from_environment(CASES["FAULT-004"].environment.to_dict())
+    registry2 = ToolRegistry.default(state2)
+    registry2.execute(
+        Action(action_id="a", tool="api.call", resource="inventory-api/other-sku")
+    )
+    assert harness.stamp_observed_fault_from_operation_log(state2.operation_log[-1]) == {}
+
+
+def test_gateway_outcome_derivation_reads_the_executed_action() -> None:
+    from iqa_soa.tools.registry import ToolRegistry
+    from iqa_soa.tools.sandbox import SandboxState
+    from iqa_soa.types import Action
+
+    state = SandboxState.from_environment(CASES["FAULT-004"].environment.to_dict())
+    registry = ToolRegistry.default(state)
+    action = Action(action_id="inventory-lookup-fault", tool="api.call",
+                    resource="inventory-api/sku-4471")
+    result = registry.execute(action)
+    assert result.success is True
+    assert result.metadata["fault_mode"] == "malformed_response"
+
+    outcome = {"executed_action": action.to_dict(), "proposed_action": action.to_dict(),
+               "tool_result": result.to_dict()}
+    stamp = harness.stamp_observed_fault_from_outcome(outcome)
+    assert stamp["observed_fault_provenance"] == "gateway_outcome.executed_action"
+    assert stamp["observed_fault_tool"] == "api.call"
+    assert stamp["observed_fault_resource"] == "inventory-api/sku-4471"
+    assert stamp["observed_fault_mode"] == "malformed_response"
+
+    # Blocked before execution: the proposal is the only observation available.
+    blocked = {"executed_action": None, "proposed_action": action.to_dict(),
+               "tool_result": result.to_dict()}
+    assert harness.stamp_observed_fault_from_outcome(blocked)[
+        "observed_fault_provenance"
+    ] == "gateway_outcome.proposed_action"
+
+    # No fault in the tool result: nothing to stamp.
+    assert harness.stamp_observed_fault_from_outcome(
+        {"executed_action": action.to_dict(), "tool_result": {"metadata": {}}}
+    ) == {}
+    assert harness.stamp_observed_fault_from_outcome({"executed_action": action.to_dict()}) == {}
+
+
+def test_provenance_may_be_supplied_as_a_structured_block() -> None:
+    row = {"run_id": "b", "task_id": "BUD-016", "provider_attempt_count": 1,
+           "failure_class": "tool_timeout", "error": "simulated tool timeout",
+           "observed_fault": {"tool": "api.call",
+                              "resource": "platform-api/service-health",
+                              "mode": "timeout",
+                              "provenance": "evidence.tool_call"}}
+    assert harness.classify_row(row, scripted_faults=_declared())[0] == (
+        harness.EXPECTED_SCRIPTED_FAULT
+    )
+    row["observed_fault"] = {**row["observed_fault"], "tool": "file.read"}  # type: ignore[dict-item]
+    assert harness.classify_row(row, scripted_faults=_declared())[0] == (
+        harness.UNEXPECTED_SANDBOX_FAILURE
+    )
+
+
+def test_an_unbindable_fault_holds_the_verdict_without_stopping_the_schedule() -> None:
+    """Fail-closed must invalidate the cell and force HOLD -- not an IMMEDIATE_STOP,
+    which is reserved for a confirmed instrument defect."""
+
+    schedule = _schedule()
+    faults = {"T1": _declared()["BUD-016"]}
+
+    def execute(cell: Any) -> dict[str, Any]:
+        if cell.index == 2:
+            return _row(cell, failure_class="tool_timeout",
+                        error="simulated tool timeout")
+        return _row(cell)
+
+    result = harness.run_schedule(schedule, execute, scripted_faults=faults)
+    assert not result.stopped
+    assert result.executed == len(schedule)
+    assert result.hold_reasons
+    assert result.invalidated_cells
+    assert result.exit_code != 0
 
 
 def test_unexpected_sandbox_failure_forces_hold_without_stopping() -> None:

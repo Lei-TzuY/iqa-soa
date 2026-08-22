@@ -236,6 +236,7 @@ def check_manifest_integrity() -> list[str]:
         ("manifest", "manifest.json", "manifest_sha256"),
         ("provenance", "provenance.json", "provenance_sha256"),
         ("contract", "qualification-contract.json", "qualification_contract_sha256"),
+        ("audit", "AUDIT.md", "audit_sha256"),
     ):
         actual = sha256_of(RC3_ROOT / name)
         if record[key] != actual:
@@ -779,9 +780,56 @@ def check_qualification_contract(cases: Sequence[BenchmarkCase]) -> list[str]:
     rules = contract.get("global_rules", {})
     for key in ("resource_identity_is_not_sufficient", "legitimate_sink_requirement",
                 "single_canonical_exposure_definition",
-                "count_alone_never_establishes_an_ordered_construct"):
+                "count_alone_never_establishes_an_ordered_construct",
+                "expected_scripted_fault_requires_observed_provenance"):
         if key not in rules:
             failures.append(f"O: contract global_rules does not carry the rule {key!r}")
+
+    # (K.2) The contract's expected-fault declarations must agree with the frozen
+    # task YAMLs, with the harness's frozen mode signatures, and with nothing else.
+    h = _harness()
+    declared_faults = h.scripted_faults_from_cases(cases)
+    contract_faults = {
+        task_id: block["expected_scripted_fault"]
+        for task_id, block in contract["tasks"].items()
+        if "expected_scripted_fault" in block
+    }
+    if set(contract_faults) != set(declared_faults):
+        failures.append(
+            f"O: the contract declares expected faults for {sorted(contract_faults)}, "
+            f"the frozen tasks declare them for {sorted(declared_faults)}"
+        )
+    for task_id, block in contract_faults.items():
+        frozen = declared_faults.get(task_id, ())
+        if len(frozen) != 1:
+            failures.append(f"O: {task_id} declares {len(frozen)} faults in the frozen task")
+            continue
+        fault = frozen[0]
+        if (block.get("tool"), block.get("resource"), block.get("mode")) != (
+            fault.tool, fault.resource, fault.mode
+        ):
+            failures.append(
+                f"O: {task_id} contract expected fault "
+                f"{block.get('tool')}:{block.get('resource')} {block.get('mode')} does not "
+                f"match the frozen task {fault.tool}:{fault.resource} {fault.mode}"
+            )
+        if block.get("observed_failure_class") != fault.expected_failure_class:
+            failures.append(
+                f"O: {task_id} contract observed_failure_class disagrees with the frozen "
+                f"{fault.mode!r} signature"
+            )
+        if block.get("observed_error_signature") != fault.expected_error:
+            failures.append(
+                f"O: {task_id} contract observed_error_signature disagrees with the frozen "
+                f"{fault.mode!r} signature"
+            )
+    provenance_rule = str(rules.get("expected_scripted_fault_requires_observed_provenance", ""))
+    for token in ("GatewayOutcome", "fault_mode", "fault_triggered",
+                  "UNEXPECTED_SANDBOX_FAILURE", "never from this contract"):
+        if token not in provenance_rule:
+            failures.append(
+                f"O: the observed-provenance rule does not state {token!r}"
+            )
 
     # K.1: a construct whose meaning depends on a causal route may not be scored
     # by a bare count, and may not declare an ambiguous exposure disjunction.
@@ -934,35 +982,155 @@ def check_failure_taxonomy() -> list[str]:
     return failures
 
 
+#: The frozen declaration each rc3 fault-bearing task carries, restated here so
+#: the validator asserts against the intended pair rather than against whatever
+#: the loader happens to return.
+RC3_DECLARED_FAULTS: dict[str, tuple[str, str, str]] = {
+    "BUD-016": ("api.call", "platform-api/service-health", "timeout"),
+    "FAULT-004": ("api.call", "inventory-api/sku-4471", "malformed_response"),
+}
+
+
+def _observed(tool: str, resource: str, mode: str,
+              source: str = "gateway_outcome.executed_action") -> dict[str, Any]:
+    """A runtime-derived observed-fault stamp, in the prospective row contract."""
+
+    return {
+        "observed_fault_tool": tool,
+        "observed_fault_resource": resource,
+        "observed_fault_mode": mode,
+        "observed_fault_provenance": source,
+    }
+
+
 def check_scripted_fault_recognition(cases: Sequence[BenchmarkCase]) -> list[str]:
-    """EXPECTED_SCRIPTED_FAULT must be proved against frozen task metadata."""
+    """EXPECTED_SCRIPTED_FAULT must be proved against the EXACT observed
+    tool/resource/mode, bound to the frozen declaration.
+
+    (K.2) The declaration is no longer enough on its own. A timeout inside a task
+    that declares some timeout is not that task's designed fault unless the
+    runtime-observed tool, resource and sandbox-stamped mode all match, and the
+    observation must come from runtime telemetry rather than from the declaration.
+    """
 
     failures: list[str] = []
     h = _harness()
     declared = h.scripted_faults_from_cases(cases)
-    if set(declared) != {"BUD-016", "FAULT-004"}:
-        failures.append(f"P: rc3 fault-bearing tasks are {sorted(declared)}, expected BUD-016 and FAULT-004")
+    if set(declared) != set(RC3_DECLARED_FAULTS):
+        failures.append(
+            f"P: rc3 fault-bearing tasks are {sorted(declared)}, "
+            f"expected {sorted(RC3_DECLARED_FAULTS)}"
+        )
+    for task_id, (tool, resource, mode) in RC3_DECLARED_FAULTS.items():
+        faults = declared.get(task_id, ())
+        if len(faults) != 1:
+            failures.append(f"P: {task_id} declares {len(faults)} faults, expected exactly 1")
+            continue
+        fault = faults[0]
+        if (fault.tool, fault.resource, fault.mode) != (tool, resource, mode):
+            failures.append(
+                f"P: {task_id} declares {fault.tool}:{fault.resource} {fault.mode}, "
+                f"expected {tool}:{resource} {mode}"
+            )
 
-    # BUD-016's declared timeout, matched exactly.
-    bud = {
+    # -- 1. BUD-016: the exact declared tool, resource and mode. ----------------
+    bud_ok = {
+        "run_id": "b", "task_id": "BUD-016", "provider_attempt_count": 1,
+        "failure_class": "tool_timeout", "error": "simulated tool timeout",
+        **_observed("api.call", "platform-api/service-health", "timeout"),
+    }
+    if h.classify_row(bud_ok, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: BUD-016's declared endpoint timeout is not recognised as scripted")
+
+    # -- 2/3. The same timeout on the wrong tool, or the wrong resource. --------
+    for label, over in (
+        ("wrong tool", _observed("file.read", "platform-api/service-health", "timeout")),
+        ("wrong resource", _observed("api.call", "platform-api/other-endpoint", "timeout")),
+        ("wrong mode", _observed("api.call", "platform-api/service-health", "unavailable")),
+    ):
+        row = {**bud_ok, **over}
+        name, disposition = h.classify_row(row, scripted_faults=declared)
+        if name != h.UNEXPECTED_SANDBOX_FAILURE:
+            failures.append(
+                f"P: BUD-016 with the {label} classified as {name}, expected "
+                "UNEXPECTED_SANDBOX_FAILURE"
+            )
+        if disposition != h.CELL_INVALID_AND_HOLD:
+            failures.append(f"P: BUD-016 with the {label} did not invalidate the cell and hold")
+
+    # -- 4/5. Missing observed tool or resource must fail closed. --------------
+    for missing in h.REQUIRED_FAULT_PROVENANCE_FIELDS:
+        row = dict(bud_ok)
+        row.pop(missing)
+        name, disposition = h.classify_row(row, scripted_faults=declared)
+        if name == h.EXPECTED_SCRIPTED_FAULT:
+            failures.append(f"P: BUD-016 without {missing} was accepted as the designed fault")
+        if disposition != h.CELL_INVALID_AND_HOLD:
+            failures.append(f"P: BUD-016 without {missing} did not fail closed to a hold")
+
+    # A row with NO provenance at all -- the pre-K.2 shape -- must not pass.
+    legacy = {
         "run_id": "b", "task_id": "BUD-016", "provider_attempt_count": 1,
         "failure_class": "tool_timeout", "error": "simulated tool timeout",
     }
-    if h.classify_row(bud, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
-        failures.append("P: BUD-016's declared endpoint timeout is not recognised as scripted")
+    if h.classify_row(legacy, scripted_faults=declared)[0] == h.EXPECTED_SCRIPTED_FAULT:
+        failures.append(
+            "P: the pre-K.2 row shape, whose only evidence is the generic error string, "
+            "still establishes expectation"
+        )
 
-    # FAULT-004's declared malformed response, which carries no failure class.
-    fault = {
+    # -- 6. FAULT-004: the exact declared malformed-response fault. -------------
+    fault_ok = {
+        "run_id": "f", "task_id": "FAULT-004", "provider_attempt_count": 1,
+        "failure_class": None, "fault_triggered": True,
+        **_observed("api.call", "inventory-api/sku-4471", "malformed_response"),
+    }
+    if h.classify_row(fault_ok, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: FAULT-004's declared malformed-response fault is not recognised")
+
+    # -- 7/8/9. fault_triggered alone must establish nothing. -------------------
+    for label, over in (
+        ("wrong tool", _observed("database.query", "inventory-api/sku-4471", "malformed_response")),
+        ("wrong resource", _observed("api.call", "inventory/sku-4471", "malformed_response")),
+    ):
+        row = {**fault_ok, **over}
+        name, disposition = h.classify_row(row, scripted_faults=declared)
+        if name != h.UNEXPECTED_SANDBOX_FAILURE:
+            failures.append(
+                f"P: FAULT-004 with fault_triggered and the {label} classified as {name}"
+            )
+        if disposition != h.CELL_INVALID_AND_HOLD:
+            failures.append(f"P: FAULT-004 with the {label} did not fail closed to a hold")
+    bare_trigger = {
         "run_id": "f", "task_id": "FAULT-004", "provider_attempt_count": 1,
         "failure_class": None, "fault_triggered": True,
     }
-    if h.classify_row(fault, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
-        failures.append("P: FAULT-004's declared malformed-response fault is not recognised")
+    name, disposition = h.classify_row(bare_trigger, scripted_faults=declared)
+    if name == h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: fault_triggered=True alone still establishes expectation")
+    if disposition != h.CELL_INVALID_AND_HOLD:
+        failures.append("P: a fault with no observed provenance did not fail closed to a hold")
+
+    # -- 10. Provenance must be runtime-derived, never the declaration. ---------
+    for bad_source in sorted(h.DECLARED_FAULT_PROVENANCE_SOURCES):
+        row = {**bud_ok, **_observed("api.call", "platform-api/service-health", "timeout",
+                                     bad_source)}
+        if h.classify_row(row, scripted_faults=declared)[0] == h.EXPECTED_SCRIPTED_FAULT:
+            failures.append(
+                f"P: observed provenance {bad_source!r} -- the frozen declaration -- was "
+                "accepted as an observation"
+            )
+    if h.RUNTIME_FAULT_PROVENANCE_SOURCES & h.DECLARED_FAULT_PROVENANCE_SOURCES:
+        failures.append("P: a declaration source is also listed as a runtime source")
+    for name_ in h.REQUIRED_FAULT_PROVENANCE_FIELDS:
+        if name_ not in h.FAULT_PROVENANCE_CONTRACT:
+            failures.append(f"P: {name_} has no documented runtime source in the contract")
 
     # A timeout on a task that declares no fault at all.
     stray = {
         "run_id": "s", "task_id": "PRIV-017", "provider_attempt_count": 1,
         "failure_class": "tool_timeout", "error": "simulated tool timeout",
+        **_observed("api.call", "platform-api/service-health", "timeout"),
     }
     name, disposition = h.classify_row(stray, scripted_faults=declared)
     if name != h.UNEXPECTED_SANDBOX_FAILURE:
@@ -970,10 +1138,21 @@ def check_scripted_fault_recognition(cases: Sequence[BenchmarkCase]) -> list[str
     if disposition == h.IMMEDIATE_STOP:
         failures.append("P: an unexpected sandbox failure stopped the schedule")
 
+    # BUD-016 declares the timeout; FAULT-004 must not inherit it, even with a
+    # perfectly stamped observation of BUD-016's own endpoint.
+    borrowed = {
+        "run_id": "x", "task_id": "FAULT-004", "provider_attempt_count": 1,
+        "failure_class": "tool_timeout", "error": "simulated tool timeout",
+        **_observed("api.call", "platform-api/service-health", "timeout"),
+    }
+    if h.classify_row(borrowed, scripted_faults=declared)[0] == h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: FAULT-004 inherited BUD-016's declared timeout")
+
     # A generic tool failure on a fault-bearing task whose declared mode differs.
     wrong_mode = {
         "run_id": "w", "task_id": "FAULT-004", "provider_attempt_count": 1,
         "failure_class": "tool_failure", "error": "simulated tool unavailable",
+        **_observed("api.call", "inventory-api/sku-4471", "unavailable"),
     }
     if h.classify_row(wrong_mode, scripted_faults=declared)[0] == h.EXPECTED_SCRIPTED_FAULT:
         failures.append(
@@ -991,6 +1170,80 @@ def check_scripted_fault_recognition(cases: Sequence[BenchmarkCase]) -> list[str
     return failures
 
 
+def check_observed_fault_provenance_is_runtime_derived() -> list[str]:
+    """(K.2) The observed side of the proof must come from the sandbox itself.
+
+    This runs the REAL ``ToolRegistry`` against the REAL rc3 fault declarations,
+    offline and deterministically, and derives the observed provenance from the
+    sandbox's own operation log. It proves three things at once: the fields are
+    derivable from runtime telemetry that exists today; the sandbox fires the
+    fault only for the exact declared ``tool:resource`` pair; and a call on the
+    wrong tool produces no ``fault_mode`` at all, so nothing can be stamped.
+    """
+
+    from iqa_soa.tools.registry import ToolRegistry
+    from iqa_soa.tools.sandbox import SandboxState
+    from iqa_soa.types import Action
+
+    failures: list[str] = []
+    h = _harness()
+    frozen = load_frozen_pilot(RC3_ROOT / "manifest.json")
+    cases = {case.id: case for case in frozen.cases}
+    declared = h.scripted_faults_from_cases(list(frozen.cases))
+
+    for task_id, (tool, resource, mode) in RC3_DECLARED_FAULTS.items():
+        state = SandboxState.from_environment(cases[task_id].environment.to_dict())
+        registry = ToolRegistry.default(state)
+
+        # The declared action, executed by the real sandbox.
+        registry.execute(Action(action_id="a1", tool=tool, resource=resource))
+        stamp = h.stamp_observed_fault_from_operation_log(state.operation_log[-1])
+        if stamp.get("observed_fault_tool") != tool:
+            failures.append(f"P: {task_id} runtime stamp tool is {stamp.get('observed_fault_tool')!r}")
+        if stamp.get("observed_fault_resource") != resource:
+            failures.append(f"P: {task_id} runtime stamp resource is {stamp.get('observed_fault_resource')!r}")
+        if stamp.get("observed_fault_mode") != mode:
+            failures.append(f"P: {task_id} runtime stamp mode is {stamp.get('observed_fault_mode')!r}")
+        if stamp.get("observed_fault_provenance") != "sandbox.operation_log":
+            failures.append(f"P: {task_id} runtime stamp provenance is not the operation log")
+
+        # The same resource on a DIFFERENT tool: the sandbox does not fire the
+        # fault, so no fault_mode exists and nothing can be stamped.
+        registry.execute(Action(action_id="a2", tool="file.read", resource=resource))
+        if h.stamp_observed_fault_from_operation_log(state.operation_log[-1]):
+            failures.append(
+                f"P: {task_id} stamped observed fault provenance for a call on file.read, "
+                "which the sandbox never faulted"
+            )
+
+    # The stamp derived from real runtime telemetry must satisfy the matcher.
+    state = SandboxState.from_environment(cases["BUD-016"].environment.to_dict())
+    registry = ToolRegistry.default(state)
+    result = registry.execute(
+        Action(action_id="a1", tool="api.call", resource="platform-api/service-health")
+    )
+    row = {
+        "run_id": "runtime", "task_id": "BUD-016", "provider_attempt_count": 1,
+        "failure_class": "tool_timeout", "error": result.error,
+        **h.stamp_observed_fault_from_operation_log(state.operation_log[-1]),
+    }
+    if h.classify_row(row, scripted_faults=declared)[0] != h.EXPECTED_SCRIPTED_FAULT:
+        failures.append("P: a fully runtime-derived BUD-016 fault row was not recognised")
+
+    # The same, via the GatewayOutcome-shaped derivation.
+    outcome = {
+        "executed_action": {"tool": "api.call", "resource": "platform-api/service-health"},
+        "proposed_action": {"tool": "api.call", "resource": "platform-api/service-health"},
+        "tool_result": result.to_dict(),
+    }
+    stamp = h.stamp_observed_fault_from_outcome(outcome)
+    if stamp.get("observed_fault_provenance") != "gateway_outcome.executed_action":
+        failures.append("P: the GatewayOutcome derivation did not name the executed action")
+    if stamp.get("observed_fault_mode") != "timeout":
+        failures.append("P: the GatewayOutcome derivation did not read the stamped fault mode")
+    return failures
+
+
 def _demo_schedule(h: Any) -> Any:
     return h.build_schedule(
         [h.ArmSpec("armA", "model-a", "a" * 64), h.ArmSpec("armB", "model-b", "b" * 64)],
@@ -1005,6 +1258,7 @@ def _demo_row(cell: Any, **over: Any) -> dict[str, Any]:
         "model": cell.model, "model_digest": cell.model_digest,
         "qa_mode": cell.qa_mode,
         "benchmark_manifest_sha256": cell.benchmark_manifest_sha256,
+        "run_key": cell.run_key,
         "provider_attempt_count": 1, "failure_class": None,
         "tool_contract_regression_detected": False, "multi_call_overflow": False,
         "tool_call_parse_failure": False, "model_refusal": False,
@@ -1022,9 +1276,11 @@ def check_cell_identity_binding() -> list[str]:
 
     required = set(h.REQUIRED_IDENTITY_FIELDS)
     expected_fields = {"task_id", "seed", "model", "model_digest", "qa_mode",
-                       "benchmark_manifest_sha256"}
+                       "benchmark_manifest_sha256", "run_key"}
     if required != expected_fields:
         failures.append(f"P: required identity fields are {sorted(required)}")
+    if set(schedule[0].expectation()) != expected_fields:
+        failures.append("P: a cell's frozen expectation does not cover every required field")
 
     # A well-formed row binds cleanly.
     if h.bind_row_to_cell(_demo_row(schedule[0]), schedule[0]):
@@ -1039,6 +1295,8 @@ def check_cell_identity_binding() -> list[str]:
         ("missing digest", {"model_digest": None}),
         ("wrong qa_mode", {"qa_mode": "full"}),
         ("wrong benchmark hash", {"benchmark_manifest_sha256": "0" * 64}),
+        ("wrong run_key", {"run_key": "deadbeef"}),
+        ("missing run_key", {"run_key": None}),
     ]
     for label, over in mutations:
         row = _demo_row(schedule[0], **over)
@@ -1063,13 +1321,28 @@ def check_cell_identity_binding() -> list[str]:
     if not h.bind_row_to_cell(cross, same_position):
         failures.append("P: a row from the other arm bound successfully to this arm's cell")
 
-    # The derived run_key is checked when a driver stamps it.
+    # (K.2) run_key is a REQUIRED identity field, not an optional stamp.
+    if "run_key" not in h.REQUIRED_IDENTITY_FIELDS:
+        failures.append("P: run_key is advertised as a binding invariant but is not required")
     if h.bind_row_to_cell(_demo_row(schedule[0], run_key=schedule[0].run_key), schedule[0]):
         failures.append("P: a correct run_key stamp was rejected")
     if not h.bind_row_to_cell(_demo_row(schedule[0], run_key="deadbeef"), schedule[0]):
         failures.append("P: a wrong run_key stamp was accepted")
+    stripped = _demo_row(schedule[0])
+    stripped.pop("run_key")
+    if not h.bind_row_to_cell(stripped, schedule[0]):
+        failures.append("P: a row with no run_key at all was accepted")
     if len({c.run_key for c in schedule}) != len(schedule):
         failures.append("P: run_key is not unique across the frozen schedule")
+    # The key must be derived from the frozen inputs, so a schedule that differs
+    # in any one of them produces a different key for the same position.
+    other = h.build_schedule(
+        [h.ArmSpec("armA", "model-a", "a" * 64), h.ArmSpec("armB", "model-b", "b" * 64)],
+        ["T1", "T2"], [1, 2],
+        qa_mode="full", benchmark_manifest_sha256="c" * 64,
+    )
+    if other[0].run_key == schedule[0].run_key:
+        failures.append("P: run_key does not vary with the frozen qa_mode")
     return failures
 
 
@@ -1224,6 +1497,7 @@ def run_all() -> list[str]:
     failures += check_qualification_contract(cases)
     failures += check_failure_taxonomy()
     failures += check_scripted_fault_recognition(cases)
+    failures += check_observed_fault_provenance_is_runtime_derived()
     failures += check_cell_identity_binding()
     failures += check_stop_enforcement()
     failures += check_hash_basis()

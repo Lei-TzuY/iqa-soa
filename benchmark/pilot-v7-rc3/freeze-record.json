@@ -4,8 +4,8 @@
   "phase": "K",
   "manifest_sha256": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
   "provenance_sha256": "078a73c59e8ec4d1964d5079233159542af4b70f4ef908128836308a3d4c658a",
-  "qualification_contract_sha256": "b5623962d4bf20eb2fc4f156adcad633dd96fd7a648f100d683493c76b428438",
-  "audit_sha256": "44b80e6b1bd8b1868fb057356b0736feb001c842fe72bb772ddacb6b4667f6fc",
+  "qualification_contract_sha256": "6d3fbcf8bb0213c4619e1a268502cc9b669146bf5f677bfd421b58ee1d26e7ca",
+  "audit_sha256": "65b6eae0fc67a21a1ec76d7c5ce7374909a2111c23b09efbd7e5533be9d3476b",
   "frozen_flag_meaning": "The manifest's frozen=true flag is the manifest-schema requirement that this selection is hash-pinned: every case file is bound to a SHA-256 of its raw working-tree bytes and the loader refuses the selection if any byte moves. It does NOT mean the benchmark is scientifically final. The release status is release-candidate.",
   "supersedes": {
     "benchmark_version": "pilot-v7-rc2",
