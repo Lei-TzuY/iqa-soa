@@ -591,6 +591,75 @@ def test_the_forbidden_set_covers_every_seed_the_repository_records() -> None:
     assert set(prior) == {1729, 2718, 3141, 5772, 8119, *protocol.PHASE_L_SEEDS}
 
 
+def test_the_history_scan_reads_committed_bytes_not_the_working_tree(
+    tmp_path: Path,
+) -> None:
+    """The scan is ``git ls-files``, so a gitignored local artifact cannot enter it.
+
+    This repository gitignores ``results/raw/``, ``results/real-pilot/``,
+    ``results/processed/``, ``results/phaseA-privacy-ablation/`` and
+    ``results/pilot-v6.1-stage1/``.  A filesystem walk therefore reads whatever a
+    given machine happens to have, which makes the derivation record
+    irreproducible from the commit and turns a claim about committed history into
+    a claim about a developer's disk.  A fresh detached-worktree run is what
+    surfaced it; this test is what keeps it fixed.
+    """
+
+    tracked = set(seeds.tracked_files())
+    assert tracked, "git listed no tracked files under the scan roots"
+
+    # THE INVARIANT: every source the scan reports is a file git tracks.  It is
+    # stated this way rather than as a path blocklist because git's ignore rules
+    # do not apply to files that were already tracked, so "is under an ignored
+    # directory" and "is untracked" are different questions and only the second
+    # one matters here.
+    for source_list in seeds.scan_committed_seeds().values():
+        for source in source_list:
+            assert source in tracked, (
+                f"{source} is not tracked by git and must not influence the "
+                "committed-history scan"
+            )
+
+    # The specific artifacts that differed between this working tree and a fresh
+    # checkout, named so the regression cannot come back unnoticed.
+    untracked_probe = PROJECT_ROOT / "results" / "raw"
+    if untracked_probe.is_dir():
+        on_disk = {
+            path.relative_to(PROJECT_ROOT).as_posix()
+            for path in untracked_probe.rglob("*.jsonl")
+        }
+        assert not (on_disk & tracked), (
+            "results/raw/ holds untracked local run output; it must not be tracked "
+            "and must not reach the scan"
+        )
+        for source_list in seeds.scan_committed_seeds().values():
+            assert not (set(source_list) & on_disk)
+
+    # An untracked file that names a seed changes nothing.
+    intruder = PROJECT_ROOT / "configs" / "_phaseP_scan_probe.yaml"
+    assert not intruder.exists()
+    before = seeds.scan_committed_seeds()
+    try:
+        intruder.write_text("seeds: [424242]" + chr(10), encoding="utf-8")
+        assert seeds.scan_committed_seeds() == before
+        assert 424242 not in seeds.scan_committed_seeds()
+    finally:
+        intruder.unlink(missing_ok=True)
+
+
+def test_the_derivation_record_is_reproducible_from_a_clean_checkout(
+    tmp_path: Path,
+) -> None:
+    """Two scans of the same commit agree, whatever is lying around untracked."""
+
+    first = seeds.build_record()
+    second = seeds.build_record()
+    assert seeds.render(first) == seeds.render(second)
+    assert first["collision_checks"]["committed_seeds_discovered"] == (
+        second["collision_checks"]["committed_seeds_discovered"]
+    )
+
+
 def test_no_phase_p_seed_leaks_outside_the_declared_phase_p_artifacts() -> None:
     prior = seeds.prior_phase_seeds()
     assert set(protocol.SEEDS) & set(prior) == set()

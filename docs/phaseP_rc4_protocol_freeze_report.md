@@ -69,9 +69,11 @@ three ordinals were accepted at `counter-0`; no rejection occurred.
 | 2 | 0 | `71873fa01d97fcb25ad210d41ae5387dabf64f80bd5bd9d28e8d379e4cd46d9b` | `1904689056` |
 | 3 | 0 | `c38d9a109944cd2016720388485f2456d4947ddf3f372f6a79f0c4ed8cffe757` | `1133353488` |
 
-**Proof the triple is new.** `scan_committed_seeds` walks every committed
-configuration, every committed `*.jsonl` raw row (5 438 rows) and every committed
-`*.json` artifact. It finds exactly eight prior seeds —
+**Proof the triple is new.** `scan_committed_seeds` reads every git-TRACKED file
+under `configs/`, `results/`, `docs/`, `benchmark/` and `schemas/`: the committed
+configurations, the committed `*.jsonl` raw rows and the committed `*.json`
+artifacts. The file set is enumerated with `git ls-files`, not by walking the
+filesystem — see §9. It finds exactly eight prior seeds —
 `1729, 2718, 3141, 5772, 8119, 929260329, 1281385038, 978843421` — all covered by
 the forbidden set, and none of them equal to a Phase-P seed. The scan is scoped
 to sources OUTSIDE Phase P's own three declared artifacts, and the exclusion cuts
@@ -120,8 +122,8 @@ No live metadata request was made by Phase P.
 
 | Check | Result |
 |---|---|
-| Phase-P focused suite (`tests/integration/test_phaseP_execution_protocol.py`) | **190 passed** |
-| Full `pytest` | **1575 passed** |
+| Phase-P focused suite (`tests/integration/test_phaseP_execution_protocol.py`) | **200 passed** |
+| Full `pytest` | **1584 passed** |
 | `mypy src` | clean (48 files) |
 | `MYPYPATH=src mypy --strict` over the five new Phase-P scripts | clean |
 | `qualification_harness_v2.py` self-check | PASS |
@@ -139,7 +141,7 @@ No live metadata request was made by Phase P.
 | `phaseP_write_frozen_inputs.py --check` | PASS |
 | `run_phaseP_rc4_qualification.py --verify-frozen-inputs` | PASS |
 | `analyze_phaseP_rc4_qualification.py --verify-scoring-plan` | PASS |
-| Fresh detached worktree, full battery at the final commit | PASS |
+| Fresh detached worktree, full battery at the final commit | PASS (and see §9) |
 
 ## 6. Zero-inference / zero-Ollama / zero-provider proof
 
@@ -195,3 +197,42 @@ created.
 
 `pilot-v7-rc4` remains **UNQUALIFIED**, **release-candidate**,
 **OFFLINE-DESIGNED** and **NOT FINAL**.
+
+## 9. A defect the fresh-worktree run caught, and its repair
+
+The first fresh detached-worktree run **failed**, on
+`test_the_derivation_is_a_pure_function_of_the_base_commit`. That is what the run
+is for, and the failure is recorded here rather than quietly fixed.
+
+**Cause.** `scan_committed_seeds` enumerated files by walking the filesystem.
+This repository gitignores several large local result directories —
+`results/raw/`, `results/real-pilot/`, `results/processed/`,
+`results/phaseA-privacy-ablation/` and `results/pilot-v6.1-stage1/` — so the
+development tree contained hundreds of untracked run artifacts that a clean
+checkout does not. The derivation record's `committed_seeds_discovered` therefore
+listed 111 sources for seed `1729` in the development tree and 34 in a clean
+checkout of the same commit.
+
+**Why it mattered.** Two claims were false as written. The record was not
+reproducible from the base SHA, and the completeness proof for the forbidden
+seed set was a statement about one machine's disk rather than about committed
+history — exactly the class of defect this repository's provenance machinery
+exists to prevent.
+
+**What it did not affect.** The seed triple itself is a pure function of the base
+SHA and the domain separator and never depended on the scan. The *set* of
+discovered seeds was identical either way — the same eight — because the
+committed Phase-D, Phase-F, Phase-I and Phase-L results carry all of them. No
+scientific conclusion changes.
+
+**Repair.** `tracked_files` enumerates the file set with `git ls-files`, and
+`scan_committed_seeds` reads only what git tracks. Git is required: a tree in
+which git cannot be consulted cannot support a claim about committed history at
+all, so the failure is raised rather than degraded into a partial scan. Two
+regression tests were added — one asserting every scanned source is tracked and
+that an untracked file naming a seed changes nothing, one asserting two scans of
+the same commit agree.
+
+The final battery was then re-run in a fresh detached worktree at the head
+commit.
+

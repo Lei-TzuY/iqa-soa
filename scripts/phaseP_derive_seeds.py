@@ -47,12 +47,20 @@ THE FORBIDDEN SET IS PROVED, NOT ASSERTED
 =========================================
 
 :data:`FORBIDDEN_SEEDS` is not a hand-maintained list that a reviewer must trust.
-:func:`scan_committed_seeds` walks the committed configurations, the committed
+:func:`scan_committed_seeds` reads the committed configurations, the committed
 raw result rows and the committed JSON artifacts and reports every seed the
 repository has ever recorded.  :func:`collision_report` requires the forbidden
 set to be a SUPERSET of what the scan finds, so a seed introduced by some phase
 this module's author did not know about makes the derivation FAIL rather than
 silently pass.
+
+The file set is enumerated with ``git ls-files``, not by walking the filesystem.
+That distinction is load-bearing: this repository gitignores several large local
+result directories, so a filesystem walk reads whatever happens to be on the
+machine running it -- which makes the record irreproducible from the commit and
+turns a claim about committed history into a claim about somebody's disk.  A
+fresh detached-worktree run of the Phase-P suite is what caught this, and
+:func:`tracked_files` is the repair.
 
 This module performs no inference, contacts no provider and reads no rc4 result.
 """
@@ -65,6 +73,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 import sys
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -282,10 +291,48 @@ def _collect_json_seeds(payload: Any, found: dict[int, set[str]], source: str) -
             _collect_json_seeds(item, found, source)
 
 
-def scan_committed_seeds(root: Path | None = None) -> dict[int, list[str]]:
-    """Every seed value the committed repository records, and where.
+def tracked_files(root: Path | None = None) -> list[str]:
+    """Every file git TRACKS under :data:`SCAN_ROOTS`, as POSIX relative paths.
 
-    Reads three surfaces, because a seed can be recorded in any of them:
+    The enumeration is ``git ls-files`` rather than a filesystem walk, and the
+    distinction is not cosmetic.  This repository gitignores several large local
+    result directories -- ``results/raw/``, ``results/real-pilot/``,
+    ``results/processed/``, ``results/phaseA-privacy-ablation/`` and
+    ``results/pilot-v6.1-stage1/`` among them -- so a filesystem walk reads
+    whatever happens to be on the machine running it.  A record built that way is
+    not reproducible from the commit, and a completeness proof built that way
+    proves something about a developer's disk rather than about committed
+    history.  A fresh detached-worktree run of the Phase-P suite is what
+    surfaced this, and this function is the repair.
+
+    Git is required.  A tree in which git cannot be consulted cannot support a
+    claim about committed history at all, so the failure is raised rather than
+    degraded into a partial scan.
+    """
+
+    base = (root or PROJECT_ROOT).resolve()
+    try:
+        completed = subprocess.run(
+            ["git", "ls-files", "-z", "--", *SCAN_ROOTS],
+            cwd=base,
+            capture_output=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise SeedDerivationError(
+            "git could not enumerate the committed history, so the completeness of "
+            f"the forbidden seed set cannot be proved: {exc}"
+        ) from exc
+    return sorted(
+        item.decode("utf-8") for item in completed.stdout.split(b"\0") if item
+    )
+
+
+def scan_committed_seeds(root: Path | None = None) -> dict[int, list[str]]:
+    """Every seed value the COMMITTED repository records, and where.
+
+    Reads three surfaces of the TRACKED file set, because a seed can be recorded
+    in any of them:
 
     * ``*.yaml`` under ``configs/`` -- the ``seeds:`` list and ``seed:`` scalars;
     * ``*.jsonl`` raw result rows -- each row's own ``seed`` field;
@@ -295,26 +342,26 @@ def scan_committed_seeds(root: Path | None = None) -> dict[int, list[str]]:
     only purpose is to prove that :data:`FORBIDDEN_SEEDS` is complete.
     """
 
-    base = root or PROJECT_ROOT
+    base = (root or PROJECT_ROOT).resolve()
     found: dict[int, set[str]] = {}
 
-    for path in sorted((base / "configs").rglob("*.yaml")):
-        text = path.read_text(encoding="utf-8", errors="replace")
-        source = path.relative_to(base).as_posix()
-        for match in _SEED_LIST.finditer(text):
-            for token in match.group(1).split(","):
-                stripped = token.strip()
-                if stripped.isdigit():
-                    found.setdefault(int(stripped), set()).add(source)
-        for match in _SEED_SCALAR.finditer(text):
-            found.setdefault(int(match.group(1)), set()).add(source)
-
-    for name in SCAN_ROOTS:
-        directory = base / name
-        if not directory.is_dir():
+    for source in tracked_files(base):
+        path = base / source
+        if not path.is_file():
             continue
-        for path in sorted(directory.rglob("*.jsonl")):
-            source = path.relative_to(base).as_posix()
+        suffix = path.suffix.casefold()
+        if suffix == ".yaml":
+            if not source.startswith("configs/"):
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for match in _SEED_LIST.finditer(text):
+                for token in match.group(1).split(","):
+                    stripped = token.strip()
+                    if stripped.isdigit():
+                        found.setdefault(int(stripped), set()).add(source)
+            for match in _SEED_SCALAR.finditer(text):
+                found.setdefault(int(match.group(1)), set()).add(source)
+        elif suffix == ".jsonl":
             for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
                 if not line.strip():
                     continue
@@ -326,8 +373,7 @@ def scan_committed_seeds(root: Path | None = None) -> dict[int, list[str]]:
                     value = parsed.get("seed")
                     if isinstance(value, int) and not isinstance(value, bool):
                         found.setdefault(value, set()).add(source)
-        for path in sorted(directory.rglob("*.json")):
-            source = path.relative_to(base).as_posix()
+        elif suffix == ".json":
             try:
                 parsed_json = json.loads(path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, UnicodeDecodeError, OSError):
@@ -397,10 +443,13 @@ def collision_report(
             "recorded rather than discarded."
         ),
         "history_scope": (
-            "Every committed seed EXCEPT those recorded in Phase P's own declared "
+            "Every seed recorded by a git-TRACKED file under "
+            f"{list(SCAN_ROOTS)}, EXCEPT those recorded in Phase P's own declared "
             "artifacts, which necessarily carry the derived triple once it is "
             "committed. A derived seed appearing in any OTHER source is reported "
-            "as a leak."
+            "as a leak. The enumeration is `git ls-files`, not a filesystem walk, "
+            "so gitignored local result directories cannot influence the record "
+            "and the scan is reproducible from the commit."
         ),
         "collision_free": not (uncovered or reused or duplicates or leaked)
         and all(seed != 0 for seed in seeds),
@@ -577,4 +626,5 @@ __all__ = [
     "prior_phase_seeds",
     "render",
     "scan_committed_seeds",
+    "tracked_files",
 ]
