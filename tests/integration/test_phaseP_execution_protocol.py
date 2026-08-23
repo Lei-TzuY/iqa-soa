@@ -1071,6 +1071,32 @@ def test_verify_frozen_inputs_needs_no_gate_and_creates_nothing(
 # ==========================================================================
 
 
+def test_the_frozen_modules_phase_p_executes_are_bound_here_too() -> None:
+    """Phase P binds the frozen modules it runs, not only the ones it wrote."""
+
+    executed_frozen = (
+        "scripts/qualification_harness.py",
+        "scripts/phaseL_protocol.py",
+        "scripts/analyze_phaseL_requalification.py",
+    )
+    for name in executed_frozen:
+        assert name in protocol.FROZEN_INPUT_PATHS
+    # And the inherited Phase-L binding still holds live for each of them, so the
+    # two records agree rather than one quietly superseding the other.
+    phase_l = json.loads(
+        (PROJECT_ROOT / "docs" / "phaseL_frozen_execution_inputs.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    phase_p = json.loads(
+        (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8")
+    )
+    for name in executed_frozen:
+        assert phase_l["files"][name] == phase_p["files"][name] == (
+            protocol.sha256_file(name)
+        )
+
+
 def test_the_offline_preflight_passes_on_the_frozen_tree() -> None:
     assert protocol.offline_preflight() == []
 
@@ -1115,6 +1141,9 @@ def test_the_frozen_inputs_cover_everything_the_brief_requires() -> None:
         "scripts/analyze_phaseP_rc4_qualification.py",
         "scripts/qualification_harness_v2.py",
         "scripts/rc4_scoring_vocabulary.py",
+        "scripts/qualification_harness.py",
+        "scripts/phaseL_protocol.py",
+        "scripts/analyze_phaseL_requalification.py",
         "benchmark/pilot-v7-rc4/manifest.json",
         "benchmark/pilot-v7-rc4/provenance.json",
         "benchmark/pilot-v7-rc4/qualification-contract.json",
@@ -1138,6 +1167,9 @@ def test_the_frozen_inputs_cover_everything_the_brief_requires() -> None:
         "benchmark/pilot-v7-rc4/qualification-contract.json",
         "scripts/qualification_harness_v2.py",
         "scripts/rc4_scoring_vocabulary.py",
+        "scripts/qualification_harness.py",
+        "scripts/phaseL_protocol.py",
+        "scripts/analyze_phaseL_requalification.py",
         "docs/phaseO_instrument_revision.json",
     ],
 )

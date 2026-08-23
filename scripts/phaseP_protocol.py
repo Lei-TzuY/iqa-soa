@@ -416,6 +416,21 @@ FROZEN_INPUT_PATHS: tuple[str, ...] = (
     "scripts/analyze_phaseP_rc4_qualification.py",
     "scripts/qualification_harness_v2.py",
     "scripts/rc4_scoring_vocabulary.py",
+    # THE FROZEN MODULES PHASE P ACTUALLY EXECUTES.  Each is already bound by an
+    # earlier freeze -- ``scripts/qualification_harness.py`` and
+    # ``scripts/phaseL_protocol.py`` and
+    # ``scripts/analyze_phaseL_requalification.py`` by
+    # ``docs/phaseL_frozen_execution_inputs.json``, whose live residual
+    # ``scripts/phaseO_frozen_input_supersession.py`` still checks in full -- and
+    # none of them is edited here.  They are repeated in PHASE P'S OWN record
+    # because Phase P depends on their bytes directly: the rc4 harness loads the
+    # frozen harness by path, this protocol rebinds the frozen containment
+    # helpers, and the Phase-P analyzer executes the frozen plan builder.  An
+    # inherited binding is a real binding, but a reviewer should not have to
+    # trace two records to see what this phase runs.
+    "scripts/qualification_harness.py",
+    "scripts/phaseL_protocol.py",
+    "scripts/analyze_phaseL_requalification.py",
     # The benchmark and its scoring contract.
     "benchmark/pilot-v7-rc4/manifest.json",
     "benchmark/pilot-v7-rc4/provenance.json",

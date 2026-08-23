@@ -608,6 +608,12 @@ the Phase-P plan and its sidecar; `configs/phaseP-qualification.yaml`;
 `scripts/phaseP_derive_seeds.py`; `scripts/run_phaseP_rc4_qualification.py`;
 `scripts/analyze_phaseP_rc4_qualification.py`;
 `scripts/qualification_harness_v2.py`; `scripts/rc4_scoring_vocabulary.py`; the
+three frozen modules Phase P actually executes —
+`scripts/qualification_harness.py`, `scripts/phaseL_protocol.py` and
+`scripts/analyze_phaseL_requalification.py`, each already bound by
+`docs/phaseL_frozen_execution_inputs.json` and none of them edited here, repeated
+in Phase P's own record because a reviewer should not have to trace two records
+to see what this phase runs; the
 rc4 manifest, provenance, qualification contract, AUDIT and freeze record;
 `configs/policies/default.xml`; `docs/phaseM_instrument_revision.json`;
 `docs/phaseO_instrument_revision.json`; `docs/phaseO_rc4_revision_record.json`;
