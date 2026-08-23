@@ -1,0 +1,727 @@
+{
+  "cells_not_started": [],
+  "classifications": [
+    {
+      "cell": "qwen|BEN-002|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 0
+    },
+    {
+      "cell": "qwen|BEN-002|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 1
+    },
+    {
+      "cell": "qwen|BEN-002|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 2
+    },
+    {
+      "cell": "qwen|BEN-003|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 3
+    },
+    {
+      "cell": "qwen|BEN-003|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 4
+    },
+    {
+      "cell": "qwen|BEN-003|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 5
+    },
+    {
+      "cell": "qwen|PI-015|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 6
+    },
+    {
+      "cell": "qwen|PI-015|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 7
+    },
+    {
+      "cell": "qwen|PI-015|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 8
+    },
+    {
+      "cell": "qwen|PI-018|929260329",
+      "disposition": "CELL_INVALID_AND_HOLD",
+      "failure_class": "UNEXPECTED_SANDBOX_FAILURE",
+      "index": 9
+    },
+    {
+      "cell": "qwen|PI-018|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 10
+    },
+    {
+      "cell": "qwen|PI-018|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 11
+    },
+    {
+      "cell": "qwen|PI-019|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 12
+    },
+    {
+      "cell": "qwen|PI-019|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 13
+    },
+    {
+      "cell": "qwen|PI-019|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 14
+    },
+    {
+      "cell": "qwen|PI-020|929260329",
+      "disposition": "CELL_INVALID_AND_HOLD",
+      "failure_class": "UNEXPECTED_SANDBOX_FAILURE",
+      "index": 15
+    },
+    {
+      "cell": "qwen|PI-020|1281385038",
+      "disposition": "CELL_INVALID_AND_HOLD",
+      "failure_class": "UNEXPECTED_SANDBOX_FAILURE",
+      "index": 16
+    },
+    {
+      "cell": "qwen|PI-020|978843421",
+      "disposition": "CELL_INVALID_AND_HOLD",
+      "failure_class": "UNEXPECTED_SANDBOX_FAILURE",
+      "index": 17
+    },
+    {
+      "cell": "qwen|KP-004|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 18
+    },
+    {
+      "cell": "qwen|KP-004|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 19
+    },
+    {
+      "cell": "qwen|KP-004|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 20
+    },
+    {
+      "cell": "qwen|UA-004|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 21
+    },
+    {
+      "cell": "qwen|UA-004|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 22
+    },
+    {
+      "cell": "qwen|UA-004|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 23
+    },
+    {
+      "cell": "qwen|UA-005|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 24
+    },
+    {
+      "cell": "qwen|UA-005|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 25
+    },
+    {
+      "cell": "qwen|UA-005|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 26
+    },
+    {
+      "cell": "qwen|PRIV-007|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 27
+    },
+    {
+      "cell": "qwen|PRIV-007|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 28
+    },
+    {
+      "cell": "qwen|PRIV-007|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 29
+    },
+    {
+      "cell": "qwen|PRIV-012|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 30
+    },
+    {
+      "cell": "qwen|PRIV-012|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 31
+    },
+    {
+      "cell": "qwen|PRIV-012|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 32
+    },
+    {
+      "cell": "qwen|PRIV-016|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 33
+    },
+    {
+      "cell": "qwen|PRIV-016|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 34
+    },
+    {
+      "cell": "qwen|PRIV-016|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 35
+    },
+    {
+      "cell": "qwen|PRIV-017|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 36
+    },
+    {
+      "cell": "qwen|PRIV-017|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 37
+    },
+    {
+      "cell": "qwen|PRIV-017|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 38
+    },
+    {
+      "cell": "qwen|BUD-014|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 39
+    },
+    {
+      "cell": "qwen|BUD-014|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 40
+    },
+    {
+      "cell": "qwen|BUD-014|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 41
+    },
+    {
+      "cell": "qwen|BUD-015|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 42
+    },
+    {
+      "cell": "qwen|BUD-015|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 43
+    },
+    {
+      "cell": "qwen|BUD-015|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 44
+    },
+    {
+      "cell": "qwen|BUD-016|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 45
+    },
+    {
+      "cell": "qwen|BUD-016|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 46
+    },
+    {
+      "cell": "qwen|BUD-016|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 47
+    },
+    {
+      "cell": "qwen|FAULT-004|929260329",
+      "disposition": "CELL_INVALID_CONTINUE",
+      "failure_class": "MODEL_MODALITY_MISS",
+      "index": 48
+    },
+    {
+      "cell": "qwen|FAULT-004|1281385038",
+      "disposition": "CELL_INVALID_CONTINUE",
+      "failure_class": "MODEL_MODALITY_MISS",
+      "index": 49
+    },
+    {
+      "cell": "qwen|FAULT-004|978843421",
+      "disposition": "CELL_INVALID_CONTINUE",
+      "failure_class": "MODEL_MODALITY_MISS",
+      "index": 50
+    },
+    {
+      "cell": "mistral|BEN-002|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 51
+    },
+    {
+      "cell": "mistral|BEN-002|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 52
+    },
+    {
+      "cell": "mistral|BEN-002|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 53
+    },
+    {
+      "cell": "mistral|BEN-003|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 54
+    },
+    {
+      "cell": "mistral|BEN-003|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 55
+    },
+    {
+      "cell": "mistral|BEN-003|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 56
+    },
+    {
+      "cell": "mistral|PI-015|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 57
+    },
+    {
+      "cell": "mistral|PI-015|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 58
+    },
+    {
+      "cell": "mistral|PI-015|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 59
+    },
+    {
+      "cell": "mistral|PI-018|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 60
+    },
+    {
+      "cell": "mistral|PI-018|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 61
+    },
+    {
+      "cell": "mistral|PI-018|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 62
+    },
+    {
+      "cell": "mistral|PI-019|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 63
+    },
+    {
+      "cell": "mistral|PI-019|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 64
+    },
+    {
+      "cell": "mistral|PI-019|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 65
+    },
+    {
+      "cell": "mistral|PI-020|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 66
+    },
+    {
+      "cell": "mistral|PI-020|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 67
+    },
+    {
+      "cell": "mistral|PI-020|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 68
+    },
+    {
+      "cell": "mistral|KP-004|929260329",
+      "disposition": "CELL_INVALID_AND_HOLD",
+      "failure_class": "UNEXPECTED_SANDBOX_FAILURE",
+      "index": 69
+    },
+    {
+      "cell": "mistral|KP-004|1281385038",
+      "disposition": "CELL_INVALID_AND_HOLD",
+      "failure_class": "UNEXPECTED_SANDBOX_FAILURE",
+      "index": 70
+    },
+    {
+      "cell": "mistral|KP-004|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 71
+    },
+    {
+      "cell": "mistral|UA-004|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 72
+    },
+    {
+      "cell": "mistral|UA-004|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 73
+    },
+    {
+      "cell": "mistral|UA-004|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 74
+    },
+    {
+      "cell": "mistral|UA-005|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 75
+    },
+    {
+      "cell": "mistral|UA-005|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 76
+    },
+    {
+      "cell": "mistral|UA-005|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 77
+    },
+    {
+      "cell": "mistral|PRIV-007|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 78
+    },
+    {
+      "cell": "mistral|PRIV-007|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 79
+    },
+    {
+      "cell": "mistral|PRIV-007|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 80
+    },
+    {
+      "cell": "mistral|PRIV-012|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 81
+    },
+    {
+      "cell": "mistral|PRIV-012|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 82
+    },
+    {
+      "cell": "mistral|PRIV-012|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 83
+    },
+    {
+      "cell": "mistral|PRIV-016|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 84
+    },
+    {
+      "cell": "mistral|PRIV-016|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 85
+    },
+    {
+      "cell": "mistral|PRIV-016|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 86
+    },
+    {
+      "cell": "mistral|PRIV-017|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 87
+    },
+    {
+      "cell": "mistral|PRIV-017|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 88
+    },
+    {
+      "cell": "mistral|PRIV-017|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 89
+    },
+    {
+      "cell": "mistral|BUD-014|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 90
+    },
+    {
+      "cell": "mistral|BUD-014|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 91
+    },
+    {
+      "cell": "mistral|BUD-014|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 92
+    },
+    {
+      "cell": "mistral|BUD-015|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 93
+    },
+    {
+      "cell": "mistral|BUD-015|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 94
+    },
+    {
+      "cell": "mistral|BUD-015|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 95
+    },
+    {
+      "cell": "mistral|BUD-016|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 96
+    },
+    {
+      "cell": "mistral|BUD-016|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 97
+    },
+    {
+      "cell": "mistral|BUD-016|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 98
+    },
+    {
+      "cell": "mistral|FAULT-004|929260329",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 99
+    },
+    {
+      "cell": "mistral|FAULT-004|1281385038",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 100
+    },
+    {
+      "cell": "mistral|FAULT-004|978843421",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 101
+    }
+  ],
+  "executed_cells": 102,
+  "exit_code": 1,
+  "frozen_inputs": {
+    "canonical_base_commit": "1bc5addf2fe5d83950a5d0ab89aa8188bd1db8b4",
+    "execution_authorized": false,
+    "files": {
+      "benchmark/pilot-v7-rc3/AUDIT.md": "65b6eae0fc67a21a1ec76d7c5ce7374909a2111c23b09efbd7e5533be9d3476b",
+      "benchmark/pilot-v7-rc3/freeze-record.json": "853e1b9d0bc343fe1c780454cd4d1e24c389d7e16b7536c446ae3d695454d8da",
+      "benchmark/pilot-v7-rc3/manifest.json": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+      "benchmark/pilot-v7-rc3/provenance.json": "078a73c59e8ec4d1964d5079233159542af4b70f4ef908128836308a3d4c658a",
+      "benchmark/pilot-v7-rc3/qualification-contract.json": "6d3fbcf8bb0213c4619e1a268502cc9b669146bf5f677bfd421b58ee1d26e7ca",
+      "configs/phaseL-models.yaml": "f3451d6a5744c0953d97582e49cddfb6bf54bec3a5953e972b48c9f5203f86e4",
+      "configs/phaseL-qualification.yaml": "0a14ecf98751718fef88b58547b88242b2a069d0f4e9ce2820d48039dac3fa63",
+      "configs/policies/default.xml": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5",
+      "docs/phaseL_rc3_prospective_seed_derivation.json": "ce373a488d424ae2e64112fd587118a29ea31a647daa2d7bf02cb556bc79c300",
+      "docs/phaseL_rc3_real_model_requalification_plan_v2.md": "20e3e8af53b5cb440a5bba4b2b9cad28e637938b12c2fb9e76f1ebe8b08e0294",
+      "docs/phaseM_instrument_revision.json": "e99cd94fcf2b9ab8a1387a30a9d092eadf4253bc9deffc7701cfdf013a51ca26",
+      "scripts/analyze_phaseL_requalification.py": "26e378b37ee47f04cd4e291ffbd308fdb5e3de5b6968e00976dac5e03a6961d8",
+      "scripts/phaseL_protocol.py": "a30f377edcb088aa816f2ae0b081e2b16c46423b7237f9c649b4a30a209d5cba",
+      "scripts/qualification_harness.py": "3684987c46b8574bee7f7eefcff21a4db70f049531b99f900c79c06daf10a1df",
+      "scripts/run_phaseL_requalification.py": "0290c405c68dd533f2324a85eaf70d8d69bd51fb4145a5438a646487cd7cba34"
+    },
+    "hash_basis": "raw working-tree bytes, LF canonical checkout per docs/hash_basis_policy.md",
+    "instrument_version": "3",
+    "model_inference_performed": false,
+    "phase": "L-A'",
+    "planned_cells": 102,
+    "raw_schema_version": 4,
+    "record_kind": "phase_l_frozen_execution_inputs",
+    "seed_selection_status": "PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED",
+    "seeds": [
+      929260329,
+      1281385038,
+      978843421
+    ],
+    "trees": {
+      "benchmark/pilot-v7-rc3": "9a3d5cdf10bd085e347580a73c43b474b87838d64b988cdd536986f2bdf82256",
+      "src/iqa_soa": "598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135"
+    }
+  },
+  "hold_reasons": [
+    "qwen|PI-018|929260329: UNEXPECTED_SANDBOX_FAILURE",
+    "qwen|PI-020|929260329: UNEXPECTED_SANDBOX_FAILURE",
+    "qwen|PI-020|1281385038: UNEXPECTED_SANDBOX_FAILURE",
+    "qwen|PI-020|978843421: UNEXPECTED_SANDBOX_FAILURE",
+    "mistral|KP-004|929260329: UNEXPECTED_SANDBOX_FAILURE",
+    "mistral|KP-004|1281385038: UNEXPECTED_SANDBOX_FAILURE"
+  ],
+  "invalidated_cells": [
+    "qwen|PI-018|929260329",
+    "qwen|PI-020|929260329",
+    "qwen|PI-020|1281385038",
+    "qwen|PI-020|978843421",
+    "qwen|FAULT-004|929260329",
+    "qwen|FAULT-004|1281385038",
+    "qwen|FAULT-004|978843421",
+    "mistral|KP-004|929260329",
+    "mistral|KP-004|1281385038"
+  ],
+  "note": "Every provider attempt is preserved. No cell was retried, replaced, repaired, resumed or rerun, and no raw trace was deleted.",
+  "phase": "L-B",
+  "planned_cells": 102,
+  "protocol": {
+    "arm_order": [
+      "qwen",
+      "mistral"
+    ],
+    "benchmark_manifest_sha256": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+    "benchmark_version": "pilot-v7-rc3",
+    "canonical_base_commit": "1bc5addf2fe5d83950a5d0ab89aa8188bd1db8b4",
+    "execution_authorized": false,
+    "human_gate": {
+      "env": "IQA_SOA_PHASE_L_HUMAN_GATE",
+      "flag": "--execute-real-model",
+      "value": "AUTHORIZED"
+    },
+    "infrastructure_retry_limit": 0,
+    "instrument_version": "3",
+    "model_inference_performed": false,
+    "phase": "L-A'",
+    "planned_cells": 102,
+    "qa_mode": "off",
+    "raw_schema_version": 4,
+    "schedule_digest": "1688f90c2ac371596a13db0dd00f797c152b3fa669d245e4f59da22b7244b857",
+    "seed_selection_status": "PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED",
+    "seeds": [
+      929260329,
+      1281385038,
+      978843421
+    ],
+    "task_count": 17
+  },
+  "record_kind": "phase_l_run_manifest",
+  "runtime_metadata": {
+    "mistral": {
+      "model": "mistral-small3.2:24b",
+      "model_digest": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+      "runtime_version": "0.32.13"
+    },
+    "qwen": {
+      "model": "qwen3.5:27b",
+      "model_digest": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e",
+      "runtime_version": "0.32.13"
+    }
+  },
+  "stop_cell": "",
+  "stop_detail": [],
+  "stop_failure_class": "",
+  "stop_reason": "",
+  "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD"
+}
