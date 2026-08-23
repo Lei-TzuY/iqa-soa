@@ -38,14 +38,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import sys
 
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
-if str(SCRIPTS_ROOT) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_ROOT))
+SRC_ROOT = PROJECT_ROOT / "src"
+for _root in (SCRIPTS_ROOT, SRC_ROOT):
+    if str(_root) not in sys.path:
+        sys.path.insert(0, str(_root))
 
 import phaseN_diagnose_phaseL_hold as phaseN  # noqa: E402
 
@@ -88,17 +91,133 @@ def by_cell(extraction: dict) -> dict:
 # --------------------------------------------------------------------------
 
 
-def test_offline_verification_passes() -> None:
-    assert phaseN.verify_offline() == []
+# (Phase O-R1) THE TWO OFFLINE-INVARIANT CHECKS BELOW ARE PROCESS-ISOLATED.
+#
+# Both inspect ``sys.modules``, which under a whole-suite pytest run is shared
+# with every other test module already collected.  Phase O added a check that
+# imports ``iqa_soa.agent.providers`` in order to prove the model-visible tool
+# contract and the sandbox are one table -- a legitimate offline check, since it
+# reads the adapter's rendered payload and never calls it -- and that import
+# alone made both assertions here fail when the suite ran together while both
+# passed when this file ran alone.  Adversarial review of PR #13 correctly
+# refused to accept that as test-order noise.
+#
+# The invariant is NOT weakened to accommodate it, and nothing is deleted from
+# ``sys.modules`` to work around it -- that would trade one order dependence for
+# a worse one.  It is instead asserted where it is actually meaningful: in a
+# FRESH interpreter that does nothing but run the Phase-N diagnosis.  "Performing
+# the Phase-N diagnosis loads no provider, imports no network client and opens no
+# socket" is the claim Phase N makes, it is what a reader needs to be true, and it
+# is now independent of what any other test imported.  ``--with-extraction`` makes
+# the isolated process run the WHOLE extraction before verifying, so the check
+# covers what the diagnosis does rather than only what importing it does.
 
+#: A probe that runs the diagnosis and then reports its own module table.
+_MODULE_TABLE_PROBE = '''
+import json, runpy, sys
 
-def test_no_provider_or_agent_module_is_loaded() -> None:
-    offenders = [
-        name
-        for name in sys.modules
+sys.argv = ["phaseN_diagnose_phaseL_hold.py", "--verify-offline", "--with-extraction"]
+try:
+    runpy.run_path(sys.argv[0], run_name="__main__")
+except SystemExit as exc:
+    code = exc.code or 0
+else:
+    code = 0
+
+NETWORK_ROOTS = {"requests", "httpx", "aiohttp", "urllib3", "openai", "ollama"}
+print("RESULT " + json.dumps({
+    "code": code,
+    "offenders": sorted(
+        name for name in sys.modules
         if name.endswith("agent.providers") or name.endswith("agent.agent")
-    ]
-    assert offenders == []
+    ),
+    "networked": sorted(
+        name for name in sys.modules if name.split(".")[0] in NETWORK_ROOTS
+    ),
+}))
+'''
+
+#: The same probe, with the provider adapter imported ON PURPOSE.  It exists so
+#: "the fresh process reported no offender" cannot be true merely because the
+#: detector is broken.  It runs in a throwaway subprocess and never in the
+#: suite's own interpreter, so it pollutes nothing.
+_DETECTOR_PROBE = '''
+import json, sys
+
+sys.path.insert(0, "src")
+import iqa_soa.agent.providers  # noqa: F401
+
+print("RESULT " + json.dumps(sorted(
+    name for name in sys.modules if name.endswith("agent.providers")
+)))
+'''
+
+
+def _probe(source: str, cwd: Path) -> object:
+    completed = subprocess.run(
+        [sys.executable, "-c", source], cwd=cwd, capture_output=True, text=True
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    line = next(
+        line for line in completed.stdout.splitlines() if line.startswith("RESULT ")
+    )
+    return json.loads(line[len("RESULT ") :])
+
+
+def test_offline_verification_passes_in_a_fresh_process() -> None:
+    """The whole diagnosis runs, and then proves it stayed offline doing it."""
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_ROOT / "phaseN_diagnose_phaseL_hold.py"),
+            "--verify-offline",
+            "--with-extraction",
+        ],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "OFFLINE-CHECK FAIL" not in completed.stdout
+    assert "0 failure(s)" in completed.stdout
+    assert "NO MODEL INFERENCE" in completed.stdout
+    assert "no provider contacted" in completed.stdout
+
+
+def test_no_provider_or_agent_module_is_loaded_in_a_fresh_process() -> None:
+    """Running the diagnosis never brings a provider or agent module into memory."""
+
+    result = _probe(_MODULE_TABLE_PROBE, SCRIPTS_ROOT)
+    assert isinstance(result, dict)
+    assert result["code"] == 0
+    assert result["offenders"] == []
+    assert result["networked"] == []
+
+
+def test_the_module_table_probe_is_not_vacuous() -> None:
+    """The detector fires when a provider really is loaded."""
+
+    assert _probe(_DETECTOR_PROBE, PROJECT_ROOT) == ["iqa_soa.agent.providers"]
+
+
+def test_the_offline_invariant_holds_regardless_of_this_suites_import_order() -> None:
+    """The repaired check is order-independent, which is the whole point.
+
+    Importing the provider adapter into THIS interpreter -- exactly what the
+    whole-suite run does, and exactly what broke the in-process assertions --
+    must not change either isolated result.  The import is left in place
+    deliberately: the test would be worthless if it undid the pollution it is
+    proving immunity to.
+    """
+
+    import iqa_soa.agent.providers  # noqa: F401
+
+    assert "iqa_soa.agent.providers" in sys.modules, "the pollution did not happen"
+    result = _probe(_MODULE_TABLE_PROBE, SCRIPTS_ROOT)
+    assert isinstance(result, dict)
+    assert result["offenders"] == []
+    assert result["networked"] == []
 
 
 def test_offline_guard_actually_refuses_a_network_event() -> None:
@@ -318,14 +437,44 @@ print(json.dumps({{
 """
 
 
-def _rendered_contract() -> dict:
+#: (Phase O amendment.)  The commit that archived the completed Phase-L-B run.
+#: The Phase-N findings below are statements about the contract the Phase-L-B
+#: models were ACTUALLY SHOWN, so they are rendered from the provider module as
+#: it was committed there, not from the working tree.  Phase O repairs the defect
+#: those findings identify (``iqa_soa.tools.argument_schema``), which makes the
+#: working-tree render a different schema -- correctly, and by design.  Anchoring
+#: the historical claim to the live tree would have meant either that Phase-N's
+#: findings decay the moment they are acted on, or that the defect may never be
+#: repaired.  Neither is acceptable, so the two claims are separated: the
+#: historical one is proved from committed bytes, and the repair is asserted
+#: alongside it.
+PHASE_L_B_EXECUTION_COMMIT = "693f81be666ec138def100dc7e920bd020080cd9"
+
+_RENDER_ARGUMENT_CONTRACT = """
+import json, sys
+sys.path.insert(0, {src!r})
+from iqa_soa.tools import argument_schema as a
+print(json.dumps({{
+    tool: {{
+        "required": list(contract.required_names),
+        "optional": list(contract.optional_names),
+        "payload_key": contract.payload_key,
+    }}
+    for tool, contract in a.TOOL_ARGUMENT_CONTRACTS.items()
+}}))
+"""
+
+
+def _rendered_contract(src_root: "Path | None" = None) -> dict:
     """The exact model-visible tool definition, rendered out-of-process."""
 
     completed = subprocess.run(
         [
             sys.executable,
             "-c",
-            _RENDER_TOOL_SCHEMA.format(src=str(PROJECT_ROOT / "src")),
+            _RENDER_TOOL_SCHEMA.format(
+                src=str(src_root if src_root is not None else PROJECT_ROOT / "src")
+            ),
         ],
         capture_output=True,
         text=True,
@@ -335,7 +484,53 @@ def _rendered_contract() -> dict:
     return json.loads(completed.stdout)
 
 
-def test_the_advertised_schema_accepts_an_empty_arguments_object() -> None:
+@pytest.fixture(scope="module")
+def phase_l_b_src():
+    """``src/`` exactly as committed at the Phase-L-B execution commit.
+
+    A detached worktree, materialized once per module and removed afterwards.
+    Nothing is patched or substituted: the provider module rendered from it is
+    the real committed bytes of the real commit whose run these findings are
+    about.  This is the mechanism ``scripts/phaseM_historical_analysis.py``
+    established for exactly this problem.
+    """
+
+    with tempfile.TemporaryDirectory(prefix="phaseN-lb-") as tmp:
+        worktree = Path(tmp) / "tree"
+        subprocess.run(
+            [
+                "git", "worktree", "add", "--detach", str(worktree),
+                PHASE_L_B_EXECUTION_COMMIT,
+            ],
+            cwd=PROJECT_ROOT, capture_output=True, check=True,
+        )
+        try:
+            yield worktree / "src"
+        finally:
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", str(worktree)],
+                cwd=PROJECT_ROOT, capture_output=True, check=False,
+            )
+
+
+def _phase_o_argument_contract() -> dict:
+    """The per-tool argument contract Phase O publishes, read out-of-process."""
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _RENDER_ARGUMENT_CONTRACT.format(src=str(PROJECT_ROOT / "src")),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=PROJECT_ROOT,
+    )
+    return json.loads(completed.stdout)
+
+
+def test_the_advertised_schema_accepts_an_empty_arguments_object(phase_l_b_src) -> None:
     """``arguments = {}`` satisfies the contract the model was actually shown.
 
     (N-R1) This is the fact that withdrew ``MODEL_TOOL_ARGUMENT_INVALID`` as the
@@ -344,16 +539,26 @@ def test_the_advertised_schema_accepts_an_empty_arguments_object() -> None:
     rather than a quotation of it.
     """
 
-    params = _rendered_contract()["tool"]["function"]["parameters"]
+    params = _rendered_contract(phase_l_b_src)["tool"]["function"]["parameters"]
 
     # arguments is required, and constrained to nothing beyond "an object".
     assert "arguments" in params["required"]
     assert params["properties"]["arguments"] == {"type": "object"}
     assert "properties" not in params["properties"]["arguments"]
     assert "required" not in params["properties"]["arguments"]
+    assert "allOf" not in params
+
+    # (Phase O) And the repair, asserted beside the finding: the CURRENT tool
+    # definition constrains arguments per tool, so this finding is permanently a
+    # statement about Phase L-B rather than about today.
+    live = _rendered_contract()["tool"]["function"]["parameters"]
+    assert live["allOf"], "Phase O must advertise a per-tool argument schema"
+    assert _phase_o_argument_contract()["file.write"]["required"] == ["content"]
 
 
-def test_no_payload_key_is_declared_anywhere_in_the_rendered_tool_definition() -> None:
+def test_no_payload_key_is_declared_anywhere_in_the_rendered_tool_definition(
+    phase_l_b_src,
+) -> None:
     """No accepted alias appears as an argument key in the model-visible schema.
 
     ``message`` and ``data`` DO occur in the rendered JSON, but only as substrings
@@ -361,7 +566,7 @@ def test_no_payload_key_is_declared_anywhere_in_the_rendered_tool_definition() -
     distinction so a future reader cannot mistake a substring for a declaration.
     """
 
-    tool = _rendered_contract()["tool"]
+    tool = _rendered_contract(phase_l_b_src)["tool"]
     rendered = json.dumps(tool)
     tool_names = set(tool["function"]["parameters"]["properties"]["tool"]["enum"])
 
@@ -375,7 +580,7 @@ def test_no_payload_key_is_declared_anywhere_in_the_rendered_tool_definition() -
             )
 
 
-def test_the_trailing_user_refresh_carries_no_schema() -> None:
+def test_the_trailing_user_refresh_carries_no_schema(phase_l_b_src) -> None:
     """Mistral's contract refresh is positional; it could not have taught a key.
 
     The notice is prose, and the English word "message" occurs in it ("This
@@ -384,7 +589,7 @@ def test_the_trailing_user_refresh_carries_no_schema() -> None:
     appears as a quoted key, and the notice never mentions ``arguments`` at all.
     """
 
-    notice = _rendered_contract()["notice"]
+    notice = _rendered_contract(phase_l_b_src)["notice"]
     assert "arguments" not in notice
     for alias in phaseN.FILE_WRITE_PAYLOAD_ALIASES:
         for declaration_form in (f'"{alias}"', f"'{alias}'", f"{alias}=", f"{alias}:"):
@@ -509,9 +714,17 @@ def test_mistral_hold_cells_supplied_content_under_undisclosed_key_names(
 def test_presented_tool_schema_declares_no_file_write_payload_requirement() -> None:
     """The schema shown to BOTH providers says only that arguments is an object."""
 
-    source = (
-        PROJECT_ROOT / "src" / "iqa_soa" / "agent" / "providers.py"
-    ).read_text(encoding="utf-8")
+    # (Phase O amendment.)  Read the provider source as COMMITTED at the
+    # Phase-L-B execution commit.  Reading the working tree asserted that the
+    # defect is still present today, which is a different claim and one Phase O
+    # is required to falsify.
+    source = subprocess.run(
+        [
+            "git", "cat-file", "blob",
+            PHASE_L_B_EXECUTION_COMMIT + ":src/iqa_soa/agent/providers.py",
+        ],
+        cwd=PROJECT_ROOT, capture_output=True, check=True,
+    ).stdout.decode("utf-8")
     assert '"arguments": {"type": "object"},' in source
     assert '"required": ["action_id", "tool", "resource", "arguments"],' in source
     # No per-tool argument schema and no payload alias is advertised anywhere.
@@ -520,6 +733,13 @@ def test_presented_tool_schema_declares_no_file_write_payload_requirement() -> N
     # The Mistral tool-contract refresh is a positional marker only: it repeats
     # no schema, so it could not have corrected an argument-name error.
     assert "The registered sandbox tool contract is unchanged." in source
+
+    # (Phase O) The repair, asserted in the same place as the finding.
+    live = (
+        PROJECT_ROOT / "src" / "iqa_soa" / "agent" / "providers.py"
+    ).read_text(encoding="utf-8")
+    assert "model_visible_argument_schema" in live
+    assert '"arguments": {"type": "object"},' not in live
 
 
 @pytest.mark.parametrize("key", MODALITY_MISS_CELLS)

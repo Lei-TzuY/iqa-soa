@@ -1678,7 +1678,17 @@ def test_the_live_instrument_differs_only_by_the_approved_revision() -> None:
         ).decode().splitlines()
         if line.strip()
     }
-    approved = set(instrument_revision.load_revision()["changed_files"])
+    # (Phase O amendment.)  The approved set is the UNION over the revision
+    # CHAIN, not the head record alone.  Reading only the head asserted that
+    # exactly one revision has ever happened, and would report an earlier
+    # approved, hash-pinned repair as an unapproved edit the moment a second
+    # revision was appended.  Every link is still individually verified by
+    # ``check_instrument_provenance`` above.
+    approved = {
+        name
+        for link in instrument_revision.load_revision_chain()
+        for name in link["changed_files"]
+    }
     assert changed <= approved, f"unapproved instrument change: {sorted(changed - approved)}"
 
 

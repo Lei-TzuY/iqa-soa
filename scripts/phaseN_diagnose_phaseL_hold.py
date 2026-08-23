@@ -35,6 +35,7 @@ from collections.abc import Mapping, Sequence
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -83,6 +84,29 @@ _FROZEN_ALIAS_LITERAL = (
     + ", ".join(f'"{alias}"' for alias in FILE_WRITE_PAYLOAD_ALIASES)
     + "):"
 )
+
+#: (Phase O.)  The commit that archived the completed Phase-L-B run.  The alias
+#: constant above describes the sandbox THAT run used, so it is verified there.
+PHASE_L_B_EXECUTION_COMMIT = "693f81be666ec138def100dc7e920bd020080cd9"
+
+
+def _registry_source_at(commit: str) -> str | None:
+    """The committed bytes of the sandbox registry at ``commit``, or ``None``.
+
+    Reads git only: ``subprocess`` spawns a local process, opens no socket, and
+    raises no event the process-wide network audit hook refuses.
+    """
+
+    try:
+        completed = subprocess.run(
+            ["git", "cat-file", "blob", f"{commit}:src/iqa_soa/tools/registry.py"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return completed.stdout.decode("utf-8")
 
 #: Top-level modules whose presence would mean a network client is reachable.
 _NETWORK_MODULE_ROOTS: frozenset[str] = frozenset(
@@ -586,7 +610,18 @@ def verify_offline() -> list[str]:
 
     The alias assertion is included because this module publishes the sandbox
     ``file.write`` payload contract as a constant, and a constant that drifted
-    from the frozen sandbox would make the diagnosis wrong.
+    from the sandbox the Phase-L-B run actually used would make the diagnosis
+    wrong.
+
+    (Phase O amendment.)  That assertion is made against the registry as
+    COMMITTED at the Phase-L-B execution commit, not against the working tree.
+    ``FILE_WRITE_PAYLOAD_ALIASES`` documents the contract the Phase-L-B models
+    were rejected by; Phase O acts on this diagnosis and withdraws the six
+    undisclosed aliases in favour of one advertised key, so the live registry no
+    longer contains the frozen literal -- by design, and as the direct
+    consequence of finding N-1.  Checking the live tree would have meant the
+    diagnosis silently invalidates itself the moment it is acted on.  Reading git
+    keeps the check strict and permanently answerable, and it opens no socket.
     """
 
     failures: list[str] = []
@@ -601,13 +636,17 @@ def verify_offline() -> list[str]:
             "the offline audit hook refused network events: "
             + ", ".join(sorted(set(_audit_violations)))
         )
-    registry = (SRC_ROOT / "iqa_soa" / "tools" / "registry.py").read_text(
-        encoding="utf-8"
-    )
-    if _FROZEN_ALIAS_LITERAL not in registry:
+    registry = _registry_source_at(PHASE_L_B_EXECUTION_COMMIT)
+    if registry is None:
         failures.append(
-            "FILE_WRITE_PAYLOAD_ALIASES no longer matches the frozen sandbox "
-            "payload resolver in src/iqa_soa/tools/registry.py"
+            "cannot read src/iqa_soa/tools/registry.py at the Phase-L-B execution "
+            f"commit {PHASE_L_B_EXECUTION_COMMIT}"
+        )
+    elif _FROZEN_ALIAS_LITERAL not in registry:
+        failures.append(
+            "FILE_WRITE_PAYLOAD_ALIASES no longer matches the sandbox payload "
+            "resolver committed at the Phase-L-B execution commit "
+            f"{PHASE_L_B_EXECUTION_COMMIT}"
         )
     return failures
 
@@ -619,6 +658,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tasks", nargs="*", default=list(UNQUALIFIED_TASKS))
     parser.add_argument("--reconcile", action="store_true")
     parser.add_argument("--verify-offline", action="store_true")
+    parser.add_argument(
+        "--with-extraction",
+        action="store_true",
+        help=(
+            "with --verify-offline, run the whole extraction FIRST and then verify. "
+            "The check then covers what the diagnosis actually does, rather than "
+            "only what importing it does"
+        ),
+    )
     parser.add_argument("--digest", action="store_true")
     parser.add_argument(
         "--both-bases",
@@ -649,6 +697,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.verify_offline:
+        if args.with_extraction:
+            # Discarded on purpose: the artifact is irrelevant here, and what is
+            # being proved is that producing it loads no provider, imports no
+            # network client and trips no audit event.
+            extract(archive, tuple(args.tasks))
         failures = verify_offline()
         for failure in failures:
             print(f"OFFLINE-CHECK FAIL: {failure}")

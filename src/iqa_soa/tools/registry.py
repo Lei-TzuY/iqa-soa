@@ -6,8 +6,14 @@ from collections.abc import Callable, Mapping
 from dataclasses import replace
 from typing import Any, Protocol, runtime_checkable
 
+from iqa_soa.tools.argument_schema import (
+    ARGUMENT_VIOLATION_FAILURE_CLASS,
+    TOOL_ARGUMENT_CONTRACT_VERSION,
+    payload_of,
+    validate_arguments,
+)
 from iqa_soa.tools.base import SandboxedTool
-from iqa_soa.tools.sandbox import FaultSpec, SandboxState
+from iqa_soa.tools.sandbox import SUPPORTED_FAULT_MODES, FaultSpec, SandboxState
 from iqa_soa.types import Action, ToolResult
 
 
@@ -54,11 +60,55 @@ def _failure(error: str, *, metadata: Mapping[str, Any] | None = None) -> ToolRe
     )
 
 
-def _payload(arguments: Mapping[str, Any]) -> Any:
-    for key in ("content", "body", "message", "payload", "data", "value"):
-        if key in arguments:
-            return arguments[key]
-    return None
+def _argument_violation_result(
+    tool: str, arguments: Mapping[str, Any]
+) -> ToolResult:
+    """Refuse a proposal that violates the ADVERTISED per-tool argument contract.
+
+    (Phase O) The refusal carries three things a pre-Phase-O rejection did not:
+
+    * the deterministic ``sandbox argument contract`` prefix, so a classifier can
+      recognise the condition without matching prose;
+    * ``failure_class = "invalid_arguments"`` in the metadata, which is the new
+      class Phase N showed the frozen taxonomy lacked -- a correctly-refused
+      argument set previously fell through to the generic ``tool_failure`` and
+      from there to ``UNEXPECTED_SANDBOX_FAILURE`` / ``CELL_INVALID_AND_HOLD``;
+    * the exact required keys, so the model can correct itself from the error
+      text.  Phase L-B recorded qwen doing precisely that in 4 of 4 cells.
+
+    Nothing is mutated: the refusal happens before any state assignment.
+    """
+
+    violations = validate_arguments(tool, arguments)
+    error = (
+        "; ".join(violations)
+        if violations
+        else f"sandbox argument contract: {tool} refused the proposed arguments"
+    )
+    return ToolResult(
+        success=False,
+        error=error,
+        simulated=True,
+        would_execute=True,
+        metadata={
+            "operation": tool,
+            "failure_class": ARGUMENT_VIOLATION_FAILURE_CLASS,
+            "argument_contract_version": TOOL_ARGUMENT_CONTRACT_VERSION,
+            "argument_contract_violations": list(violations),
+        },
+    )
+
+
+#: (Phase O) The pre-Phase-O helper scanned six UNDISCLOSED aliases
+#: (``content, body, message, payload, data, value``) and returned the first one
+#: present.  Phase N finding N-1 traced six invalidated Phase-L-B cells to that
+#: gap: the advertised schema constrained ``arguments`` to be an object and named
+#: no key, so a model could satisfy it completely and still be refused, and two
+#: KP-004 cells differed from a third that succeeded only in which alias they
+#: happened to pick.  Payload resolution now reads the ONE key the published
+#: contract advertises for that tool, and there is no alias table.
+def _payload(tool: str, arguments: Mapping[str, Any]) -> Any:
+    return payload_of(tool, arguments)
 
 
 def _file_read(action: Action, state: SandboxState) -> ToolResult:
@@ -68,9 +118,13 @@ def _file_read(action: Action, state: SandboxState) -> ToolResult:
 
 
 def _file_write(action: Action, state: SandboxState) -> ToolResult:
-    content = _payload(action.arguments)
+    # The advertised contract makes ``content`` required, so a payload-free write
+    # is already refused by ``_argument_refusal`` before dispatch reaches here.
+    # The guard is retained because a directly-invoked handler must never write a
+    # null body, and because a silently-empty file is worse than a refusal.
+    content = _payload("file.write", action.arguments)
     if content is None:
-        return _failure("file.write requires content")
+        return _argument_violation_result("file.write", action.arguments)
     state.files[action.resource] = content
     return _ok(
         {"resource": action.resource, "written": True},
@@ -96,14 +150,12 @@ def _database_query(action: Action, state: SandboxState) -> ToolResult:
 
 
 def _database_update(action: Action, state: SandboxState) -> ToolResult:
-    value = action.arguments.get("values", action.arguments.get("value", action.arguments.get("data")))
+    # (Phase O) ``values``/``data`` were undisclosed aliases and the "treat the
+    # leftover arguments as a record" branch was an undisclosed fallback: both are
+    # withdrawn in favour of the one advertised key.
+    value = _payload("database.update", action.arguments)
     if value is None:
-        # Treat the non-routing arguments as a record for terse benchmark fixtures.
-        value = {
-            key: item
-            for key, item in action.arguments.items()
-            if key not in {"table", "key", "id"}
-        }
+        return _argument_violation_result("database.update", action.arguments)
     existing = state.database.get(action.resource)
     if isinstance(existing, dict) and isinstance(value, Mapping):
         existing.update(dict(value))
@@ -125,9 +177,15 @@ def _database_delete(action: Action, state: SandboxState) -> ToolResult:
 
 
 def _message_send(action: Action, state: SandboxState) -> ToolResult:
+    # (Phase O) A send with no body is not a send.  The contract advertises
+    # ``message`` as required, and the sandbox now enforces exactly that instead
+    # of silently recording ``payload: None`` and reporting success.
+    body = _payload("message.send", action.arguments)
+    if body is None:
+        return _argument_violation_result("message.send", action.arguments)
     record = {
         "recipient": action.resource,
-        "payload": _payload(action.arguments),
+        "payload": body,
         "arguments": dict(action.arguments),
         "simulated": True,
     }
@@ -163,7 +221,10 @@ def _shell_execute(action: Action, state: SandboxState) -> ToolResult:
 
 
 def _robot_move(action: Action, state: SandboxState) -> ToolResult:
-    target = action.arguments.get("target", action.arguments.get("position", action.resource))
+    # (Phase O) ``position`` was an undisclosed alias and is withdrawn; the
+    # advertised contract declares ``target`` optional with the resource
+    # identifier as its disclosed fallback.
+    target = action.arguments.get("target", action.resource)
     state.robot_position = target
     record = {"operation": "move", "target": target, "simulated": True}
     state.robot_history.append(record)
@@ -192,13 +253,11 @@ _DEFAULT_TOOLS: dict[str, Callable[[Action, SandboxState], ToolResult]] = {
     "robot.pick_up_simulated": _robot_pick_up,
 }
 
-_FAULT_MODES = {
-    "timeout",
-    "high_latency",
-    "malformed_response",
-    "unavailable",
-    "partial_failure",
-}
+#: The sandbox's own closed fault-mode vocabulary, imported rather than
+#: redefined so the dispatch path and the persisted-telemetry validator in
+#: ``iqa_soa.experiment.failure_events`` can never disagree about which modes
+#: this sandbox is able to stamp.
+_FAULT_MODES = SUPPORTED_FAULT_MODES
 
 
 class ToolRegistry:
@@ -268,6 +327,19 @@ class ToolRegistry:
                 would_execute=False,
                 metadata={"fault_mode": "unavailable", "registered": False},
             )
+            self._record(action, result)
+            return result
+
+        # (Phase O) THE ADVERTISED CONTRACT IS ENFORCED HERE, BEFORE ANYTHING
+        # ELSE.  It precedes the fault lookup deliberately: a proposal that does
+        # not satisfy the published argument contract never became a call, so it
+        # must not consume, mask or trigger a scripted fault.  Placing it after
+        # the fault branch would let a malformed proposal be answered with the
+        # benchmark's designed fault, which would be an observation of something
+        # that did not happen.
+        violations = validate_arguments(action.tool, action.arguments)
+        if violations:
+            result = _argument_violation_result(action.tool, action.arguments)
             self._record(action, result)
             return result
 

@@ -26,9 +26,10 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterator, Mapping, Sequence
 
 import pytest
 
@@ -42,6 +43,7 @@ for _root in (SRC_ROOT, SCRIPTS_ROOT):
 import analyze_phaseL_requalification as analyzer  # noqa: E402
 import phaseL_protocol as protocol  # noqa: E402
 import phaseL_write_frozen_inputs as freezer  # noqa: E402
+import instrument_revision  # noqa: E402
 import qualification_harness as harness  # noqa: E402
 import run_phaseL_requalification as driver  # noqa: E402
 from iqa_soa.agent.providers import DeterministicStubProvider  # noqa: E402
@@ -55,6 +57,12 @@ from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS_V4  # noqa: E402
 
 CANONICAL_BASE_COMMIT = "1bc5addf2fe5d83950a5d0ab89aa8188bd1db8b4"
 PHASE_L_A_COMMIT = "eace204d4c27a9ca48d3c0a660832f640b7a900b"
+#: (Phase O amendment.)  The last commit at which the Phase-L-A' protocol was the
+#: head of the line: the commit Phase O branched from.  Phase L-A''s mutation
+#: surface is bounded between its own canonical base and this commit.
+PHASE_L_A_PRIME_HEAD_COMMIT = "0cc3b05ab79559acdd4f50675ed7937199dc4dbe"
+#: The commit that archived the completed Phase-L-B evidence (PR #11).
+PHASE_L_B_ARCHIVE_COMMIT = "693f81be666ec138def100dc7e920bd020080cd9"
 RC3_MANIFEST = PROJECT_ROOT / "benchmark" / "pilot-v7-rc3" / "manifest.json"
 PHASE_L_CONFIG = PROJECT_ROOT / "configs" / "phaseL-qualification.yaml"
 
@@ -62,6 +70,63 @@ OPEN_GATE: dict[str, str] = {
     protocol.HUMAN_GATE_ENV: protocol.HUMAN_GATE_VALUE,
     protocol.CREDENTIAL_ENV: "offline-test-placeholder",
 }
+
+
+# --------------------------------------------------------------------------
+# (Phase O amendment.)  The frozen Phase-L protocol's instrument pins
+# --------------------------------------------------------------------------
+#
+# Phase O revises the instrument -- it publishes the per-tool sandbox argument
+# contract Phase N proved was hidden, and adds ordered per-action failure
+# telemetry -- so ``docs/phaseL_frozen_execution_inputs.json``'s ``src/iqa_soa``
+# TREE pin is no longer true of the live working tree.  It remains true at the
+# Phase-L-A' freeze commit and at the Phase-L-B execution commit, which is where
+# it actually bound a run, and ``scripts/phaseO_frozen_input_supersession.py``
+# proves it there from committed bytes.
+#
+# Neither ``scripts/phaseL_protocol.py`` nor the frozen-input record is edited:
+# both are frozen Phase-L inputs, and the record binds the protocol script's own
+# bytes.  The frozen protocol keeps saying exactly what it always said.
+#
+# What this file must not do is stop exercising the driver's schedule, ledger,
+# identity and stop semantics, which have nothing to do with the instrument pin
+# and are the reason these tests exist.  So the preflight is not bypassed: it is
+# run in full, asserted to return EXACTLY the enumerated superseded set, and only
+# that set is subtracted.  Any OTHER preflight failure -- a moved config, a moved
+# benchmark byte, a broken sidecar, a changed seed record, an unapproved
+# instrument edit -- survives the subtraction and stops the driver exactly as
+# before.  The substitution is here, at the call site, and is visible.
+
+import phaseO_frozen_input_supersession as supersession  # noqa: E402
+
+
+#: Bound before any substitution, so the residual wrapper always calls the REAL
+#: frozen preflight and never itself.
+_REAL_OFFLINE_PREFLIGHT = protocol.offline_preflight
+
+
+def _residual_preflight() -> list[str]:
+    """The frozen preflight, minus exactly the Phase-O-superseded assertions."""
+
+    superseded = set(supersession.superseded_live_assertions())
+    return [item for item in _REAL_OFFLINE_PREFLIGHT() if item not in superseded]
+
+
+@contextmanager
+def _phase_o_superseded_preflight() -> Iterator[None]:
+    """Run the frozen preflight in full; subtract only the superseded set."""
+
+    assert set(_REAL_OFFLINE_PREFLIGHT()) - set(
+        supersession.superseded_live_assertions()
+    ) == set(), (
+        "the frozen Phase-L preflight reports a failure Phase O did not supersede"
+    )
+    patch = pytest.MonkeyPatch()
+    patch.setattr(protocol, "offline_preflight", _residual_preflight)
+    try:
+        yield
+    finally:
+        patch.undo()
 
 
 # --------------------------------------------------------------------------
@@ -264,43 +329,147 @@ def test_the_seeds_do_not_overlap_any_historical_qualification_seed() -> None:
         assert seed not in protocol.SEEDS
 
 
-def test_no_committed_result_has_ever_consumed_a_phase_l_seed() -> None:
-    """The seeds were selected prospectively and no Phase-L inference exists.
+#: The archived Phase-L-B result tree.  The ONE place a Phase-L seed may appear.
+PHASE_L_B_RESULT_TREE = "results/phaseL-rc3-requalification"
 
-    Every committed experiment manifest in the repository is read and its seed
-    list checked, and the whole ``results`` tree is scanned for the literal
-    values.  This is the machine-checked form of "never executed".
+
+def test_the_phase_l_seeds_were_consumed_exactly_once_by_phase_l_b() -> None:
+    """SUPERSEDED PRE-EXECUTION INVARIANT (Phase O), and what replaced it.
+
+    This test previously asserted that NO committed result had ever consumed a
+    Phase-L seed -- the machine-checked form of "never executed", which was the
+    correct invariant while Phase L-A' held a frozen, unexecuted protocol. Phase
+    L-B then executed the frozen 102-cell schedule exactly once and archived its
+    evidence (PR #11), which made the old assertion permanently false as a
+    statement about today.
+
+    Phase N recorded the staleness and deliberately did not repair it: correcting
+    a frozen phase's tests is outside a diagnosis-only phase, and it named
+    "whichever phase next revises the Phase-L protocol" as the one that should.
+    Phase O is that phase, and the phase brief directs superseding such a test
+    prospectively and documenting why rather than "fixing history" silently.
+
+    The replacement is STRICTER in the direction that still matters. The old
+    invariant guarded against a seed being consumed without authorization. That
+    guarantee is preserved and sharpened: the seeds appear in EXACTLY ONE result
+    tree, the archived Phase-L-B one, and nowhere else. A second consumption --
+    an rc4 run reusing them, a stray experiment directory, a re-run of Phase L --
+    fails this test exactly as the old form would have.
     """
 
-    for manifest_path in (PROJECT_ROOT / "results").rglob("manifest.json"):
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        recorded = manifest.get("seeds") or []
-        assert not set(protocol.SEEDS) & set(recorded), (
-            f"{manifest_path} recorded a Phase-L seed"
-        )
+    consumed_in: set[str] = set()
     for path in (PROJECT_ROOT / "results").rglob("*"):
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
-        for seed in protocol.SEEDS:
-            assert str(seed) not in text, f"{path} carries Phase-L seed {seed}"
+        if any(str(seed) in text for seed in protocol.SEEDS):
+            relative = path.relative_to(PROJECT_ROOT).as_posix()
+            consumed_in.add(relative.split("/")[1])
+
+    assert consumed_in == {"phaseL-rc3-requalification"}, (
+        "the Phase-L seeds are CONSUMED_BY_FORMAL_PHASE_L_B and must appear in "
+        f"that archive alone; found them under {sorted(consumed_in)}"
+    )
+    for manifest_path in (PROJECT_ROOT / "results").rglob("manifest.json"):
+        relative = manifest_path.relative_to(PROJECT_ROOT).as_posix()
+        if relative.startswith(PHASE_L_B_RESULT_TREE):
+            continue
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert not set(protocol.SEEDS) & set(manifest.get("seeds") or []), (
+            f"{relative} recorded a Phase-L seed outside the Phase-L-B archive"
+        )
 
 
-def test_no_phase_l_result_tree_exists_in_any_commit() -> None:
+def test_the_consumed_status_is_recorded_and_no_phase_reuses_the_seeds() -> None:
+    """The seeds are CONSUMED, and every later artifact says so.
+
+    (Phase O.) The scientific content of the old invariant was "these seeds have
+    not been spent". They have been. What must now hold forever is that they are
+    never spent AGAIN, and that every artifact which could invite reuse records
+    the consumption explicitly.
+    """
+
+    rc4 = PROJECT_ROOT / "benchmark" / "pilot-v7-rc4"
+    contract = json.loads(
+        (rc4 / "qualification-contract.json").read_text(encoding="utf-8")
+    )
+    assert contract["seed_status"]["PHASE_L_SEEDS_STATUS"] == (
+        "CONSUMED_BY_FORMAL_PHASE_L_B"
+    )
+    assert contract["seed_status"]["consumed"] == list(protocol.SEEDS)
+    assert contract["seed_status"]["rc4_seed_triple_selected"] is False
+
+    record = json.loads((rc4 / "freeze-record.json").read_text(encoding="utf-8"))
+    assert record["phase_l_seeds_status"] == "CONSUMED_BY_FORMAL_PHASE_L_B"
+    assert record["seed_triple_selected"] is False
+
+    diagnosis = json.loads(
+        (PROJECT_ROOT / "docs" / "phaseN_phaseL_hold_forensic_diagnosis.json")
+        .read_text(encoding="utf-8")
+    )
+    assert "CONSUMED_BY_FORMAL_PHASE_L_B" in json.dumps(diagnosis)
+
+
+def test_the_phase_l_result_tree_exists_exactly_once_and_is_unmoved() -> None:
+    """SUPERSEDED PRE-EXECUTION INVARIANT (Phase O), and what replaced it.
+
+    This test previously asserted that no ``results/phaseL*`` path existed in any
+    commit. Phase L-B's archival created exactly one, so the assertion is
+    permanently false as written.
+
+    The replacement keeps the guarantee the original was reaching for -- that no
+    Phase-L result tree appears without authorization -- and adds the one the
+    original could not express, because at the time there was nothing to protect:
+    the archive that DOES exist must be byte-identical to the commit that created
+    it.
+    """
+
     listed = subprocess.run(
         ["git", "log", "--all", "--pretty=format:", "--name-only", "--", "results"],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
+        cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
+    )
+    trees = {
+        line.split("/")[1]
+        for line in listed.stdout.splitlines()
+        if line.startswith("results/phaseL")
+    }
+    assert trees == {"phaseL-rc3-requalification"}, (
+        f"an unexpected Phase-L result tree exists in history: {sorted(trees)}"
+    )
+
+    # And the one that exists has not moved since Phase L-B archived it.
+    import instrument_revision as _ir
+
+    committed = _ir.tree_digest_at_commit(
+        PHASE_L_B_ARCHIVE_COMMIT, PHASE_L_B_RESULT_TREE
+    )
+    assert _ir.tree_digest(PHASE_L_B_RESULT_TREE) == committed
+
+
+def test_no_result_tree_exists_for_a_phase_that_never_executed() -> None:
+    """(Phase O.) The forward-looking half: rc4 has produced no evidence."""
+
+    for name in ("phaseO", "phaseO-rc4-requalification", "phaseP"):
+        assert not (PROJECT_ROOT / "results" / name).exists(), name
+    listed = subprocess.run(
+        ["git", "log", "--all", "--pretty=format:", "--name-only", "--", "results"],
+        cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
     )
     for line in listed.stdout.splitlines():
-        assert not line.startswith("results/phaseL"), (
-            f"a Phase-L result tree exists in history: {line}"
+        assert not line.startswith("results/phaseO"), (
+            f"a Phase-O result tree exists in history: {line}"
         )
 
 
 def test_the_seed_selection_status_is_recorded_machine_readably() -> None:
+    """The FROZEN record's own status string, which describes its own moment.
+
+    ``PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED`` was true when the
+    record was written and is a permanent statement about that freeze. It is not
+    a claim about today: Phase L-B subsequently executed. Both facts are asserted
+    here so neither can be mistaken for the other.
+    """
+
     assert (
         protocol.SEED_SELECTION_STATUS
         == "PROSPECTIVELY_SELECTED_IN_PHASE_L_A_AND_NEVER_EXECUTED"
@@ -309,6 +478,13 @@ def test_the_seed_selection_status_is_recorded_machine_readably() -> None:
         (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8")
     )
     assert record["seed_selection_status"] == protocol.SEED_SELECTION_STATUS
+    # (Phase O) And the status TODAY, which is the opposite and is recorded
+    # elsewhere precisely because the frozen record may never be rewritten.
+    rc4 = json.loads(
+        (PROJECT_ROOT / "benchmark" / "pilot-v7-rc4" / "freeze-record.json")
+        .read_text(encoding="utf-8")
+    )
+    assert rc4["phase_l_seeds_status"] == "CONSUMED_BY_FORMAL_PHASE_L_B"
 
 
 # --------------------------------------------------------------------------
@@ -516,12 +692,13 @@ def test_both_gates_progress_only_into_the_mocked_preflight(tmp_path: Path) -> N
     def drifted(model: str) -> tuple[str, str]:
         return protocol.EXPECTED_RUNTIME_VERSION, "0" * 64
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
-        probe=drifted,
-        execute_cell=executed.append,  # type: ignore[arg-type]
-    )
+    with _phase_o_superseded_preflight():
+        code = driver.main(
+            ["--execute-real-model", "--output-root", str(tmp_path / "out")],
+            env=OPEN_GATE,
+            probe=drifted,
+            execute_cell=executed.append,  # type: ignore[arg-type]
+        )
     assert code == protocol.EXIT_ENVIRONMENT_HOLD
     assert executed == []
 
@@ -532,12 +709,13 @@ def test_a_drifted_runtime_version_is_an_environment_hold(tmp_path: Path) -> Non
     def drifted(model: str) -> tuple[str, str]:
         return "9.9.9", protocol.EXPECTED_MODEL_DIGEST[model]
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
-        probe=drifted,
-        execute_cell=executed.append,  # type: ignore[arg-type]
-    )
+    with _phase_o_superseded_preflight():
+        code = driver.main(
+            ["--execute-real-model", "--output-root", str(tmp_path / "out")],
+            env=OPEN_GATE,
+            probe=drifted,
+            execute_cell=executed.append,  # type: ignore[arg-type]
+        )
     assert code == protocol.EXIT_ENVIRONMENT_HOLD
     assert executed == []
 
@@ -558,24 +736,26 @@ def test_both_arms_are_probed_before_either_arm_runs(tmp_path: Path) -> None:
         executed.append(cell)
         return healthy_row(cell)
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
-        probe=probe,
-        execute_cell=execute,
-    )
+    with _phase_o_superseded_preflight():
+        code = driver.main(
+            ["--execute-real-model", "--output-root", str(tmp_path / "out")],
+            env=OPEN_GATE,
+            probe=probe,
+            execute_cell=execute,
+        )
     assert code == protocol.EXIT_OK
     assert len(executed) == 102
 
 
 def test_a_missing_credential_stops_before_any_cell(tmp_path: Path) -> None:
     executed: list[harness.Cell] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env={protocol.HUMAN_GATE_ENV: protocol.HUMAN_GATE_VALUE},
-        probe=_stub_probe,
-        execute_cell=executed.append,  # type: ignore[arg-type]
-    )
+    with _phase_o_superseded_preflight():
+        code = driver.main(
+            ["--execute-real-model", "--output-root", str(tmp_path / "out")],
+            env={protocol.HUMAN_GATE_ENV: protocol.HUMAN_GATE_VALUE},
+            probe=_stub_probe,
+            execute_cell=executed.append,  # type: ignore[arg-type]
+        )
     assert code == protocol.EXIT_CREDENTIAL_STOP
     assert executed == []
 
@@ -605,11 +785,52 @@ def test_the_gate_variable_is_set_nowhere_in_the_repository() -> None:
 
 
 def test_the_offline_preflight_passes_on_the_frozen_tree() -> None:
-    assert protocol.offline_preflight() == []
+    """(Phase O amendment.)  Everything except the enumerated supersession.
+
+    The frozen preflight is run in full and its live failure set must be EXACTLY
+    the assertions Phase O supersedes -- the ``src/iqa_soa`` tree pin and the
+    instrument/schema version pins the revised instrument moved.  Any additional
+    failure fails this test, so every other claim the frozen protocol makes is
+    still checked live and still holds.  The superseded half is proved where it
+    is true, from committed bytes at the Phase-L-B execution commit, by
+    ``scripts/phaseO_frozen_input_supersession.py``.
+    """
+
+    assert set(protocol.offline_preflight()) == set(
+        supersession.superseded_live_assertions()
+    )
+    assert _residual_preflight() == []
+    assert supersession.run_all() == []
 
 
 def test_the_frozen_input_record_is_deterministic_and_committed() -> None:
-    assert freezer.main(["--check"]) == 0
+    """(Phase O amendment.)  Determinism is proved where the record is true.
+
+    ``freezer.main(["--check"])`` recomputes the record from the LIVE tree and
+    compares it to the committed bytes, so it necessarily disagrees once the
+    instrument is revised -- on the ``src/iqa_soa`` tree digest and nothing else.
+    The claim the record makes is that the inputs it bound were those bytes when
+    it bound them, and that is checked against the Phase-L-B execution commit.
+    The record itself is proved unedited first, so this cannot be satisfied by
+    rewriting it.
+    """
+
+    assert supersession.check_record_is_unedited() == []
+    assert supersession.check_freeze_at_execution_commit() == []
+    # Every per-file pin is still a LIVE guarantee; only the tree pin moved.
+    assert supersession.check_live_residual() == []
+    recomputed = protocol.compute_frozen_inputs()
+    committed = json.loads(
+        (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8")
+    )
+    assert recomputed["files"] == committed["files"]
+    assert set(recomputed["trees"]) == set(committed["trees"])
+    differing = {
+        root
+        for root, digest in recomputed["trees"].items()
+        if digest != committed["trees"][root]
+    }
+    assert differing == {supersession.SUPERSEDED_TREE_ROOT}
 
 
 def test_the_plan_matches_its_sha256_sidecar() -> None:
@@ -757,12 +978,15 @@ def _run_driver_with_rows(
         return row_for(cell)
 
     out = _phase_l_out(tmp_path)
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
-        probe=_stub_probe,
-        execute_cell=execute,
-    )
+    # See the Phase-O amendment note above: the real preflight runs in full and
+    # only the enumerated superseded assertions are subtracted.
+    with _phase_o_superseded_preflight():
+        code = driver.main(
+            ["--execute-real-model", "--output-root", str(out)],
+            env=OPEN_GATE,
+            probe=_stub_probe,
+            execute_cell=execute,
+        )
     return code, out
 
 
@@ -1268,15 +1492,35 @@ def test_a_real_runner_row_carries_every_schema_four_field(
     fault_rows: dict[str, dict[str, Any]]
 ) -> None:
     for task_id, row in fault_rows.items():
+        # (Phase O amendment.)  Schema 5 is a strict superset of schema 4, so
+        # every field the Phase-L protocol requires is still present. The row's
+        # own instrument stamp is the CURRENT one, which is never behind the
+        # version this protocol was frozen against.
         missing = [name for name in PILOT_RAW_FIELDS_V4 if name not in row]
         assert missing == [], f"{task_id} is missing {missing}"
-        assert row["instrument_version"] == protocol.EXPECTED_INSTRUMENT_VERSION
+        assert int(row["instrument_version"]) >= int(
+            protocol.EXPECTED_INSTRUMENT_VERSION
+        )
 
 
 def test_the_instrument_and_schema_pins_are_what_the_code_declares() -> None:
-    assert protocol.check_instrument_pins() == []
+    """(Phase O amendment.)  The protocol's pins are unchanged; the tree moved.
+
+    ``EXPECTED_INSTRUMENT_VERSION`` / ``EXPECTED_RAW_SCHEMA_VERSION`` are what the
+    frozen protocol was frozen against and must never move.  What ``check_instrument_pins``
+    additionally does is compare them to the LIVE instrument, and Phase O revised
+    it under an approved, per-file hash-pinned revision.  That difference is
+    enumerated; anything else is a failure.
+    """
+
     assert protocol.EXPECTED_INSTRUMENT_VERSION == "3"
     assert protocol.EXPECTED_RAW_SCHEMA_VERSION == 4
+    assert set(protocol.check_instrument_pins()) <= set(
+        supersession.superseded_live_assertions()
+    )
+    # The live instrument is still an approved, hash-pinned revision -- the half
+    # of the pin check that Phase O does NOT supersede.
+    assert instrument_revision.check_instrument_provenance() == []
 
 
 # --------------------------------------------------------------------------
@@ -1904,14 +2148,20 @@ def test_phase_l_a_prime_modified_no_frozen_data() -> None:
     changed = subprocess.run(
         [
             "git", "diff", "--name-only", "--diff-filter=MDRT",
-            CANONICAL_BASE_COMMIT, "--", "benchmark", "results", "src",
-            "configs/policies", "docs",
+            CANONICAL_BASE_COMMIT, PHASE_L_A_PRIME_HEAD_COMMIT,
+            "--", "benchmark", "results", "src", "configs/policies", "docs",
         ],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
+    # (Phase O amendment.)  The diff runs to the commit at which Phase L-A' was
+    # the head of the line, not to the working tree.  Read against the working
+    # tree it silently meant "Phase L-A' plus every later phase", so a legitimate
+    # separately-approved instrument revision by a LATER phase was reported as a
+    # Phase-L-A' mutation.  Both ends are immutable, so this keeps answering the
+    # question the test name asks.
     assert changed.stdout.strip() == "", (
         f"Phase L-A' must not modify frozen data: {changed.stdout.splitlines()}"
     )

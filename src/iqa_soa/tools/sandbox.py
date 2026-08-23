@@ -13,6 +13,27 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 
+#: The closed set of simulated fault modes the sandbox supports.  A declaration
+#: naming anything else is refused by :meth:`ToolRegistry.execute` as an
+#: unsupported mode rather than silently executed, and a *persisted* failure
+#: event naming anything else was not written by this sandbox at all -- which is
+#: why ``iqa_soa.experiment.failure_events`` validates against this exact set.
+#:
+#: It lives here, beside :class:`FaultSpec`, rather than in the registry, so that
+#: a reader of persisted telemetry can import the vocabulary without importing
+#: the tool dispatch path.  ``ToolRegistry`` imports it from here, so there is
+#: one table and it cannot drift.
+SUPPORTED_FAULT_MODES: frozenset[str] = frozenset(
+    {
+        "timeout",
+        "high_latency",
+        "malformed_response",
+        "unavailable",
+        "partial_failure",
+    }
+)
+
+
 @dataclass(frozen=True, slots=True)
 class FaultSpec:
     """A deterministic fault attached to a tool name or ``tool:resource`` key."""
@@ -96,4 +117,4 @@ class SandboxState:
         return None
 
 
-__all__ = ["FaultSpec", "SandboxState"]
+__all__ = ["SUPPORTED_FAULT_MODES", "FaultSpec", "SandboxState"]

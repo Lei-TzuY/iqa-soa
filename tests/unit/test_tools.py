@@ -38,7 +38,11 @@ def test_all_tools_mutate_only_in_memory_sandbox() -> None:
     assert registry.execute(action("file.read", "report.txt")).output == "hello"
     assert registry.execute(action("file.write", "new.txt", content="new")).success
     assert registry.execute(action("database.query", "row/1")).output == {"value": 1}
-    assert registry.execute(action("database.update", "row/1", values={"value": 2})).success
+    # (Phase O) ``values`` was one of the undisclosed aliases withdrawn when the
+    # per-tool argument contract was published; ``value`` is the one advertised
+    # key.  See tests/integration/test_phaseO_rc4_redesign.py for the
+    # schema-versus-runtime conformance proof.
+    assert registry.execute(action("database.update", "row/1", value={"value": 2})).success
     assert registry.execute(action("database.delete", "row/1")).success
     assert registry.execute(action("message.send", "external", message="hello")).success
     assert registry.execute(action("api.call", "https://fake.invalid")).output == {
