@@ -123,7 +123,7 @@ No live metadata request was made by Phase P.
 | Check | Result |
 |---|---|
 | Phase-P focused suite (`tests/integration/test_phaseP_execution_protocol.py`) | **200 passed** |
-| Full `pytest` | **1584 passed** |
+| Full `pytest` | **1585 passed** (fresh worktree at `89c056e`, 18m02s) |
 | `mypy src` | clean (48 files) |
 | `MYPYPATH=src mypy --strict` over the five new Phase-P scripts | clean |
 | `qualification_harness_v2.py` self-check | PASS |
@@ -133,7 +133,7 @@ No live metadata request was made by Phase P.
 | `rc4_scoring_vocabulary.py` | PASS |
 | `instrument_revision.py` (chain: Phase-K → M → O) | PASS |
 | `phaseO_frozen_input_supersession.py` | PASS |
-| `phaseM_frozen_input_audit.py` | PASS (12 bound inputs, 6 sidecars) |
+| `phaseM_frozen_input_audit.py` | PASS (12 bound inputs, 7 sidecars — the Phase-P plan sidecar included) |
 | `phaseM_historical_analysis.py` | PASS |
 | `phaseN_diagnose_phaseL_hold.py --verify` | PASS |
 | `validate_pilot_v7_rc3.py` | PASS |
@@ -141,7 +141,7 @@ No live metadata request was made by Phase P.
 | `phaseP_write_frozen_inputs.py --check` | PASS |
 | `run_phaseP_rc4_qualification.py --verify-frozen-inputs` | PASS |
 | `analyze_phaseP_rc4_qualification.py --verify-scoring-plan` | PASS |
-| Fresh detached worktree, full battery at the final commit | PASS (and see §9) |
+| Fresh detached worktree at `89c056e`, full battery | PASS — 1585 passed, every script above green, `mypy` clean, and `results/phaseP-rc4-qualification/` absent (see §9) |
 
 ## 6. Zero-inference / zero-Ollama / zero-provider proof
 
