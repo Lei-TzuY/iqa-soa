@@ -1,0 +1,56 @@
+{
+  "arm_order": [
+    "qwen",
+    "mistral"
+  ],
+  "authorizes_confirmatory_execution": false,
+  "benchmark_version": "pilot-v7-rc4",
+  "canonical_base_commit": "f65ee4980813b465431c5f7d75a0d00db87785b6",
+  "execution_authorized": false,
+  "files": {
+    "benchmark/pilot-v7-rc4/AUDIT.md": "4b0321012d43b6c2d8d7e31b472b5034893e8ecc7c771ce84781a4fe4c655dc8",
+    "benchmark/pilot-v7-rc4/freeze-record.json": "c988a94114dca1470324504adb85c4061ed849808383cb50c4ea512800a8396f",
+    "benchmark/pilot-v7-rc4/manifest.json": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
+    "benchmark/pilot-v7-rc4/provenance.json": "0486df32c46285615e46c859728f09b0b8f83528f9a3a0fa4de7cbbf1302bf24",
+    "benchmark/pilot-v7-rc4/qualification-contract.json": "ac600e6d84be5aa46f9c39d51311b0da6c68847a2083a57bdb901c38e45433cc",
+    "configs/phaseP-models.yaml": "c367cfe6d125694012fbde8ed985e3517e1fa31f336d08e11812e62306bd28f8",
+    "configs/phaseP-qualification.yaml": "8d410f7e28e8fc80e0efca8bda6845c1a4ff9c32095f53ee7d413299493d1c6a",
+    "configs/policies/default.xml": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5",
+    "docs/phaseM_instrument_revision.json": "e99cd94fcf2b9ab8a1387a30a9d092eadf4253bc9deffc7701cfdf013a51ca26",
+    "docs/phaseO_instrument_revision.json": "c30712e700332103262ca8cc566e0362b6f35641045314c9efe3a27e6c565e1b",
+    "docs/phaseO_rc4_revision_record.json": "1e6c0047f52d3ba0191a5ba7e11c4dfd08b5964a8951bf02538058ca73b83181",
+    "docs/phaseP_rc4_prospective_seed_derivation.json": "f45f13e26afe5d30c0b8f04df2512beac9c9e3385f62739abe348d631d04e6b6",
+    "docs/phaseP_rc4_real_model_qualification_plan.md": "04dd3d59981642e13aac7a0f2b999ae1e5546c5b3d81a9864840ce608758c37b",
+    "scripts/analyze_phaseP_rc4_qualification.py": "762441bea2ed1ec3199e02e0329a5ed76a1cfca9dc7eb76744501abe5081639a",
+    "scripts/phaseP_derive_seeds.py": "850160c75b6545f20de079e1e4ea68d693d80b7516877929cd49cbfef503cc89",
+    "scripts/phaseP_protocol.py": "55a0380b075fb6899be268d1de1fcb208832fcf0f210a936efab5cfdbe76e4e3",
+    "scripts/qualification_harness_v2.py": "bbd1682a23683075d1a3a8c19bbe67a16dfa38d2a2f80ffde88a2b43063b4149",
+    "scripts/rc4_scoring_vocabulary.py": "a6edc0b661b3d7d2161d6473158b7b9dafe74feb5e8881fed922a92f86507b90",
+    "scripts/run_phaseP_rc4_qualification.py": "bb94110ef6dcb61da61fc63d6ffc67e277a5496c30665121c1de4d7c0538b49b"
+  },
+  "harness_version": "rc4-harness-2",
+  "hash_basis": "raw working-tree bytes, LF canonical checkout per docs/hash_basis_policy.md",
+  "infrastructure_retry_limit": 0,
+  "instrument_version": "4",
+  "model_inference_performed": false,
+  "native_tool_adapter_version": "native-tools-adapter-3",
+  "phase": "P",
+  "planned_cells": 102,
+  "qa_mode": "off",
+  "raw_schema_version": 5,
+  "record_kind": "phase_p_frozen_execution_inputs",
+  "results_namespace": "results/phaseP-rc4-qualification",
+  "scoring_vocabulary_version": "rc4-scoring-vocabulary-1",
+  "seed_selection_status": "PROSPECTIVELY_DERIVED_IN_PHASE_P_AND_NEVER_EXECUTED",
+  "seeds": [
+    1197050110,
+    1904689056,
+    1133353488
+  ],
+  "tool_argument_contract_digest": "eedff86135a533a21e19caef4ba9b05334bf54040aa38486e706e28716bd4634",
+  "tool_argument_contract_version": "tool-arguments-1",
+  "trees": {
+    "benchmark/pilot-v7-rc4": "d29fc7f8fc54149d8a11936f9851638deb0e083305541f09594944bbd0d0e6ba",
+    "src/iqa_soa": "8d569696e51162acf8a0b8612f7d91398c7544cd0502cbaa59af92e35795b938"
+  }
+}
