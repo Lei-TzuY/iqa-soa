@@ -35,9 +35,24 @@ from iqa_soa.agent.providers import (  # noqa: E402
 )
 from iqa_soa.experiment.runner import load_provider  # noqa: E402
 from iqa_soa.instrument import (  # noqa: E402
-    NATIVE_TOOL_ADAPTER_VERSION,
+    PRE_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION,
     PROTOCOL_TELEMETRY_INSTRUMENT_VERSION,
 )
+
+#: The adapter Phase D ran under, by its permanent name.
+NATIVE_TOOL_ADAPTER_VERSION = (
+    PRE_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION
+)
+
+#: (Phase O amendment.)  The adapter version is pinned to its PERMANENT NAMED
+#: constant for the same reason and by the same rule.  Phase M gave every
+#: instrument and schema version a named constant so a frozen phase pins what it
+#: actually ran under; ``NATIVE_TOOL_ADAPTER_VERSION`` was left importing the
+#: moving alias only because it had never moved.  Phase O moved it -- the native
+#: tool definition now advertises a per-tool argument contract where it
+#: previously declared an unconstrained ``arguments`` object -- so the alias is
+#: replaced here by the name of the adapter Phase D actually ran under.  No
+#: recorded value changes and no committed artifact is rewritten.
 
 #: Phase D executed on instrument "2" and its results are frozen evidence.
 #: This analyzer pins the instrument its phase actually RAN under rather than

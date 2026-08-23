@@ -92,6 +92,13 @@ MANIFEST_PATH = PROJECT_ROOT / "benchmark" / BENCHMARK_VERSION / "manifest.json"
 PARENT_COMMIT = "eace204d4c27a9ca48d3c0a660832f640b7a900b"
 REVISION_PATH = PROJECT_ROOT / "docs" / "phaseM_instrument_revision.json"
 
+# (Phase O amendment.)  The commit at which Phase M stopped being the head of the
+# approved instrument-revision chain, which is the commit Phase O branched from.
+# Phase M's claims about what IT changed are proved between PARENT_COMMIT and
+# this commit -- committed bytes on both ends -- rather than against a working
+# tree that later phases legitimately move.
+PHASE_M_SUPERSEDED_AT_COMMIT = "0cc3b05ab79559acdd4f50675ed7937199dc4dbe"
+
 #: The rc3 fault declarations.  Read ONLY to assert that the runtime observation
 #: happens to agree with them.  Nothing here is ever fed into a derivation.
 BUD_016 = ("api.call", "platform-api/service-health", "timeout")
@@ -817,18 +824,57 @@ def test_the_new_schema_is_strictly_additive() -> None:
 
 
 def test_the_versions_moved_exactly_as_intended() -> None:
+    """The Phase-M boundary, asserted on the constants that are permanent.
+
+    (Phase O amendment.)  This test originally asserted that the MOVING aliases
+    ``INSTRUMENT_VERSION`` / ``RAW_SCHEMA_VERSION`` / ``NATIVE_TOOL_ADAPTER_VERSION``
+    equalled Phase M's values.  That was true while Phase M was the head of the
+    revision chain and stopped being true the moment Phase O revised the
+    instrument -- which is exactly the confusion ``iqa_soa.instrument`` gives every
+    version a permanent NAMED constant to prevent.
+
+    What Phase M actually claims is asserted below and is true forever: its own
+    boundary is instrument "3" / schema 4, it did not touch the adapter, and its
+    predecessor's boundary is unchanged.  The separate, present-state claim that
+    the LIVE instrument is Phase M's is superseded by Phase O and is enumerated in
+    ``tests/integration/test_phaseO_rc4_redesign.py``.
+    """
+
     assert PROTOCOL_TELEMETRY_INSTRUMENT_VERSION == "2"
     assert PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION == 3
     assert FAULT_PROVENANCE_INSTRUMENT_VERSION == "3"
     assert FAULT_PROVENANCE_RAW_SCHEMA_VERSION == 4
-    assert INSTRUMENT_VERSION == FAULT_PROVENANCE_INSTRUMENT_VERSION
-    assert RAW_SCHEMA_VERSION == FAULT_PROVENANCE_RAW_SCHEMA_VERSION
-    # The native tool adapter did NOT change, so its version must not move.
-    assert NATIVE_TOOL_ADAPTER_VERSION == "native-tools-adapter-2"
+    # Phase M did not touch the native tool adapter, so ITS record must still
+    # name adapter 2.  Phase O did touch it, so the live alias has moved on.
+    phase_m = json.loads(
+        (PROJECT_ROOT / "docs" / "phaseM_instrument_revision.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert phase_m["current_instrument"]["instrument_version"] == (
+        FAULT_PROVENANCE_INSTRUMENT_VERSION
+    )
+    assert phase_m["current_instrument"]["raw_schema_version"] == (
+        FAULT_PROVENANCE_RAW_SCHEMA_VERSION
+    )
+    assert phase_m["current_instrument"]["native_tool_adapter_version"] == (
+        "native-tools-adapter-2"
+    )
+    assert phase_m["current_instrument"]["adapter_unchanged"] is True
+    # The live aliases are never behind the Phase-M boundary; a later phase may
+    # move them forward, and none may move them back.
+    assert int(INSTRUMENT_VERSION) >= int(FAULT_PROVENANCE_INSTRUMENT_VERSION)
+    assert RAW_SCHEMA_VERSION >= FAULT_PROVENANCE_RAW_SCHEMA_VERSION
+    assert NATIVE_TOOL_ADAPTER_VERSION.startswith("native-tools-adapter-")
 
 
 def test_every_historical_schema_remains_readable() -> None:
-    assert READABLE_PILOT_RAW_SCHEMA_VERSIONS == (2, 3, 4)
+    """(Phase O amendment.)  The claim is that nothing is REMOVED, not that
+    nothing is ever added: a later additive schema appends to the readable set,
+    and asserting exact equality would make every future additive revision fail a
+    Phase-M test for doing precisely what Phase M established as correct."""
+
+    assert set(READABLE_PILOT_RAW_SCHEMA_VERSIONS) >= {2, 3, 4}
     for version in READABLE_PILOT_RAW_SCHEMA_VERSIONS:
         assert RAW_FIELDS_BY_SCHEMA_VERSION[version]
     assert RAW_FIELDS_BY_SCHEMA_VERSION[3] == PILOT_RAW_FIELDS_V3
@@ -920,13 +966,23 @@ def test_a_schema_3_reader_still_reads_a_schema_4_row(qa_off_run: Any) -> None:
         assert set(PILOT_RAW_FIELDS_V4) <= set(row)
 
 
-def test_the_runner_writes_schema_4_and_instrument_3(qa_off_run: Any) -> None:
+def test_the_runner_stamps_the_current_instrument_and_schema(qa_off_run: Any) -> None:
+    """(Phase O amendment.)  The runner writes the CURRENT boundary, whatever it
+    is, and never a stale one.  Pinning this to Phase M's numbers asserted a
+    present-state fact a later revision is entitled to move; what Phase M
+    established -- that the manifest and every row carry the same, current
+    boundary, and that it is never behind Phase M's -- is asserted instead."""
+
     directory, rows = qa_off_run
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["raw_schema_version"] == FAULT_PROVENANCE_RAW_SCHEMA_VERSION
-    assert manifest["instrument_version"] == FAULT_PROVENANCE_INSTRUMENT_VERSION
+    assert manifest["raw_schema_version"] == RAW_SCHEMA_VERSION
+    assert manifest["instrument_version"] == INSTRUMENT_VERSION
+    assert manifest["raw_schema_version"] >= FAULT_PROVENANCE_RAW_SCHEMA_VERSION
+    assert int(manifest["instrument_version"]) >= int(
+        FAULT_PROVENANCE_INSTRUMENT_VERSION
+    )
     for row in rows.values():
-        assert row["instrument_version"] == FAULT_PROVENANCE_INSTRUMENT_VERSION
+        assert row["instrument_version"] == INSTRUMENT_VERSION
 
 
 def test_the_raw_artifact_is_append_only_and_complete(qa_off_run: Any) -> None:
@@ -1001,10 +1057,21 @@ def test_the_revision_record_binds_everything_the_phase_requires() -> None:
     assert record["previous_instrument"]["raw_schema_version"] == (
         PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION
     )
-    assert record["current_instrument"]["instrument_version"] == INSTRUMENT_VERSION
-    assert record["current_instrument"]["raw_schema_version"] == RAW_SCHEMA_VERSION
+    # (Phase O amendment.)  Phase M's record describes the instrument PHASE M
+    # produced.  Comparing it to the live tree asserted that Phase M is still the
+    # head of the chain, which is a different claim and one a later approved
+    # revision is entitled to falsify.  It is checked where it is true: at the
+    # commit at which Phase M stopped being the head.
+    assert record["current_instrument"]["instrument_version"] == (
+        FAULT_PROVENANCE_INSTRUMENT_VERSION
+    )
+    assert record["current_instrument"]["raw_schema_version"] == (
+        FAULT_PROVENANCE_RAW_SCHEMA_VERSION
+    )
     assert record["current_instrument"]["src_iqa_soa_tree"] == (
-        instrument_revision.tree_digest("src/iqa_soa")
+        instrument_revision.tree_digest_at_commit(
+            PHASE_M_SUPERSEDED_AT_COMMIT, "src/iqa_soa"
+        )
     )
     assert record["model_inference_performed"] is False
     assert record["phase_l_execution_authorized"] is False
@@ -1014,15 +1081,30 @@ def test_the_revision_record_binds_everything_the_phase_requires() -> None:
 
 
 def test_every_changed_instrument_file_is_hash_pinned_with_a_reason() -> None:
+    """(Phase O amendment.)  Phase M's change set, between two COMMITS.
+
+    The original form diffed Phase M's parent against the WORKING TREE, which
+    silently means "Phase M plus every phase since".  That was the same thing
+    while Phase M was the head; once Phase O revised the instrument it made a
+    Phase-M test fail because a LATER phase changed a different file.  Diffing
+    parent-to-successor-parent asks the question the record actually answers, and
+    both ends are immutable so it stays answerable forever.
+    """
+
     record = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     changed = record["changed_files"]
     observed = subprocess.run(
-        ["git", "diff", "--name-only", PARENT_COMMIT, "--", "src/iqa_soa"],
+        [
+            "git", "diff", "--name-only",
+            PARENT_COMMIT, PHASE_M_SUPERSEDED_AT_COMMIT, "--", "src/iqa_soa",
+        ],
         cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
     ).stdout.split()
     assert set(changed) == set(observed)
     for name, entry in changed.items():
-        actual = instrument_revision.sha256_of(PROJECT_ROOT / name)
+        actual = instrument_revision.sha256_of_blob_at_commit(
+            PHASE_M_SUPERSEDED_AT_COMMIT, name
+        )
         assert entry["sha256"] == actual, name
         assert len(entry["reason"].strip()) >= 20, name
 
@@ -1103,7 +1185,26 @@ def test_phase_m_authorizes_no_real_model_execution() -> None:
     assert not list((PROJECT_ROOT / "docs").glob("preregistration*v4*"))
     for name in ("pilot-v7", "pilot-v7-final"):
         assert not (PROJECT_ROOT / "benchmark" / name).exists()
-    assert not (PROJECT_ROOT / "results" / "phaseL-rc3-requalification").exists()
+    # (Phase O amendment.)  This originally asserted that no Phase-L result tree
+    # exists, which was the pre-execution form of "Phase M authorized nothing".
+    # Phase L-B later executed under its OWN explicit human authorization and
+    # archived its evidence, so the tree exists and Phase M is still not the
+    # thing that authorized it.  The claim is restated as what it always meant:
+    # Phase M's own artifacts authorize no execution, and the run that did
+    # happen held.
+    phase_m_record = json.loads(
+        (PROJECT_ROOT / "docs" / "phaseM_instrument_revision.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert phase_m_record["phase_l_execution_authorized"] is False
+    assert phase_m_record["model_inference_performed"] is False
+    archive = PROJECT_ROOT / "results" / "phaseL-rc3-requalification"
+    if archive.is_dir():
+        analysis = json.loads(
+            (archive / "phaseL-analysis.json").read_text(encoding="utf-8")
+        )
+        assert "HOLD" in json.dumps(analysis)
     frozen_inputs = PROJECT_ROOT / "docs" / "phaseL_frozen_execution_inputs.json"
     if frozen_inputs.is_file():
         record = json.loads(frozen_inputs.read_text(encoding="utf-8"))

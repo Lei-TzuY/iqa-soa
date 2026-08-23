@@ -1,0 +1,109 @@
+{
+  "additive_to": "docs/phaseM_instrument_revision.json",
+  "authorizes_confirmatory_execution": false,
+  "benchmark_bytes_unchanged": {
+    "note": "No rc3 task YAML, manifest byte, contract byte or scoring threshold was touched. The rc4 redesign lives entirely under benchmark/pilot-v7-rc4/ and creates no rc3 byte.",
+    "pilot-v7-rc3_audit_sha256": "65b6eae0fc67a21a1ec76d7c5ce7374909a2111c23b09efbd7e5533be9d3476b",
+    "pilot-v7-rc3_freeze_record_sha256": "853e1b9d0bc343fe1c780454cd4d1e24c389d7e16b7536c446ae3d695454d8da",
+    "pilot-v7-rc3_manifest_sha256": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+    "pilot-v7-rc3_provenance_sha256": "078a73c59e8ec4d1964d5079233159542af4b70f4ef908128836308a3d4c658a",
+    "pilot-v7-rc3_qualification_contract_sha256": "6d3fbcf8bb0213c4619e1a268502cc9b669146bf5f677bfd421b58ee1d26e7ca",
+    "qa_policy_default_xml_sha256": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5"
+  },
+  "changed_files": {
+    "src/iqa_soa/agent/providers.py": {
+      "reason": "Advertises the contract the sandbox enforces. _native_action_tool renders per-tool argument requirements into parameters.allOf as if/then clauses keyed on the tool value, and the same contract in prose into the function description; the schema_instruction states it a third time in the system prompt, which reaches BOTH protocols and both arms. The redundancy is deliberate: Phase N established that the Mistral path loses the provider-rendered tool contract once tool-result messages follow the only user turn, so a contract carried solely by the tools field is not reliably visible. The advertised contract's version and digest are recorded on the provider descriptor, so a later reader can prove from the artifact alone which argument contract a run's model was shown -- the fact Phase N had to reconstruct from source because nothing recorded it. No prompt content, policy, guard, temperature, seed or sampling parameter changed.",
+      "sha256": "fab29df6e60a286c25b42dfe0da68768677d25ee9c7eb9f4695203b09bf7465c"
+    },
+    "src/iqa_soa/experiment/failure_events.py": {
+      "reason": "NEW. Derives an ordered, per-action failure-event list from the live GatewayOutcome sequence. Phase N finding N-2: the single row scalar cannot represent 'the model missed a resource and THEN reached the declared modality and fired the declared fault', which is precisely the trajectory that invalidated two Phase-L-B FAULT-004 cells. Every public function accepts Sequence[GatewayOutcome] and nothing else, so the benchmark declaration is structurally out of reach and an event cannot be manufactured from the answer it will be compared against. It carries no tool output, no sentinel payload, no protected value, no argument VALUE and no model text: QA-OFF treatment semantics are untouched.",
+      "sha256": "4499b130c73fe498019d53f0bc849460a8e780697f6531b63a97a07042d076b0"
+    },
+    "src/iqa_soa/experiment/runner.py": {
+      "reason": "Stamps the ordered failure events onto the raw row from agent_run.outcomes, alongside the Phase-M fault provenance and before the outcomes are discarded, and writes the schema-5 pilot field set. No treatment, guard, prompt, policy, tool dispatch or metric changed.",
+      "sha256": "9178d46f51ab21749417bea353e289ee317dbf13a51f83092256fad1e8e026bc"
+    },
+    "src/iqa_soa/failure_taxonomy.py": {
+      "reason": "Adds invalid_arguments to SCIENTIFIC_FAILURE_CLASSES and classifies it from the sandbox's deterministic error prefix. Phase N showed the frozen taxonomy had no class for 'the sandbox correctly refused a model-supplied argument set', so such a refusal fell through to the generic tool_failure and from there to UNEXPECTED_SANDBOX_FAILURE / CELL_INVALID_AND_HOLD, a class whose own docstring reserves it for UNEXPLAINED failures. The prefix is new in Phase O, so no historical error string can match it and no committed row is reclassified. classify_gateway_outcomes itself is deliberately left behaviourally unchanged -- every committed Phase-B..L row was written under it and re-ranking it now would silently change what those rows mean -- and its docstring now states that it is lossy and names the ordered replacement.",
+      "sha256": "27b66b95d1f3751cba2098eaefde19521001289732b591273ed3969c7ae8231f"
+    },
+    "src/iqa_soa/instrument.py": {
+      "reason": "Adds the Phase-O instrument boundary (version 4), raw schema 5, and the native-tools-adapter-3 adapter boundary, each as a permanent NAMED constant beside its predecessors so no frozen phase is retroactively invalidated. NATIVE_TOOL_ADAPTER_VERSION moves for the first time since Phase B because the adapter's request payload genuinely changed; Phase M held it constant precisely because Phase M did not touch the adapter, and holding it now would hide the change this phase exists to make.",
+      "sha256": "514e25045b88061c13dc6e08f1dd2fbb43439a462312d743a003de4363ca1bb2"
+    },
+    "src/iqa_soa/metrics/definitions.py": {
+      "reason": "Adds FAILURE_EVENT_TELEMETRY_FIELDS and PILOT_RAW_FIELDS_V5 as a strict superset of PILOT_RAW_FIELDS_V4, and registers schema 5 in RAW_FIELDS_BY_SCHEMA_VERSION so a reader still selects the field contract a row was WRITTEN under. No schema-2, 3 or 4 field changed name, type or meaning.",
+      "sha256": "3bcaa1833eaa95c9b0fdae4f6ad83cb04d6957df82534a0f3e0ff359fd83d31c"
+    },
+    "src/iqa_soa/tools/argument_schema.py": {
+      "reason": "NEW. The single source of truth for the per-tool sandbox argument contract. Phase N finding N-1 established that the model-visible schema and the sandbox's enforced contract were two independently maintained descriptions of one interface, and that they disagreed: the schema declared arguments as an unconstrained object while the sandbox required one of six undisclosed aliases. Both sides now render from this table, so 'the advertised schema is truthful' becomes a checkable statement rather than a claim. The design rule is stated in the module and applied uniformly: a key is REQUIRED if and only if the sandbox cannot perform the action without it, and where the sandbox has a deterministic fallback the key is OPTIONAL and the fallback is disclosed. No requirement is added for uniformity.",
+      "sha256": "5b98c57e395860d02b9d2bc06e67f6f72f59ab1a758bdfd8930ce82bf5b280c0"
+    },
+    "src/iqa_soa/tools/registry.py": {
+      "reason": "Enforces exactly the published contract. The six-alias _payload scan (content, body, message, payload, data, value) is withdrawn in favour of the one advertised key per tool; database.update's undisclosed values/data aliases and its undisclosed 'treat the leftover arguments as a record' fallback are withdrawn; robot.move_simulated's undisclosed 'position' alias is withdrawn; message.send now refuses a bodyless send instead of recording payload=None and reporting success. Validation runs at dispatch BEFORE the fault lookup, so a proposal that never became a call cannot consume, mask or trigger a scripted fault. A refusal carries the deterministic 'sandbox argument contract' prefix, the new invalid_arguments failure class, and the exact required key, so a model can correct itself from the error text as Phase L-B recorded qwen doing in 4 of 4 cells. No handler mutates state before refusing.",
+      "sha256": "2e9abdec16971261e5b223b6ca82fcfe7531bdb64d998c11e4cdbf8ddc3ed91f"
+    }
+  },
+  "current_instrument": {
+    "adapter_unchanged": false,
+    "instrument_version": "4",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "raw_schema_version": 5,
+    "src_iqa_soa_tree": "42da2eb04524b91bcc2398bd0da4017a822bbefe033bfd4b51feae00d4ca28ea",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "frozen_historical_inputs": "This revision changes no prospectively frozen scientific input. Every binding in every committed provenance record still matches the working tree, audited by scripts/phaseM_frozen_input_audit.py. The two Phase-L TREE digests are a separate matter and are handled under superseded_live_assertions.",
+  "frozen_input_audit": "scripts/phaseM_frozen_input_audit.py",
+  "historical_analysis_compatibility": "scripts/phaseM_historical_analysis.py",
+  "historical_rows": "Committed Phase-D, Phase-F, Phase-I and Phase-L raw rows are neither rewritten nor re-run. They remain readable under the schema they were written with, via RAW_FIELDS_BY_SCHEMA_VERSION. Their frozen analyzers are NOT edited: scripts/phaseM_historical_analysis.py executes each from the commit that froze it, where the instrument and adapter constants it imports genuinely are the ones its phase ran under. That mechanism absorbs the adapter bump unchanged.",
+  "model_inference_performed": false,
+  "observation_only": false,
+  "offline_tests": "tests/integration/test_phaseO_rc4_redesign.py",
+  "offline_validator": "scripts/instrument_revision.py",
+  "overwrites_nothing": "Neither benchmark/pilot-v7-rc3/freeze-record.json nor docs/phaseM_instrument_revision.json is edited. The rc3 freeze record's src_iqa_soa_tree pin still describes the Phase-K freeze commit and is still proved there from git history; the Phase-M record's pins are still proved from committed bytes at 0cc3b05ab79559acdd4f50675ed7937199dc4dbe, the last commit at which Phase M was the approved head. scripts/instrument_revision.py verifies the chain link by link.",
+  "parent_commit": "0cc3b05ab79559acdd4f50675ed7937199dc4dbe",
+  "phase": "O",
+  "phase_l_b_hold": {
+    "commit": "693f81be666ec138def100dc7e920bd020080cd9",
+    "note": "Phase L-B executed all 102 formal cells of the frozen pilot-v7-rc3 QA-OFF requalification exactly once and held. That verdict stands, pilot-v7-rc3 remains UNQUALIFIED, and no Phase-L-B classification, row or archived byte is altered by this revision. Phase O repairs the two instrument defects the Phase-N diagnosis attributed the invalidations to, prospectively, for a release candidate that has not been executed.",
+    "rc3_status": "UNQUALIFIED",
+    "report": "docs/phaseL_rc3_requalification_execution_report.md",
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "verdict": "HOLD"
+  },
+  "phase_n_diagnosis": {
+    "commit": "0cc3b05ab79559acdd4f50675ed7937199dc4dbe",
+    "findings_acted_on": {
+      "N-1": "TOOL_SCHEMA_PRESENTATION_DEFECT. The contract shown to the model was strictly weaker than the contract the sandbox enforced, so a model could satisfy the advertised schema completely and still be refused. Six Phase-L-B cells were invalidated and forced the run to HOLD.",
+      "N-2": "HARNESS_FAILURE_ATTRIBUTION_DEFECT. The row-level failure_class scalar gives invalid_resource absolute, order-independent precedence, so a declared fault that fired with correct runtime provenance was masked by an earlier unrelated resource miss in two Phase-L-B cells."
+    },
+    "report": "docs/phaseN_phaseL_hold_forensic_diagnosis.md",
+    "verdict": "READY_FOR_RC4_OFFLINE_REDESIGN"
+  },
+  "phase_o_execution_authorized": false,
+  "previous_instrument": {
+    "instrument_version": "3",
+    "native_tool_adapter_version": "native-tools-adapter-2",
+    "parent_commit": "eace204d4c27a9ca48d3c0a660832f640b7a900b",
+    "raw_schema_version": 4,
+    "record": "docs/phaseM_instrument_revision.json",
+    "src_iqa_soa_tree": "598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135",
+    "tool_argument_contract_version": "tool-arguments-0"
+  },
+  "qa_off_treatment_invariant": "treatment_for('off').detailed_evidence remains False and the evidence guard remains disabled under QA OFF. The failure-event list is raw protocol telemetry on the same terms as the Phase-M fault provenance: no tool output, no malformed-response sentinel, no protected value, no argument VALUE, no SandboxState.operation_log and no AgentRun.outcomes block is persisted. Argument KEY names appear in refusal messages, because a contract violation is unreportable without naming the key that was wrong.",
+  "record_kind": "instrument_revision",
+  "superseded_live_assertions": {
+    "scripts/phaseL_protocol.py": "check_frozen_inputs() asserts docs/phaseL_frozen_execution_inputs.json against the LIVE working tree, and that record pins the src/iqa_soa tree to the Phase-M instrument 598f7f3b... . Phase O revises the instrument, so that one tree assertion is now false live and remains true at the Phase-L-A' freeze commit and at the Phase-L-B execution commit, where the freeze actually bound the run. Its bytes are NOT edited: the file is itself a frozen Phase-L input, bound by the record it verifies. The prospective replacement is scripts/phaseO_frozen_input_supersession.py, which proves the same claim from COMMITTED bytes at the Phase-L-B execution commit. Every per-FILE hash the record pins still matches the working tree; only the two tree digests moved, and only src/iqa_soa's moved for a reason -- benchmark/pilot-v7-rc3 is byte-unchanged.",
+    "scripts/validate_pilot_v7_rc2.py": "Already superseded by Phase M on the same terms, and superseded again here only in the sense that the digest its one false assertion reports is now the Phase-O tree rather than the Phase-M tree. scripts/phaseM_historical_analysis.py composes that expected string from the approved head of the revision chain, so it follows the chain automatically and nothing in it needed editing."
+  },
+  "title": "Truthful per-tool argument contract and ordered failure-event telemetry",
+  "why_not_observation_only": "Phase M could truthfully say that a Phase-M row and a Phase-B row measure the same quantity in the same way, because it added columns and changed nothing the model or the sandbox did. Phase O cannot. The request payload the model receives now carries a per-tool argument contract, and the sandbox now refuses argument sets it previously accepted through undisclosed aliases. Rows written under instrument 4 and rows written under instrument 3 are therefore not interchangeable, and pooling across this boundary is a claim to be argued explicitly rather than assumed. The version exists so that refusal is machine-checkable.",
+  "withdrawn_undisclosed_payload_aliases": [
+    "content",
+    "body",
+    "message",
+    "payload",
+    "data",
+    "value"
+  ]
+}

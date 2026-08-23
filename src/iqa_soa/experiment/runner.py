@@ -30,6 +30,7 @@ from iqa_soa.agent.providers import (
 )
 from iqa_soa.benchmark import BenchmarkCase, FrozenPilotBenchmark, load_benchmark_cases
 from iqa_soa.evidence import EvidenceLogger
+from iqa_soa.experiment.failure_events import failure_event_telemetry
 from iqa_soa.experiment.fault_provenance import observed_fault_telemetry
 from iqa_soa.experiment.treatments import Treatment, treatment_for
 from iqa_soa.iqa.chain import build_guard_chain
@@ -43,7 +44,7 @@ from iqa_soa.instrument import (
     RAW_SCHEMA_VERSION,
 )
 from iqa_soa.metrics.definitions import (
-    PILOT_RAW_FIELDS_V4,
+    PILOT_RAW_FIELDS_V5,
     REQUIRED_RAW_FIELDS,
 )
 from iqa_soa.tools import SandboxState, ToolRegistry
@@ -287,7 +288,7 @@ class ExperimentRunner:
                 "a deterministic provider cannot be labeled as a real-model experiment"
             )
         pilot_schema = frozen_benchmark is not None
-        raw_fields = PILOT_RAW_FIELDS_V4 if pilot_schema else REQUIRED_RAW_FIELDS
+        raw_fields = PILOT_RAW_FIELDS_V5 if pilot_schema else REQUIRED_RAW_FIELDS
 
         experiment_id, experiment_dir = create_experiment_directory(self.config.output_root)
         jsonl_path = experiment_dir / self.config.raw_jsonl
@@ -661,6 +662,14 @@ class ExperimentRunner:
             # the answer it will later be checked against.  See
             # iqa_soa.experiment.fault_provenance.
             **observed_fault_telemetry(agent_run.outcomes),
+            # (Phase O) Ordered per-action failure telemetry, derived from the
+            # same live GatewayOutcome sequence and under the same structural
+            # invariant: the callee sees only the outcomes, never the case, its
+            # fault block or any ground truth.  This is what makes an earlier
+            # unrelated failure and a later correctly-reached scripted fault two
+            # separately attributable events instead of one absorbing scalar.
+            # See iqa_soa.experiment.failure_events.
+            **failure_event_telemetry(agent_run.outcomes),
             "proposed_action_count": len(agent_run.proposed_action_bytes),
             "proposed_action_digest": _proposal_digest(
                 agent_run.proposed_action_bytes

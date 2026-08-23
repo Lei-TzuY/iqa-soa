@@ -66,6 +66,11 @@ PHASE_I_ANALYZER_FROZEN_SHA256 = (
 )
 PHASE_I_PROVENANCE = "results/phaseI-rc2-requalification/phaseI-provenance.json"
 
+#: (Phase O amendment.)  The commit at which Phase M stopped being the head of
+#: the approved instrument-revision chain -- the commit Phase O branched from.
+#: Phase M's mutation surface is bounded between its parent and this commit.
+PHASE_M_SUPERSEDED_AT_COMMIT = "0cc3b05ab79559acdd4f50675ed7937199dc4dbe"
+
 #: Everything Phase M is permitted to MODIFY (as opposed to add) relative to its
 #: parent commit.  Pinning the whole mutation surface is what turns "we did not
 #: touch a frozen file" from a claim into a check: a new entry here is a visible
@@ -196,13 +201,22 @@ def test_phase_m_modifies_exactly_the_declared_set_and_nothing_else() -> None:
     This is the check whose absence let the Phase-I analyzer be edited silently.
     Additions are unconstrained -- Phase M is additive work -- but every mutation
     is enumerated above and reviewable in one place.
+
+    (Phase O amendment.)  The diff runs between two COMMITS, not from Phase M's
+    parent to the working tree.  Read against the working tree it silently meant
+    "everything Phase M and every later phase modified", so a legitimate,
+    separately-approved edit by a LATER phase would be reported as an undeclared
+    Phase-M mutation.  Both ends are now immutable, so this asks about Phase M's
+    surface alone and keeps answering forever.  Phase O's own mutation surface is
+    pinned by the same technique in
+    ``tests/integration/test_phaseO_rc4_redesign.py``.
     """
 
     modified = {
         line
         for line in _git(
             "diff", "--name-only", "--diff-filter=MDRT",
-            audit.PHASE_M_PARENT_COMMIT, "--",
+            audit.PHASE_M_PARENT_COMMIT, PHASE_M_SUPERSEDED_AT_COMMIT, "--",
         ).splitlines()
         if line.strip()
     }
@@ -354,12 +368,24 @@ def test_the_instrument_is_still_an_approved_hash_pinned_revision() -> None:
 def test_the_revision_record_states_that_no_frozen_input_changed() -> None:
     """The report may not claim broad immutability; it must claim this one."""
 
-    record: dict[str, Any] = dict(instrument_revision.load_revision())
+    # (Phase O amendment.)  Read the PHASE-M record by name.  ``load_revision``
+    # returns the HEAD of the approved chain, which was Phase M's record when this
+    # test was written and is Phase O's now; the claim under test is Phase M's.
+    record: dict[str, Any] = json.loads(
+        (PROJECT_ROOT / "docs" / "phaseM_instrument_revision.json").read_text(
+            encoding="utf-8"
+        )
+    )
     statement = record["frozen_historical_inputs"]
     assert PHASE_I_ANALYZER_FROZEN_SHA256 in statement
     assert PHASE_I_ANALYZER in statement
     assert record["superseded_live_assertions"]["scripts/validate_pilot_v7_rc2.py"]
     assert record["model_inference_performed"] is False
+    # Every later link of the chain must make the same claim in its own words,
+    # so the guarantee is never quietly dropped by a successor.
+    for link in instrument_revision.load_revision_chain():
+        assert link["model_inference_performed"] is False
+        assert str(link["frozen_historical_inputs"]).strip()
 
 
 # ==========================================================================

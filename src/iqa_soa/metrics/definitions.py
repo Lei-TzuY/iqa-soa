@@ -186,6 +186,28 @@ PILOT_RAW_FIELDS_V4: tuple[str, ...] = (
 )
 
 
+# (Phase O) The ordered per-action failure list, and its length.  Phase N finding
+# N-2 established that the single row-level ``failure_class`` scalar is absorbing
+# and order-independent, so it cannot represent "the model missed a resource and
+# THEN reached the declared modality and fired the declared fault" -- the exact
+# trajectory that invalidated two Phase-L-B FAULT-004 cells.  These columns carry
+# what the scalar cannot, on the same additive terms as every earlier revision:
+# frozen schema-2/3/4 artifacts do not contain them, must never be required to,
+# and are never rewritten.  Demanded only of raw_schema_version 5 rows.
+#
+# ``failure_events`` carries no tool output, no sentinel payload, no protected
+# value, no argument VALUE and no model text; see
+# ``iqa_soa.experiment.failure_events``.
+FAILURE_EVENT_TELEMETRY_FIELDS: tuple[str, ...] = (
+    "failure_events",
+    "failure_event_count",
+)
+
+PILOT_RAW_FIELDS_V5: tuple[str, ...] = (
+    PILOT_RAW_FIELDS_V4 + FAILURE_EVENT_TELEMETRY_FIELDS
+)
+
+
 #: The required field set for each raw schema version, so a reader selects the
 #: contract a row was WRITTEN under rather than the contract that happens to be
 #: current.  This is what keeps historical rows analyzable across an additive
@@ -195,12 +217,14 @@ RAW_FIELDS_BY_SCHEMA_VERSION: Mapping[int, tuple[str, ...]] = {
     2: PILOT_RAW_FIELDS,
     3: PILOT_RAW_FIELDS_V3,
     4: PILOT_RAW_FIELDS_V4,
+    5: PILOT_RAW_FIELDS_V5,
 }
 
 
 METRIC_BY_NAME = {item.name: item for item in METRIC_DEFINITIONS}
 
 __all__ = [
+    "FAILURE_EVENT_TELEMETRY_FIELDS",
     "FAULT_PROVENANCE_TELEMETRY_FIELDS",
     "METRIC_BY_NAME",
     "METRIC_DEFINITIONS",
@@ -208,6 +232,7 @@ __all__ = [
     "PILOT_RAW_FIELDS",
     "PILOT_RAW_FIELDS_V3",
     "PILOT_RAW_FIELDS_V4",
+    "PILOT_RAW_FIELDS_V5",
     "PROTOCOL_TELEMETRY_FIELDS",
     "RAW_FIELDS_BY_SCHEMA_VERSION",
     "REQUIRED_RAW_FIELDS",

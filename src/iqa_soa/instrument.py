@@ -62,14 +62,36 @@ PROTOCOL_TELEMETRY_INSTRUMENT_VERSION = "2"
 # measured quantity changed.
 FAULT_PROVENANCE_INSTRUMENT_VERSION = "3"
 
+# Phase-O instrument: the per-tool sandbox argument contract is PUBLISHED to the
+# model and enforced by the sandbox from one table
+# (``iqa_soa.tools.argument_schema``), and the raw row carries an ordered
+# per-action failure-event list.  Unlike Phase M this is NOT observation-only:
+# the request payload the model receives changed, and the sandbox now refuses
+# argument sets it previously accepted through six undisclosed aliases.  A
+# Phase-O row and a Phase-M row therefore do not measure the same quantity in
+# the same way, and pooling across this boundary is exactly what the version
+# exists to prevent.
+TOOL_CONTRACT_INSTRUMENT_VERSION = "4"
+
 #: What the instrument writes today.
-INSTRUMENT_VERSION = FAULT_PROVENANCE_INSTRUMENT_VERSION
+INSTRUMENT_VERSION = TOOL_CONTRACT_INSTRUMENT_VERSION
 
 # Identifies the native-tools request/response adapter specifically, so a later
 # adapter change is distinguishable from an unrelated instrument change.  Phase
 # M did NOT touch the adapter, so this deliberately does not move: the two
 # boundaries are independent and conflating them would lose that information.
-NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-2"
+# (Phase O) This DOES move, for the first time since Phase B.  The adapter's
+# request payload changed: ``_native_action_tool`` now advertises a per-tool
+# argument contract in ``parameters.allOf`` and in the function description,
+# where it previously declared ``"arguments": {"type": "object"}`` and named no
+# key for any tool.  Phase M deliberately held this constant because Phase M did
+# not touch the adapter; holding it now would hide the change this phase exists
+# to make.  ``native-tools-adapter-2`` remains the permanent name of the
+# pre-Phase-O adapter and every frozen Phase-B..L artifact keeps it.
+PRE_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-2"
+TRUTHFUL_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-3"
+
+NATIVE_TOOL_ADAPTER_VERSION = TRUTHFUL_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION
 
 
 # --------------------------------------------------------------------------
@@ -92,8 +114,16 @@ PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION = 3
 # reader that ignores unknown columns still reads a schema-4 row correctly.
 FAULT_PROVENANCE_RAW_SCHEMA_VERSION = 4
 
+# Schema 5 adds FAILURE_EVENT_TELEMETRY_FIELDS -- the ordered per-action failure
+# list Phase N finding N-2 showed the single row-level ``failure_class`` scalar
+# cannot carry.  Strictly additive over schema 4: no schema-4 field changed name,
+# type or meaning, and ``failure_class`` itself is still written by the same
+# unchanged rule, so a schema-4 reader that ignores unknown columns still reads a
+# schema-5 row correctly.
+FAILURE_EVENT_RAW_SCHEMA_VERSION = 5
+
 #: What the instrument writes today.
-RAW_SCHEMA_VERSION = FAULT_PROVENANCE_RAW_SCHEMA_VERSION
+RAW_SCHEMA_VERSION = FAILURE_EVENT_RAW_SCHEMA_VERSION
 
 #: Every raw schema an analyzer must still be able to read.  Schema 1 is the
 #: non-pilot deterministic record; 2, 3 and 4 are the pilot records.  Adding a
@@ -103,6 +133,7 @@ READABLE_RAW_SCHEMA_VERSIONS: tuple[int, ...] = (
     PRE_REPAIR_RAW_SCHEMA_VERSION,
     PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
     FAULT_PROVENANCE_RAW_SCHEMA_VERSION,
+    FAILURE_EVENT_RAW_SCHEMA_VERSION,
 )
 
 #: Pilot raw schemas only, in ascending order.
@@ -110,10 +141,12 @@ READABLE_PILOT_RAW_SCHEMA_VERSIONS: tuple[int, ...] = (
     PRE_REPAIR_RAW_SCHEMA_VERSION,
     PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
     FAULT_PROVENANCE_RAW_SCHEMA_VERSION,
+    FAILURE_EVENT_RAW_SCHEMA_VERSION,
 )
 
 
 __all__ = [
+    "FAILURE_EVENT_RAW_SCHEMA_VERSION",
     "FAULT_PROVENANCE_INSTRUMENT_VERSION",
     "FAULT_PROVENANCE_RAW_SCHEMA_VERSION",
     "INSTRUMENT_VERSION",
@@ -121,8 +154,11 @@ __all__ = [
     "PRE_REPAIR_INSTRUMENT_VERSION",
     "PRE_REPAIR_RAW_SCHEMA_VERSION",
     "PROTOCOL_TELEMETRY_INSTRUMENT_VERSION",
+    "PRE_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION",
     "PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION",
     "RAW_SCHEMA_VERSION",
+    "TOOL_CONTRACT_INSTRUMENT_VERSION",
+    "TRUTHFUL_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION",
     "READABLE_PILOT_RAW_SCHEMA_VERSIONS",
     "READABLE_RAW_SCHEMA_VERSIONS",
 ]

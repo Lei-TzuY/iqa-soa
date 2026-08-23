@@ -714,7 +714,7 @@ def test_a_correctly_stamped_row_would_be_recognised(frozen_rc3: Any) -> None:
 # --------------------------------------------------------------------------
 
 
-def test_the_phase_l_a_version_of_the_protocol_was_never_frozen() -> None:
+def test_the_phase_l_a_protocol_was_never_frozen_and_phase_l_b_still_holds() -> None:
     """Phase L-A froze no execution protocol, and its v1 plan never existed.
 
     **This pin was INVERTED by Phase L-A', not relaxed.**  Phase L-A withheld the
@@ -735,6 +735,10 @@ def test_the_phase_l_a_version_of_the_protocol_was_never_frozen() -> None:
 
     ``tests/integration/test_phaseL_execution_protocol.py`` owns the positive
     assertions about the refrozen protocol.
+
+    (Phase O.) A third assertion -- that no Phase-L result tree exists -- was a
+    pre-execution invariant that Phase L-B's archival made false. It is
+    superseded in place, below, by the guarantees it was actually protecting.
     """
 
     assert not (
@@ -746,9 +750,41 @@ def test_the_phase_l_a_version_of_the_protocol_was_never_frozen() -> None:
         record = json.loads(frozen_inputs.read_text(encoding="utf-8"))
         assert record["execution_authorized"] is False
         assert record["model_inference_performed"] is False
-    assert not (PROJECT_ROOT / "results" / "phaseL-rc3-requalification").exists(), (
-        "no Phase-L execution result may exist while rc3 is unqualified"
+
+    # (Phase O amendment.)  The third assertion this test used to make -- that no
+    # Phase-L result tree exists -- was a PRE-EXECUTION invariant, correct while
+    # Phase L-A' held a frozen and unexecuted protocol.  Phase L-B then executed
+    # the frozen schedule exactly once under an explicit human authorization and
+    # archived its evidence, and the run HELD.  The tree therefore exists, and
+    # its existence is the record of a completed formal run rather than a defect.
+    #
+    # Phase N recorded the staleness and declined to repair it, naming the phase
+    # that next revises the Phase-L protocol as the one that should; the Phase-O
+    # brief directs superseding such a test prospectively and documenting why
+    # rather than "fixing history" silently.
+    #
+    # What replaces it is what the original was actually protecting: the archive
+    # must be the ONE Phase-L-B run, it must be unchanged, and -- the part that
+    # matters most and that the old form could not say at all -- it must still
+    # report HOLD with rc3 UNQUALIFIED.  A tree that had been quietly rescored
+    # into a pass fails here; the old assertion could not have caught that.
+    archive = PROJECT_ROOT / "results" / "phaseL-rc3-requalification"
+    assert archive.is_dir(), (
+        "the Phase-L-B evidence must remain archived; it is the record of a "
+        "completed formal run and may never be deleted"
     )
+    analysis = json.loads(
+        (archive / "phaseL-analysis.json").read_text(encoding="utf-8")
+    )
+    assert "HOLD" in json.dumps(analysis), (
+        "the Phase-L-B verdict is HOLD and pilot-v7-rc3 remains UNQUALIFIED"
+    )
+    rc3 = json.loads(
+        (PROJECT_ROOT / "benchmark" / "pilot-v7-rc3" / "freeze-record.json")
+        .read_text(encoding="utf-8")
+    )
+    assert rc3["release_status"] == "release-candidate"
+    assert rc3["confirmatory_execution_authorized"] is False
 
 
 def test_the_report_exists_and_ends_with_the_hold_status() -> None:

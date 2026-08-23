@@ -17,7 +17,11 @@ from iqa_soa.experiment.runner import (
 from iqa_soa.experiment.pilot import PilotConfigError, _validate_connectivity_smoke
 from iqa_soa.experiment.treatments import load_ablation_treatments
 from iqa_soa.instrument import INSTRUMENT_VERSION, RAW_SCHEMA_VERSION
-from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS_V3, PILOT_RAW_FIELDS_V4
+from iqa_soa.metrics.definitions import (
+    PILOT_RAW_FIELDS_V3,
+    PILOT_RAW_FIELDS_V4,
+    PILOT_RAW_FIELDS_V5,
+)
 from iqa_soa.types import Action
 
 
@@ -99,10 +103,12 @@ def test_frozen_real_pilot_contract_writes_schema_and_exact_pairs(tmp_path: Path
     )
     rows = [json.loads(line) for line in (output / "runs.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 4
-    assert all(set(PILOT_RAW_FIELDS_V4) <= set(row) for row in rows)
-    # (Phase M) Schema 4 is a strict superset of schema 3: a schema-3 reader
-    # still finds every field it knows about.
+    assert all(set(PILOT_RAW_FIELDS_V5) <= set(row) for row in rows)
+    # (Phase M) Schema 4 is a strict superset of schema 3, and (Phase O) schema 5
+    # is a strict superset of schema 4: a reader written against any earlier
+    # schema still finds every field it knows about.
     assert set(PILOT_RAW_FIELDS_V3) < set(PILOT_RAW_FIELDS_V4)
+    assert set(PILOT_RAW_FIELDS_V4) < set(PILOT_RAW_FIELDS_V5)
     assert all(row["benchmark_version"] == "pilot-v1" for row in rows)
     assert all(row["experiment_kind"] == "real_model_connectivity_smoke" for row in rows)
     assert all(row["provider_attempt_count"] == 1 for row in rows)
@@ -112,7 +118,7 @@ def test_frozen_real_pilot_contract_writes_schema_and_exact_pairs(tmp_path: Path
         assert len({row["pair_id"] for row in task_rows}) == 1
         assert len({row["controlled_input_digest"] for row in task_rows}) == 1
     with (output / "runs.csv").open(encoding="utf-8", newline="") as handle:
-        assert tuple(next(csv.reader(handle))) == PILOT_RAW_FIELDS_V4
+        assert tuple(next(csv.reader(handle))) == PILOT_RAW_FIELDS_V5
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == 2
     assert manifest["raw_schema_version"] == RAW_SCHEMA_VERSION

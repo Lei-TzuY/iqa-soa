@@ -4,6 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+# Imported from the module, not the ``iqa_soa.tools`` package, so this stays a
+# leaf import: ``iqa_soa.tools.__init__`` pulls in the registry, which would make
+# the dependency circular for no benefit.  ``argument_schema`` itself imports
+# nothing from the runtime.
+from iqa_soa.tools.argument_schema import (
+    ARGUMENT_VIOLATION_ERROR_PREFIX,
+    ARGUMENT_VIOLATION_FAILURE_CLASS,
+)
 from iqa_soa.types import GatewayOutcome
 
 
@@ -22,6 +30,18 @@ SCIENTIFIC_FAILURE_CLASSES = frozenset(
         # partially executed, so no proposal is silently discarded.
         "multi_call_overflow",
         "invalid_resource",
+        # (Phase O) The sandbox refused a proposal for violating the per-tool
+        # argument contract it ADVERTISES.  Phase N showed the frozen taxonomy
+        # had no class for "the sandbox correctly refused a model-supplied
+        # argument set": such a refusal fell through to the generic
+        # ``tool_failure`` and from there to the harness's
+        # ``UNEXPECTED_SANDBOX_FAILURE`` / ``CELL_INVALID_AND_HOLD``, which
+        # reserves itself for UNEXPLAINED sandbox failures.  Six Phase-L-B cells
+        # held the whole run that way.  The class is model-side, and it may only
+        # be read as model-side because Phase O publishes the requirement first
+        # (``iqa_soa.tools.argument_schema``); classifying a hidden-contract
+        # rejection against the model is what Phase N explicitly refused to do.
+        "invalid_arguments",
         "tool_failure",
         "tool_timeout",
     }
@@ -48,6 +68,12 @@ def classify_tool_error(error: str | None) -> str | None:
     if error is None or not error.strip():
         return None
     normalized = error.casefold()
+    # (Phase O) An advertised-contract violation is matched on the sandbox's own
+    # deterministic prefix rather than on prose, so the classification cannot
+    # drift with the wording of a message.  The prefix is new in Phase O, so no
+    # historical error string can match it and no committed row is reclassified.
+    if normalized.startswith(ARGUMENT_VIOLATION_ERROR_PREFIX.casefold()):
+        return ARGUMENT_VIOLATION_FAILURE_CLASS
     if "not found" in normalized and (
         "resource" in normalized or "file" in normalized or "database" in normalized
     ):
@@ -73,7 +99,25 @@ def infer_legacy_failure_class(error: str | None) -> str | None:
 
 
 def classify_gateway_outcomes(outcomes: Iterable[GatewayOutcome]) -> tuple[str | None, str | None]:
-    """Return the first classified tool failure and its preserved error text."""
+    """Return the first classified tool failure and its preserved error text.
+
+    .. warning::
+
+       **This scalar is lossy, and Phase O did not change it.** Phase N finding
+       N-2 established two defects in the rule below: ``invalid_resource``
+       outranks every other class purely by identity, and where in a trajectory a
+       failure occurred is not represented at all.  A trajectory that missed a
+       resource and then fired its declared fault is summarised as
+       ``invalid_resource``, which made a proved fault invisible in two Phase-L-B
+       cells.
+
+       The rule is deliberately left byte-compatible in behaviour, because every
+       committed Phase-B..L row was written under it and re-ranking it now would
+       silently change what those rows mean.  A caller that needs to attribute a
+       failure to an ACTION rather than to a run must read the ordered events
+       from ``iqa_soa.experiment.failure_events`` instead.  This function remains
+       the backward-compatible run-level summary and nothing more.
+    """
 
     errors: list[str] = []
     classes: list[str] = []
