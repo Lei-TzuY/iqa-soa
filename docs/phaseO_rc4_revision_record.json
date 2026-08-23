@@ -1,4 +1,27 @@
 {
+  "adversarial_review_history": [
+    {
+      "accepted": false,
+      "claimed_verdict": "READY_FOR_RC4_PROTOCOL_FREEZE",
+      "commit": "26853b2512a9b778a4c1df5ca8289cac58881cd6",
+      "core_redesign_rejected": false,
+      "finding": "The classification-critical schema-5 failure_events persistence path was not fail-closed on malformed persisted telemetry. events_from_row silently returned (), skipped malformed entries, coerced wrong types to None, fabricated an empty provenance, accepted bool as an integer sequence, and SORTED persisted events into order. classify_row_detailed checked only that failure_event_count was present, never that failure_events existed, was a list, matched the count, or held structurally valid entries. A corrupted row therefore lost its evidence during parsing and was then scored CELL_OK, or MODEL_MODALITY_MISS for a task declaring a fault: Phase N finding N-2 displaced one level down, from the row scalar into the parser.",
+      "review_verdict": "HOLD",
+      "revision": "O"
+    },
+    {
+      "action": "REPAIR",
+      "authorizes_execution": false,
+      "authorizes_merge": false,
+      "authorizes_protocol_freeze": false,
+      "authorizes_ready": false,
+      "authorizes_seed_selection": false,
+      "predecessor_verdict_carried_forward": false,
+      "requires_separate_adversarial_rereview": true,
+      "revision": "O-R1",
+      "verdict": "READY_FOR_PHASE_O_R1_ADVERSARIAL_REREVIEW"
+    }
+  ],
   "artifact_hashes": {
     "benchmark/pilot-v7-rc4/AUDIT.md": "4b0321012d43b6c2d8d7e31b472b5034893e8ecc7c771ce84781a4fe4c655dc8",
     "benchmark/pilot-v7-rc4/freeze-record.json": "c988a94114dca1470324504adb85c4061ed849808383cb50c4ea512800a8396f",
@@ -276,6 +299,35 @@
         "fault_mode",
         "provenance"
       ],
+      "failure_event_persistence_contract": {
+        "authoritative_reader_is_unique": true,
+        "count_binding": "len(failure_events) == failure_event_count, exactly",
+        "event_keys_are_exact": true,
+        "failure_classes": [
+          "invalid_arguments",
+          "invalid_resource",
+          "tool_failure",
+          "tool_timeout"
+        ],
+        "fault_modes": [
+          "high_latency",
+          "malformed_response",
+          "partial_failure",
+          "timeout",
+          "unavailable"
+        ],
+        "malformed_telemetry_classification": "INSTRUMENT_DEFECT",
+        "malformed_telemetry_disposition": "IMMEDIATE_STOP",
+        "order_repair": false,
+        "provenance_sources": [
+          "gateway_outcome.executed_action",
+          "gateway_outcome.proposed_action"
+        ],
+        "sequence": "integer (never bool), > 0, unique, strictly increasing in PERSISTED order; never sorted",
+        "silent_coercion": false,
+        "silent_filtering": false,
+        "validated_by": "iqa_soa.experiment.failure_events.parse_failure_events"
+      },
       "fault_provenance_fields": [
         "observed_fault_tool",
         "observed_fault_resource",
@@ -295,12 +347,93 @@
       ],
       "model_inference_performed": false,
       "rc4_fields": [
+        "failure_events",
         "failure_event_count",
         "tool_argument_contract_version"
       ],
       "supersedes": "scripts/qualification_harness.py"
     },
     "telemetry_module": "src/iqa_soa/experiment/failure_events.py"
+  },
+  "failure_event_persistence_repair": {
+    "authoritative_reader": "parse_failure_events",
+    "authoritative_reader_is_unique": true,
+    "classification_order": [
+      "frozen row/cell identity binding",
+      "instrument preconditions (tool-contract regression, provider attempt)",
+      "the rc4 row-field contract, including failure_events",
+      "THE SCHEMA-5 EVIDENCE GATE",
+      "scientific classification"
+    ],
+    "closed_vocabularies_are_imported_not_copied": {
+      "failure_classes": "iqa_soa.failure_taxonomy.SANDBOX_ACTION_FAILURE_CLASSES",
+      "fault_modes": "iqa_soa.tools.sandbox.SUPPORTED_FAULT_MODES"
+    },
+    "corrupted_expected_fault_can_become_cell_ok": false,
+    "corrupted_expected_fault_can_become_modality_miss": false,
+    "gate_precedes_every_scientific_branch": true,
+    "invariants": {
+      "coherence_error_or_fault_mode_required": true,
+      "coherence_failure_class_iff_error": true,
+      "count_binds_list_length_exactly": true,
+      "count_is_int_not_bool": true,
+      "count_is_non_negative": true,
+      "declaration_derived_provenance_accepted": false,
+      "error_is_string_or_null_and_never_blank": true,
+      "event_key_set_is_exact": [
+        "sequence",
+        "tool",
+        "resource",
+        "failure_class",
+        "error",
+        "executed",
+        "fault_mode",
+        "provenance"
+      ],
+      "executed_is_a_real_bool": true,
+      "failure_class_closed_set": [
+        "invalid_arguments",
+        "invalid_resource",
+        "tool_failure",
+        "tool_timeout"
+      ],
+      "failure_event_count_required": true,
+      "failure_events_is_a_list": true,
+      "failure_events_required": true,
+      "fault_mode_closed_set": [
+        "high_latency",
+        "malformed_response",
+        "partial_failure",
+        "timeout",
+        "unavailable"
+      ],
+      "persisted_order_is_never_sorted": true,
+      "provenance_closed_set": [
+        "gateway_outcome.executed_action",
+        "gateway_outcome.proposed_action"
+      ],
+      "sequence_is_int_not_bool": true,
+      "sequence_is_positive": true,
+      "sequence_is_strictly_increasing_in_persisted_order": true,
+      "sequence_is_unique": true,
+      "tool_and_resource_emptiness_rationale": "both are copied verbatim from the action the MODEL proposed, so an empty one is a faithful record of an empty proposal and not a defect in the instrument",
+      "tool_and_resource_may_be_empty": true
+    },
+    "lenient_reader_deprecated_rather_than_removed": false,
+    "lenient_reader_removed": "events_from_row",
+    "malformed_telemetry_classification": "INSTRUMENT_DEFECT",
+    "malformed_telemetry_disposition": "IMMEDIATE_STOP",
+    "module": "src/iqa_soa/experiment/failure_events.py",
+    "mutation_checks": 14,
+    "mutation_checks_include_pre_repair_harness_reconstruction": true,
+    "producer_persistence_consumer_round_trip_proved": true,
+    "provenance_narrowing_rationale": "sandbox.operation_log and evidence.tool_call are sources for the ROW-level Phase-M fault provenance; no failure EVENT is ever read from them, so admitting them would accept a label this instrument cannot produce. The event set is a proper subset of RUNTIME_FAULT_PROVENANCE_SOURCES and is disjoint from DECLARED_FAULT_PROVENANCE_SOURCES, so the K.2 circularity guard is strengthened and never relaxed.",
+    "provenance_set_is_narrower_than_runtime_set": true,
+    "raises": "FailureEventTelemetryError",
+    "reports_all_defects": true,
+    "revision": "O-R1",
+    "valid_classifications_preserved": true,
+    "validates": "the PERSISTED representation, not the in-memory producer"
   },
   "historical_immutability": {
     "added_paths": [
@@ -339,6 +472,7 @@
       "src/iqa_soa/instrument.py",
       "src/iqa_soa/metrics/definitions.py",
       "src/iqa_soa/tools/registry.py",
+      "src/iqa_soa/tools/sandbox.py",
       "tests/integration/test_phaseF_qualification.py",
       "tests/integration/test_phaseI_requalification.py",
       "tests/integration/test_phaseL_execution_protocol.py",
@@ -355,10 +489,10 @@
     "phase_n_diagnosis_untouched": true,
     "rc3_bytes_untouched": true,
     "superseded_live_assertions": [
-      "FROZEN_ARTIFACT_MISMATCH: tree src/iqa_soa recorded=598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135 actual=42da2eb04524b91bcc2398bd0da4017a822bbefe033bfd4b51feae00d4ca28ea",
+      "FROZEN_ARTIFACT_MISMATCH: tree src/iqa_soa recorded=598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135 actual=8d569696e51162acf8a0b8612f7d91398c7544cd0502cbaa59af92e35795b938",
       "FROZEN_ARTIFACT_MISMATCH: instrument version is '4', this protocol is frozen against '3'",
       "FROZEN_ARTIFACT_MISMATCH: raw schema version is 5, this protocol is frozen against 4",
-      "FROZEN_ARTIFACT_MISMATCH: src/iqa_soa digests to 42da2eb04524b91bcc2398bd0da4017a822bbefe033bfd4b51feae00d4ca28ea, the approved Phase-M revision is 598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135",
+      "FROZEN_ARTIFACT_MISMATCH: src/iqa_soa digests to 8d569696e51162acf8a0b8612f7d91398c7544cd0502cbaa59af92e35795b938, the approved Phase-M revision is 598f7f3b0f629d0c6a8a538d1db68df58a2462e4588b8956fdbcc5cb13dea135",
       "FROZEN_ARTIFACT_MISMATCH: approved instrument file src/iqa_soa/experiment/runner.py recorded=213c711c4f634f293f8f527ed4ba7cd8af371b7ed9990dadbdc4ba21254f4c5f actual=9178d46f51ab21749417bea353e289ee317dbf13a51f83092256fad1e8e026bc",
       "FROZEN_ARTIFACT_MISMATCH: approved instrument file src/iqa_soa/instrument.py recorded=455c21a4f248e2a92661bb0bef9673ff93bad7579ffc749d1cd33d308f2bd77f actual=514e25045b88061c13dc6e08f1dd2fbb43439a462312d743a003de4363ca1bb2",
       "FROZEN_ARTIFACT_MISMATCH: approved instrument file src/iqa_soa/metrics/definitions.py recorded=6252c7ddc5108bbbbefd934ed5bf9fa8a7c3f65641de4bd007c525d0d8dcaa42 actual=3bcaa1833eaa95c9b0fdae4f6ad83cb04d6957df82534a0f3e0ff359fd83d31c"
@@ -375,7 +509,7 @@
       "docs/phaseO_instrument_revision.json"
     ],
     "revision_record": "docs/phaseO_instrument_revision.json",
-    "src_iqa_soa_tree": "42da2eb04524b91bcc2398bd0da4017a822bbefe033bfd4b51feae00d4ca28ea"
+    "src_iqa_soa_tree": "8d569696e51162acf8a0b8612f7d91398c7544cd0502cbaa59af92e35795b938"
   },
   "is_final": false,
   "model_inference_performed": false,
@@ -445,6 +579,19 @@
       "finding": "PREREQUISITE_ROUTE_NOT_REACHED on BUD-014 and BUD-015",
       "where_repaired": "benchmark"
     }
+  },
+  "phase_n_import_pollution_repair": {
+    "finding": "test_offline_verification_passes and test_no_provider_or_agent_module_is_loaded inspected the pytest process's own sys.modules, so a Phase-O test that legitimately imports iqa_soa.agent.providers to prove tool-schema conformance made both fail in a whole-suite run while both passed alone",
+    "helper_flag_added": "--with-extraction",
+    "invariant_weakened": false,
+    "isolated_check_covers_the_whole_extraction": true,
+    "order_independence_check_present": true,
+    "passes_alone": true,
+    "passes_in_full_pytest": true,
+    "repair": "process isolation",
+    "revision": "O-R1",
+    "sys_modules_mutated_globally": false,
+    "vacuity_check_present": true
   },
   "predecessor_benchmark_version": "pilot-v7-rc3",
   "predecessor_qualification_status": "UNQUALIFIED",
@@ -632,7 +779,7 @@
     "benchmark/pilot-v7-rc3": "9a3d5cdf10bd085e347580a73c43b474b87838d64b988cdd536986f2bdf82256",
     "benchmark/pilot-v7-rc4": "d29fc7f8fc54149d8a11936f9851638deb0e083305541f09594944bbd0d0e6ba",
     "results/phaseL-rc3-requalification": "c3beed14eaaf11785a6df8ae7f82959a88006f7ad42750b60955b49f1cc37be4",
-    "src/iqa_soa": "42da2eb04524b91bcc2398bd0da4017a822bbefe033bfd4b51feae00d4ca28ea"
+    "src/iqa_soa": "8d569696e51162acf8a0b8612f7d91398c7544cd0502cbaa59af92e35795b938"
   },
   "what_this_record_does_not_do": [
     "It does not rescore Phase L-B, whose 102 classifications remain binding.",
@@ -641,6 +788,8 @@
     "It does not qualify pilot-v7-rc4, which is UNQUALIFIED.",
     "It does not select seeds; the Phase-L triple is CONSUMED.",
     "It does not create a preregistration or an execution driver.",
-    "It authorizes no model inference of any kind."
+    "It authorizes no model inference of any kind.",
+    "It does not mark PR #13 ready and does not merge it.",
+    "It does not carry forward the first Phase-O revision's READY_FOR_RC4_PROTOCOL_FREEZE claim, which adversarial review held."
   ]
 }

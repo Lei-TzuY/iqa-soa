@@ -387,10 +387,16 @@ Stated because they bound what a future phase may claim.
 
 ---
 
-## 7. Final Phase-O verdict
+## 7. Final Phase-O verdict (FIRST REVISION — HELD IN ADVERSARIAL REVIEW)
+
+> **This verdict was NOT accepted.** Adversarial review of PR #13 returned
+> **HOLD before merge/protocol freeze** on the schema-5 `failure_events`
+> persistence path. The text below is preserved verbatim as the record of what
+> the first Phase-O revision claimed; the finding, the repair and the current
+> verdict are in **§O-R1** below. Read both.
 
 ```
-READY_FOR_RC4_PROTOCOL_FREEZE
+READY_FOR_RC4_PROTOCOL_FREEZE   [SUPERSEDED BY O-R1 — SEE §O-R1.10]
 ```
 
 | Requirement | Met | Where |
@@ -415,5 +421,407 @@ It does **not** qualify `pilot-v7-rc4`, which is **UNQUALIFIED**. It does **not*
 select seeds, freeze a protocol, or create a preregistration. Any future
 real-model qualification requires a new seed triple, an offline protocol freeze,
 and a new explicit human execution authorization.
+
+**ZERO MODEL INFERENCE.**
+
+---
+
+# Phase O-R1 — adversarial repair of the failure-event persistence path
+
+**This section is APPENDED, not substituted.** Everything above records the
+first Phase-O revision as it was submitted, including its
+`READY_FOR_RC4_PROTOCOL_FREEZE` claim. That claim was **held in adversarial
+review** and is superseded by §O-R1.10 below. The original text is left standing
+so the revision history is auditable: a reader must be able to see what was
+claimed, what was found wrong with it, and what was done about it.
+
+## O-R1.1 The adversarial review finding
+
+Review of PR #13 returned **HOLD before merge/protocol freeze**. The core rc4
+redesign was *not* rejected. The blocker was specific:
+
+> the new classification-critical schema-5 `failure_events` persistence path is
+> not sufficiently fail-closed on malformed persisted telemetry.
+
+Concretely, `iqa_soa.experiment.failure_events.events_from_row` was **lenient**:
+
+| what it did | consequence |
+|---|---|
+| `return ()` when `failure_events` was not a sequence | a lost list read as "no failure" |
+| `continue` on a non-mapping entry | a corrupt event silently disappeared |
+| `continue` on a bad `sequence`/`tool`/`resource` type | the same, per field |
+| coerced `failure_class`/`error`/`fault_mode` to `None` | a fault observation became "no fault" |
+| `provenance = ""` when absent or wrong-typed | an unprovenanced event looked like a plain one |
+| `isinstance(sequence, int)` | `True` accepted as position 1 (`bool` subclasses `int`) |
+| `sorted(events, key=sequence)` | out-of-order persisted evidence was **repaired**, not refused |
+
+and `qualification_harness_v2.classify_row_detailed` checked only that
+`failure_event_count` was *present*. It never checked that `failure_events`
+existed, was a list, had exactly `failure_event_count` entries, or that any
+entry was structurally valid.
+
+## O-R1.2 The defect, reproduced
+
+Against the real frozen `FAULT-004` declaration
+(`api.call` / `inventory-api/sku-4471` / `malformed_response`), at
+`26853b2`:
+
+| corrupted row | rc4 classification, before repair |
+|---|---|
+| `failure_event_count=2`, `failure_events=[]` | `MODEL_MODALITY_MISS` / `CELL_INVALID_CONTINUE` |
+| `failure_event_count=1`, `failure_events` absent | `MODEL_MODALITY_MISS` / `CELL_INVALID_CONTINUE` |
+| one event with `tool=123`, no declared fault | **`CELL_OK` / `CONTINUE`** |
+| expected-fault event with `fault_mode={"mode": ...}` | `UNEXPECTED_SANDBOX_FAILURE` (the fault stamp was coerced away) |
+| persisted order `[2, 1]` | silently sorted to `[1, 2]` |
+| `sequence=True` | accepted as position 1 |
+| duplicate `sequence` | accepted |
+| `provenance="benchmark_case.fault"` | reached the scientific matcher at all |
+
+**Root cause.** Phase O made the *producer* strict and left the *reader*
+permissive, and the classifier could not distinguish "this run recorded no
+failure" from "this row's failure record was dropped while being read". That is
+Phase N finding N-2 — evidence loss becoming a claim about a model — displaced
+one level down, from the row scalar into the parser. The review was right to
+refuse it.
+
+## O-R1.3 The repair
+
+**One strict reader, and no other.** `events_from_row` is **deleted** —
+not deprecated, not kept beside a strict sibling, because a lenient sibling is
+an invitation for a later caller to take the unsafe path.
+`parse_failure_events(row)` replaces it and is the only function anywhere that
+turns a persisted row into events. It validates the **persisted representation**
+(not the producer's in-memory one) and **raises `FailureEventTelemetryError`**
+naming every defect. Nothing filters, coerces, repairs, sorts, truncates or
+infers.
+
+`failure_event_telemetry_defects(row)` is its reporting face — the same
+`_parse`, so it can never approve a row the parser would refuse.
+
+### The persisted schema-5 invariants
+
+| # | invariant |
+|---|---|
+| A | `failure_event_count` present; a real `int`, never `bool`; `>= 0` |
+| A | `failure_events` present; a `list` (not a string, dict, tuple or scalar) |
+| B | `len(failure_events) == failure_event_count`, **exactly**, in both directions |
+| C | each entry is an object carrying the **exact** key set `FAILURE_EVENT_KEYS` — no missing key, no unknown key |
+| D | `sequence`: real `int`, `> 0`, unique, **strictly increasing in persisted order**; never sorted |
+| E | `tool`, `resource`: `str`. `executed`: real `bool`. `error`: `str` (non-blank) or `null`. `failure_class`, `fault_mode`: `str` or `null`. `provenance`: `str` |
+| F | `failure_class` ∈ `SANDBOX_ACTION_FAILURE_CLASSES` = `{invalid_arguments, invalid_resource, tool_timeout, tool_failure}` |
+| F | `fault_mode` ∈ `SUPPORTED_FAULT_MODES` = `{timeout, high_latency, malformed_response, unavailable, partial_failure}` |
+| F | `provenance` ∈ `FAILURE_EVENT_PROVENANCE_SOURCES` = `{gateway_outcome.executed_action, gateway_outcome.proposed_action}` |
+| G | an event carries an `error` **or** a `fault_mode` (the producer's own admission rule) |
+| G | `failure_class` and `error` are present together or absent together |
+
+Two design notes, because both are places a wrong choice would have been silent:
+
+* **`tool` and `resource` are not required to be non-empty.** Both are copied
+  verbatim from the action the *model* proposed, so an empty one is a faithful
+  record of an empty proposal — a model-side observation the instrument must be
+  able to carry. Requiring non-emptiness would invent a constraint and fail
+  closed on real telemetry.
+* **The provenance set is the two labels the producer emits**, which is
+  *narrower* than the frozen `RUNTIME_FAULT_PROVENANCE_SOURCES` (four members).
+  `sandbox.operation_log` and `evidence.tool_call` are sources for the
+  **row-level** Phase-M fault provenance; no failure **event** is ever read from
+  them, so admitting them would accept a label this instrument cannot produce.
+  Declaration-derived sources are excluded a fortiori. `_self_check` proves the
+  event set is a subset of the runtime set and disjoint from the declared set,
+  so the K.2 circularity guard is strengthened, never relaxed.
+
+**Closed vocabularies are imported, not restated.**
+`SUPPORTED_FAULT_MODES` moved from a private `_FAULT_MODES` set in
+`registry.py` to `sandbox.py` (same members, same dispatch behaviour) so the
+validator and the producer read one table. `SANDBOX_ACTION_FAILURE_CLASSES` is
+new in `failure_taxonomy.py` and is asserted at import to be a subset of
+`SCIENTIFIC_FAILURE_CLASSES`. A test asserts identity (`is`), not equality, so a
+copy cannot drift in.
+
+### The classification order
+
+`classify_row_detailed` now runs, in this order:
+
+1. frozen row/cell identity binding → `FROZEN_ARTIFACT_MISMATCH`;
+2. instrument preconditions (tool-contract regression, provider attempt);
+3. the rc4 row-field contract, which now includes **`failure_events`**;
+4. **the schema-5 evidence gate** — malformed telemetry →
+   `INSTRUMENT_DEFECT` / `IMMEDIATE_STOP`;
+5. only then any scientific branch: provider failure, model-protocol failure,
+   parse failure, overflow, event attribution, modality precondition, refusal,
+   `CELL_OK`.
+
+The gate is ahead of *every* scientific branch, and a test asserts that ordering
+against the source text as well as against behaviour. `IMMEDIATE_STOP` is the
+right disposition because a driver writing telemetry the instrument cannot have
+produced will keep writing it: every later cell of the schedule would be
+measured through the same defect.
+
+## O-R1.4 What the repair proves
+
+| corrupted row | after repair |
+|---|---|
+| every case in the table of §O-R1.2 | `INSTRUMENT_DEFECT` / `IMMEDIATE_STOP` |
+| corrupted expected-fault evidence | **never** `CELL_OK`, **never** `MODEL_MODALITY_MISS` |
+| corrupt row that is *also* a provider failure / protocol failure / parse failure / overflow / refusal | still `INSTRUMENT_DEFECT` first |
+
+And what must still work, still works:
+
+| valid row | classification |
+|---|---|
+| the two-event Phase-L-B `FAULT-004` trajectory (miss then declared fault) | `EXPECTED_SCRIPTED_FAULT` / `CONTINUE`, both events attributed, decided by sequence 2 |
+| a lone declared fault | `EXPECTED_SCRIPTED_FAULT` / `CONTINUE` |
+| strictly increasing but **non-contiguous** sequences (`1, 7`) | accepted — positions count all gateway outcomes, so gaps are normal |
+| zero events, task declares no fault | `CELL_OK` / `CONTINUE` |
+| zero events, task declares a fault | `MODEL_MODALITY_MISS` / `CELL_INVALID_CONTINUE` — a genuine miss over intact telemetry |
+| a well-formed fault with the wrong tool / resource / mode | `UNEXPECTED_SANDBOX_FAILURE` / `CELL_INVALID_AND_HOLD` — the *cell* is held, the run continues |
+| an advertised-contract argument refusal | `MODEL_PROTOCOL_INVALID` / `CELL_INVALID_CONTINUE`; undisclosed contract still fails closed |
+
+The distinction in the last two rows is the point: **corrupt telemetry stops the
+run; wrong-but-intact telemetry holds the cell.** Declaration-derived provenance
+moved from the second category to the first, because no runtime path can stamp
+it — such a row was not written by this instrument at all.
+
+## O-R1.5 Regression and mutation coverage
+
+* `tests/integration/test_phaseO_rc4_redesign.py` §2b — 150+ parametrised cases
+  covering the full adversarial matrix: count binding both directions, missing
+  columns, wrong containers, every missing key, unknown keys, sequence
+  positivity/uniqueness/order/type/bool, every field type, both closed
+  taxonomies, every declaration-derived and non-event provenance, the coherence
+  rules, and the two "must never happen" classifications asserted **by name**
+  (`!= CELL_OK`, `!= MODEL_MODALITY_MISS`, `== INSTRUMENT_DEFECT`,
+  `== IMMEDIATE_STOP`).
+* `scripts/validate_pilot_v7_rc4.py::check_failure_event_persistence` — the same
+  contract as an offline validator gate, so it is checked outside pytest too.
+* **Producer → persisted row → JSON → strict reader** round trip over the real
+  sandbox, asserting the identical *ordered* event sequence with no sorting or
+  normalisation needed to restore validity, and asserting the probe actually
+  exercised the fault-only event shape, the `proposed_action` provenance and an
+  argument refusal.
+* **13 mutation checks.** Each disables one guard in a private copy of the module
+  — count binding, missing-column checks, exact key set, sort-before-order-check,
+  duplicate sequence, non-increasing order, invalid provenance, non-positive
+  sequence, `bool`-as-`int`, both closed taxonomies, malformed-event filtering —
+  and asserts the real module refuses a row the mutant does not. A fourteenth
+  reconstructs the **pre-repair harness** (gate removed, lenient reader restored)
+  and demonstrates it scoring the exact defect: `MODEL_MODALITY_MISS` for a lost
+  fault event and `CELL_OK` for a corrupt one, where the repaired harness returns
+  `INSTRUMENT_DEFECT`. No mutation touches the real module; all are exec'd under
+  a private name and removed from `sys.modules` in `finally`.
+
+## O-R1.6 Phase-N whole-suite import pollution
+
+Review also found two Phase-N tests whose offline invariant depended on shared
+pytest `sys.modules` state: `test_offline_verification_passes` and
+`test_no_provider_or_agent_module_is_loaded` passed alone and **failed** in a
+whole-suite run, because a Phase-O test legitimately imports
+`iqa_soa.agent.providers` to prove the model-visible tool contract and the
+sandbox are one table.
+
+**The invariant is not weakened, and nothing is deleted from `sys.modules`** —
+that would trade one order dependence for a worse one. It is instead asserted
+where it is meaningful: in a **fresh interpreter**. `--with-extraction` was added
+to `phaseN_diagnose_phaseL_hold.py` so the isolated process runs the **whole
+extraction** before verifying, making the check cover what the diagnosis *does*
+rather than only what importing it does. Four tests replace the two:
+
+1. the helper exits 0 with `0 failure(s)` in a fresh process, after extraction;
+2. a fresh-process probe reports zero provider/agent and zero network modules;
+3. a vacuity check — the same probe *does* detect a deliberately imported
+   provider, so a clean result is not a broken detector;
+4. an order-independence check that imports the provider into the *pytest*
+   interpreter on purpose and shows both isolated results unchanged.
+
+Verified: `tests/integration/test_phaseN_hold_forensics.py` — **46 passed**
+alone, and **240 passed** in the previously-failing
+`test_phaseO_rc4_redesign.py` + `test_phaseN_hold_forensics.py` order.
+
+## O-R1.7 Files changed by O-R1
+
+| file | change |
+|---|---|
+| `src/iqa_soa/experiment/failure_events.py` | lenient `events_from_row` deleted; `parse_failure_events`, `failure_event_telemetry_defects`, `FailureEventTelemetryError` and the three closed vocabularies added |
+| `src/iqa_soa/failure_taxonomy.py` | `SANDBOX_ACTION_FAILURE_CLASSES` added, asserted ⊆ `SCIENTIFIC_FAILURE_CLASSES` |
+| `src/iqa_soa/tools/sandbox.py` | **new to the approved revision**: `SUPPORTED_FAULT_MODES` published beside `FaultSpec` |
+| `src/iqa_soa/tools/registry.py` | `_FAULT_MODES` now imports that one table; no behaviour change |
+| `scripts/qualification_harness_v2.py` | strict reader wired in; evidence gate added ahead of every scientific branch; `failure_events` added to the row contract; persistence contract published; `_self_check` extended |
+| `scripts/validate_pilot_v7_rc4.py` | `check_failure_event_persistence` added; the declaration-provenance case in `check_event_local_attribution` re-graded to `INSTRUMENT_DEFECT` |
+| `scripts/phaseN_diagnose_phaseL_hold.py` | `--with-extraction` added to `--verify-offline` |
+| `scripts/phaseO_write_instrument_revision.py` | reasons for `sandbox.py` and the three O-R1 revisions |
+| `docs/phaseO_instrument_revision.json` | regenerated from the tree |
+| `tests/integration/test_phaseO_rc4_redesign.py` | §2b regression matrix and mutation checks; `sandbox.py` declared in `PHASE_O_MODIFIED_PATHS` |
+| `tests/integration/test_phaseN_hold_forensics.py` | the two offline checks process-isolated |
+
+## O-R1.8 Historical immutability
+
+Untouched by O-R1, and asserted so:
+`results/phaseL-rc3-requalification/**`,
+`docs/phaseL_rc3_requalification_execution_report.md`,
+`docs/phaseN_phaseL_hold_forensic_diagnosis.*`,
+`benchmark/pilot-v7-rc3|rc2|rc1|pilot-v6.1/**`, every Phase-I/Phase-F committed
+result, every preregistration artifact, `scripts/qualification_harness.py`
+(byte-compared against the parent commit by test), and every frozen Phase-L
+input. `check_historical_immutability`, `check_retained_tasks_are_byte_identical`
+and `phaseM_frozen_input_audit` all pass. The frozen rc2 validator still reports
+exactly its one recorded superseded assertion — the `src/iqa_soa` tree pin that
+the approved revision chain moved — and `check_rc2_superseded_assertions()`
+confirms the failure set is exactly that one and nothing more.
+
+`classify_gateway_outcomes` remains behaviourally unchanged, so no committed
+Phase-B..L row is reclassified by anything here.
+
+## O-R1.9 Validation
+
+All offline. **No model was run, no provider was contacted, no socket was
+opened.**
+
+### Fresh detached worktree
+
+Every result below was produced in a **fresh detached worktree at the final O-R1
+commit** (`git worktree add --detach`), not in the development tree — so nothing
+depends on an uncommitted byte, a stale `__pycache__`, or a line-ending the
+working copy happened to carry. The worktree checkout was verified to contain no
+CRLF under `src/`, because the instrument digests are taken over working-tree
+bytes and a checkout that differed would make the approved revision record
+unverifiable.
+
+| check | result |
+|---|---|
+| `validate_pilot_v7_rc4.py` | **PASS** (0 failures) |
+| `qualification_harness_v2.py` self-check | **PASS** (0 failures) |
+| `build_pilot_v7_rc4.py --check` | **PASS** (0 drifted artifacts) |
+| `phaseO_rc4_construct_probe.py` | **PASS** (0 failures) |
+| `phaseO_frozen_input_supersession.py` | **PASS** (0 failures) |
+| `phaseO_write_revision_record.py --check` | **PASS** (byte-reproducible) |
+| `instrument_revision.py` | **PASS** (0 failures) |
+| `validate_pilot_v7_rc3.py` | **PASS** (0 failures) |
+| `validate_pilot_v7_rc1.py` | **PASS** (0 failures) |
+| `validate_pilot_v7_rc2.py` | **1 failure — the documented supersession, see below** |
+| `phaseN_diagnose_phaseL_hold.py --verify-offline --with-extraction` | **PASS** (0 failures) |
+| `phaseN_diagnose_phaseL_hold.py --reconcile` | **PASS** (0 failures) |
+| `mypy src` | **Success**, 48 files |
+| `mypy --strict` over 10 Phase-O prospective scripts | **Success** |
+| **full `pytest tests/`** | ****1385 passed, 0 failed** (14m 46s)** |
+
+### The one non-green result, and why it is not a failure
+
+`validate_pilot_v7_rc2.py` reports exactly one failure:
+
+```
+A: frozen tree changed: src/iqa_soa expected 1825ca11… got 8d569696…
+```
+
+That is the frozen rc2 validator asserting its Phase-K `src/iqa_soa` tree pin
+against the **live** tree. Phase M revised the instrument under an approved,
+per-file hash-pinned revision record and Phase O revised it again; the pin is
+therefore false live while remaining true at its own freeze commit, where
+`FROZEN_ANALYSES` proves the whole validator still passes. It is **recorded, not
+edited away** — the frozen validator keeps saying exactly what it always said —
+and `phaseM_historical_analysis.check_rc2_superseded_assertions()` asserts the
+live failure set is **exactly** that one string, composed from the two
+authoritative digests rather than pasted. If the set ever grew, shrank or changed
+text, something other than the approved revision moved and the supersession would
+fail. This is the only behaviour in the repository that is impossible to make
+green without mutating history, and it is green in every test that governs it.
+
+### Zero inference, proved by construction
+
+Not inferred from a green test run. A dedicated probe installs a process-wide
+`sys.addaudithook` that **raises** on `socket.connect`, `socket.getaddrinfo` and
+`urllib.Request`, then runs the rc4 validator, the harness self-check, the
+construct probe, the supersession check, the instrument-provenance check and both
+failure-event checks inside that process:
+
+```
+network_events_refused_during_validation : []
+network_client_modules_loaded            : []
+model_inference_performed                : false
+guard_is_live                            : true
+OFFLINE PROOF: PASS
+```
+
+`guard_is_live` is the anti-vacuity check: the same process then deliberately
+calls `socket.getaddrinfo("127.0.0.1", 11434)` and the hook refuses it, so a
+clean result cannot mean a broken detector.
+
+`provider_or_agent_modules_loaded` does list `iqa_soa.agent.providers` — because
+`check_tool_contract_conformance` **imports** the adapter to read its rendered
+tool payload statically and prove it matches the sandbox. Importing an adapter is
+not contacting a provider: zero network events were raised. That distinction is
+exactly what §O-R1.6's process isolation now enforces for the Phase-N diagnosis,
+which must not even import it.
+
+A static scan of the whole O-R1 diff finds no reference to `ollama`,
+`/api/chat`, `/api/generate`, `/v1/chat/completions`, any cloud provider, or any
+network client library — the only occurrences of those names are inside the
+**offline guard's own refusal list**. Every `subprocess.run` added by O-R1 invokes
+`sys.executable` or `git` and nothing else.
+
+### Focused tests
+
+| area | result |
+|---|---|
+| `test_phaseO_rc4_redesign.py` (incl. the new §2b matrix and mutation checks) | pass |
+| `test_phaseN_hold_forensics.py` alone | 46 passed |
+| `test_phaseO_rc4_redesign.py` **then** `test_phaseN_hold_forensics.py` — the order that previously failed | 240 passed |
+| `test_pilot_v7_rc4_construct.py` | pass |
+| `test_phaseM_frozen_input_immutability.py` + `test_phaseM_fault_provenance_instrument.py` | 84 passed |
+
+### Adversarial self-check
+
+Before this verdict, the repair was actively attacked. 13 mutations each disable
+one guard in a private copy of `failure_events.py` — count binding, both
+missing-column checks, the exact key set, sort-before-order-validation, duplicate
+sequence, non-increasing order, invalid provenance, non-positive sequence,
+`bool`-as-`int`, both closed taxonomies, and malformed-event filtering — and each
+must make the reader stop refusing a row the real module refuses. A fourteenth
+reconstructs the **pre-repair harness** (gate removed, lenient reader restored)
+and demonstrates it scoring `MODEL_MODALITY_MISS` for a lost fault event and
+`CELL_OK` for a corrupt one, where the repaired harness returns
+`INSTRUMENT_DEFECT`. All mutations are exec'd under a private module name and
+removed from `sys.modules` in `finally`; **no mutation touches the real module,
+and none survives into the committed tree.**
+
+---
+
+## O-R1.10 Phase O-R1 verdict
+
+The `READY_FOR_RC4_PROTOCOL_FREEZE` claim recorded in §7 above is **not carried
+forward**. Every READY requirement was re-evaluated independently after the
+repair rather than assumed to have survived.
+
+```
+READY_FOR_PHASE_O_R1_ADVERSARIAL_REREVIEW
+```
+
+| O-R1 requirement | Met | Where |
+|---|---|---|
+| Strict persisted schema-5 validation | ✔ | `parse_failure_events` |
+| Count / list binding, both directions | ✔ | §O-R1.3 B |
+| Complete event structural validation, exact key set | ✔ | §O-R1.3 C |
+| Strict persisted ordering, never sorted | ✔ | §O-R1.3 D |
+| Positive, unique sequence values | ✔ | §O-R1.3 D |
+| Closed field types and taxonomies | ✔ | §O-R1.3 E, F |
+| Strict runtime provenance, declaration excluded | ✔ | §O-R1.3 F |
+| No silent filtering, coercion or evidence-repair sorting | ✔ | mutation checks |
+| Malformed telemetry → `INSTRUMENT_DEFECT` / `IMMEDIATE_STOP` | ✔ | §O-R1.4 |
+| Corrupted expected fault cannot become `CELL_OK` | ✔ | asserted by name |
+| Corrupted expected fault cannot become `MODEL_MODALITY_MISS` | ✔ | asserted by name |
+| Valid event-local `FAULT-004` behaviour preserved | ✔ | §O-R1.4 |
+| Valid rc4 scientific classifications preserved | ✔ | §O-R1.4 |
+| Phase-N import-pollution tests process-isolated and green | ✔ | §O-R1.6 |
+| Producer / persistence / consumer conformance | ✔ | round-trip test |
+| Full pytest green | ✔ | §O-R1.9 |
+| mypy clean, `--strict` on Phase-O scripts | ✔ | §O-R1.9 |
+| Fresh detached-worktree validation | ✔ | §O-R1.9 |
+| rc3 / Phase-L-B / Phase-N evidence untouched | ✔ | §O-R1.8 |
+| Zero model / Ollama / provider contact | ✔ | §O-R1.9 |
+
+**What this verdict does NOT do.** It does **not** mark PR #13 ready, merge it,
+freeze a protocol, select seeds, or authorize real-model execution.
+`pilot-v7-rc3` remains **UNQUALIFIED**. `pilot-v7-rc4` remains **UNQUALIFIED**.
+Phase L-B remains **HOLD**. A separate adversarial rereview must accept O-R1
+first.
 
 **ZERO MODEL INFERENCE.**

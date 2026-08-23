@@ -167,9 +167,14 @@ build_schedule = frozen.build_schedule
 ScheduleViolation = frozen.ScheduleViolation
 
 from iqa_soa.experiment.failure_events import (  # noqa: E402
+    FAILURE_EVENT_FAILURE_CLASSES,
+    FAILURE_EVENT_FAULT_MODES,
     FAILURE_EVENT_KEYS,
+    FAILURE_EVENT_PROVENANCE_SOURCES,
     FailureEvent,
-    events_from_row,
+    FailureEventTelemetryError,
+    failure_event_telemetry_defects,
+    parse_failure_events,
 )
 from iqa_soa.tools.argument_schema import (  # noqa: E402
     ARGUMENT_VIOLATION_FAILURE_CLASS,
@@ -198,6 +203,7 @@ HARNESS_VERSION = "rc4-harness-2"
 #: charged with violating it; this field is how a row proves the first step
 #: happened, per row, rather than being assumed to have happened.
 REQUIRED_RC4_ROW_FIELDS: tuple[str, ...] = (
+    "failure_events",
     "failure_event_count",
     "tool_argument_contract_version",
 )
@@ -358,12 +364,21 @@ def attribute_events(
     scripted_faults: Mapping[str, Sequence[Any]] | None = None,
     argument_contract_disclosed: bool = False,
 ) -> tuple[AttributedEvent, ...]:
-    """Attribute every failure event of a row, in the order it occurred."""
+    """Attribute every failure event of a row, in the order it occurred.
+
+    (Phase O-R1.)  The events come from :func:`parse_failure_events`, the one
+    strict reader, which RAISES on malformed persisted telemetry rather than
+    returning what could be salvaged.  The exception is deliberately not caught
+    here: an attribution built over silently repaired evidence would be a
+    scientific statement about a run that did not happen.  The only caller that
+    may see it is :func:`classify_row_detailed`, which turns it into
+    ``INSTRUMENT_DEFECT`` / ``IMMEDIATE_STOP`` before any classification runs.
+    """
 
     task_id = str(row.get("task_id") or "")
     declared = tuple((scripted_faults or {}).get(task_id, ()))
     attributed: list[AttributedEvent] = []
-    for event in events_from_row(row):
+    for event in parse_failure_events(row):
         if event.fault_mode is not None:
             fault, reasons = match_event_to_declared_fault(event, task_id, declared)
             if fault is not None:
@@ -512,7 +527,40 @@ def classify_row_detailed(
             "it before the cell is recorded"
             for name in missing
         ]
+        # An absent column is a failure of the SAME contract the strict reader
+        # enforces, so the detail records it the same way: a consumer must never
+        # have to distinguish "the telemetry was malformed" from "the telemetry
+        # was not written" in order to know it may not read the row.
+        if {"failure_events", "failure_event_count"} & set(missing):
+            detail["failure_event_telemetry_valid"] = False
         return INSTRUMENT_DEFECT, IMMEDIATE_STOP, detail
+
+    # (PHASE O-R1) THE SCHEMA-5 EVIDENCE GATE, BEFORE ANY SCIENTIFIC BRANCH.
+    #
+    # Everything below this point reads the row as a measurement.  A measurement
+    # can only be read from evidence that is intact, so the persisted failure
+    # telemetry is proved well-formed FIRST -- ahead of the provider-failure, the
+    # model-protocol and the event-attribution branches alike -- and a row that
+    # fails is an instrument defect rather than any scientific outcome.
+    #
+    # Placing it later would leave exactly the hole adversarial review found on
+    # PR #13: a corrupted expected-fault event silently disappears while being
+    # parsed, and the cell is then scored CELL_OK, or MODEL_MODALITY_MISS for a
+    # task that declares a fault -- turning LOST EVIDENCE into a finding about a
+    # model.  IMMEDIATE_STOP is the correct disposition because a driver writing
+    # telemetry the instrument cannot have produced will keep writing it, and
+    # every later cell of the schedule would be measured through the same defect.
+    telemetry_defects = failure_event_telemetry_defects(row)
+    if telemetry_defects:
+        detail["failure_event_telemetry_valid"] = False
+        detail["reasons"] = [
+            "the persisted schema-5 failure telemetry is malformed, so the cell's "
+            "failure evidence cannot be read; corrupt evidence is an instrument "
+            "defect and is never scored as a scientific outcome",
+            *telemetry_defects,
+        ]
+        return INSTRUMENT_DEFECT, IMMEDIATE_STOP, detail
+    detail["failure_event_telemetry_valid"] = True
 
     failure_class = str(row.get("failure_class") or "")
     if failure_class in PROVIDER_FAILURE_CLASSES:
@@ -636,6 +684,22 @@ def prospective_row_contract() -> dict[str, Any]:
         "fault_provenance_fields": list(REQUIRED_FAULT_PROVENANCE_FIELDS),
         "rc4_fields": list(REQUIRED_RC4_ROW_FIELDS),
         "failure_event_keys": list(FAILURE_EVENT_KEYS),
+        "failure_event_persistence_contract": {
+            "validated_by": "iqa_soa.experiment.failure_events.parse_failure_events",
+            "authoritative_reader_is_unique": True,
+            "count_binding": "len(failure_events) == failure_event_count, exactly",
+            "event_keys_are_exact": True,
+            "sequence": "integer (never bool), > 0, unique, strictly increasing in "
+                        "PERSISTED order; never sorted",
+            "failure_classes": sorted(FAILURE_EVENT_FAILURE_CLASSES),
+            "fault_modes": sorted(FAILURE_EVENT_FAULT_MODES),
+            "provenance_sources": sorted(FAILURE_EVENT_PROVENANCE_SOURCES),
+            "malformed_telemetry_classification": INSTRUMENT_DEFECT,
+            "malformed_telemetry_disposition": IMMEDIATE_STOP,
+            "silent_filtering": False,
+            "silent_coercion": False,
+            "order_repair": False,
+        },
         "expected_tool_argument_contract_version": (
             EXPECTED_TOOL_ARGUMENT_CONTRACT_VERSION
         ),
@@ -683,6 +747,52 @@ def _self_check() -> list[str]:
     for _, outcome, _ in CLASSIFICATION_PRECEDENCE:
         if outcome not in DISPOSITION:
             failures.append(f"{outcome!r} is not in the closed taxonomy")
+
+    # (Phase O-R1) The schema-5 evidence gate, proved rather than asserted in
+    # prose.  Every check below fails the harness outright, because a harness
+    # that can be run while any of them is false can turn corrupt evidence into
+    # a scientific finding.
+    if not FAILURE_EVENT_PROVENANCE_SOURCES <= RUNTIME_FAULT_PROVENANCE_SOURCES:
+        failures.append(
+            "a persisted failure event may carry a provenance the frozen K.2 rule "
+            "does not recognise as a runtime observation"
+        )
+    if FAILURE_EVENT_PROVENANCE_SOURCES & DECLARED_FAULT_PROVENANCE_SOURCES:
+        failures.append(
+            "a declaration-derived provenance is accepted as a runtime observation; "
+            "the K.2 circularity guard is lost"
+        )
+    if "failure_events" not in REQUIRED_RC4_ROW_FIELDS:
+        failures.append("a row may omit failure_events and still be classified")
+
+    # The parser refuses, by raising, rather than returning a salvaged list.
+    try:
+        parse_failure_events({"failure_event_count": 1, "failure_events": []})
+    except FailureEventTelemetryError:
+        pass
+    else:
+        failures.append(
+            "the strict reader accepted a count/list mismatch; lost failure evidence "
+            "is undetectable"
+        )
+
+    # And the classifier turns that refusal into an immediate stop, ahead of every
+    # scientific branch.  The probe row is otherwise a clean, well-formed cell, so
+    # only the corrupt telemetry can be what decides it.
+    probe = {
+        "task_id": "",
+        "provider_attempt_count": 1,
+        "failure_class": "",
+        "tool_argument_contract_version": EXPECTED_TOOL_ARGUMENT_CONTRACT_VERSION,
+        "failure_event_count": 1,
+        "failure_events": [],
+    }
+    if classify_row(probe) != (INSTRUMENT_DEFECT, IMMEDIATE_STOP):
+        failures.append(
+            "a row whose failure telemetry is malformed is not classified "
+            "INSTRUMENT_DEFECT / IMMEDIATE_STOP; corrupt evidence can become a "
+            "scientific outcome"
+        )
     return failures
 
 
@@ -712,6 +822,9 @@ if __name__ == "__main__":
 
 __all__ = [
     "CLASSIFICATION_PRECEDENCE",
+    "FAILURE_EVENT_PROVENANCE_SOURCES",
+    "FailureEvent",
+    "FailureEventTelemetryError",
     "EVENT_ATTRIBUTIONS",
     "EVENT_EXPECTED_FAULT",
     "EVENT_MODEL_ARGUMENT_INVALID",

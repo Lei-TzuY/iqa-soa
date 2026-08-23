@@ -45,8 +45,10 @@ import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
-if str(SCRIPTS_ROOT) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_ROOT))
+SRC_ROOT = PROJECT_ROOT / "src"
+for _root in (SCRIPTS_ROOT, SRC_ROOT):
+    if str(_root) not in sys.path:
+        sys.path.insert(0, str(_root))
 
 import phaseN_diagnose_phaseL_hold as phaseN  # noqa: E402
 
@@ -89,17 +91,133 @@ def by_cell(extraction: dict) -> dict:
 # --------------------------------------------------------------------------
 
 
-def test_offline_verification_passes() -> None:
-    assert phaseN.verify_offline() == []
+# (Phase O-R1) THE TWO OFFLINE-INVARIANT CHECKS BELOW ARE PROCESS-ISOLATED.
+#
+# Both inspect ``sys.modules``, which under a whole-suite pytest run is shared
+# with every other test module already collected.  Phase O added a check that
+# imports ``iqa_soa.agent.providers`` in order to prove the model-visible tool
+# contract and the sandbox are one table -- a legitimate offline check, since it
+# reads the adapter's rendered payload and never calls it -- and that import
+# alone made both assertions here fail when the suite ran together while both
+# passed when this file ran alone.  Adversarial review of PR #13 correctly
+# refused to accept that as test-order noise.
+#
+# The invariant is NOT weakened to accommodate it, and nothing is deleted from
+# ``sys.modules`` to work around it -- that would trade one order dependence for
+# a worse one.  It is instead asserted where it is actually meaningful: in a
+# FRESH interpreter that does nothing but run the Phase-N diagnosis.  "Performing
+# the Phase-N diagnosis loads no provider, imports no network client and opens no
+# socket" is the claim Phase N makes, it is what a reader needs to be true, and it
+# is now independent of what any other test imported.  ``--with-extraction`` makes
+# the isolated process run the WHOLE extraction before verifying, so the check
+# covers what the diagnosis does rather than only what importing it does.
 
+#: A probe that runs the diagnosis and then reports its own module table.
+_MODULE_TABLE_PROBE = '''
+import json, runpy, sys
 
-def test_no_provider_or_agent_module_is_loaded() -> None:
-    offenders = [
-        name
-        for name in sys.modules
+sys.argv = ["phaseN_diagnose_phaseL_hold.py", "--verify-offline", "--with-extraction"]
+try:
+    runpy.run_path(sys.argv[0], run_name="__main__")
+except SystemExit as exc:
+    code = exc.code or 0
+else:
+    code = 0
+
+NETWORK_ROOTS = {"requests", "httpx", "aiohttp", "urllib3", "openai", "ollama"}
+print("RESULT " + json.dumps({
+    "code": code,
+    "offenders": sorted(
+        name for name in sys.modules
         if name.endswith("agent.providers") or name.endswith("agent.agent")
-    ]
-    assert offenders == []
+    ),
+    "networked": sorted(
+        name for name in sys.modules if name.split(".")[0] in NETWORK_ROOTS
+    ),
+}))
+'''
+
+#: The same probe, with the provider adapter imported ON PURPOSE.  It exists so
+#: "the fresh process reported no offender" cannot be true merely because the
+#: detector is broken.  It runs in a throwaway subprocess and never in the
+#: suite's own interpreter, so it pollutes nothing.
+_DETECTOR_PROBE = '''
+import json, sys
+
+sys.path.insert(0, "src")
+import iqa_soa.agent.providers  # noqa: F401
+
+print("RESULT " + json.dumps(sorted(
+    name for name in sys.modules if name.endswith("agent.providers")
+)))
+'''
+
+
+def _probe(source: str, cwd: Path) -> object:
+    completed = subprocess.run(
+        [sys.executable, "-c", source], cwd=cwd, capture_output=True, text=True
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    line = next(
+        line for line in completed.stdout.splitlines() if line.startswith("RESULT ")
+    )
+    return json.loads(line[len("RESULT ") :])
+
+
+def test_offline_verification_passes_in_a_fresh_process() -> None:
+    """The whole diagnosis runs, and then proves it stayed offline doing it."""
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_ROOT / "phaseN_diagnose_phaseL_hold.py"),
+            "--verify-offline",
+            "--with-extraction",
+        ],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "OFFLINE-CHECK FAIL" not in completed.stdout
+    assert "0 failure(s)" in completed.stdout
+    assert "NO MODEL INFERENCE" in completed.stdout
+    assert "no provider contacted" in completed.stdout
+
+
+def test_no_provider_or_agent_module_is_loaded_in_a_fresh_process() -> None:
+    """Running the diagnosis never brings a provider or agent module into memory."""
+
+    result = _probe(_MODULE_TABLE_PROBE, SCRIPTS_ROOT)
+    assert isinstance(result, dict)
+    assert result["code"] == 0
+    assert result["offenders"] == []
+    assert result["networked"] == []
+
+
+def test_the_module_table_probe_is_not_vacuous() -> None:
+    """The detector fires when a provider really is loaded."""
+
+    assert _probe(_DETECTOR_PROBE, PROJECT_ROOT) == ["iqa_soa.agent.providers"]
+
+
+def test_the_offline_invariant_holds_regardless_of_this_suites_import_order() -> None:
+    """The repaired check is order-independent, which is the whole point.
+
+    Importing the provider adapter into THIS interpreter -- exactly what the
+    whole-suite run does, and exactly what broke the in-process assertions --
+    must not change either isolated result.  The import is left in place
+    deliberately: the test would be worthless if it undid the pollution it is
+    proving immunity to.
+    """
+
+    import iqa_soa.agent.providers  # noqa: F401
+
+    assert "iqa_soa.agent.providers" in sys.modules, "the pollution did not happen"
+    result = _probe(_MODULE_TABLE_PROBE, SCRIPTS_ROOT)
+    assert isinstance(result, dict)
+    assert result["offenders"] == []
+    assert result["networked"] == []
 
 
 def test_offline_guard_actually_refuses_a_network_event() -> None:

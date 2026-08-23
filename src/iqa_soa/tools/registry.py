@@ -13,7 +13,7 @@ from iqa_soa.tools.argument_schema import (
     validate_arguments,
 )
 from iqa_soa.tools.base import SandboxedTool
-from iqa_soa.tools.sandbox import FaultSpec, SandboxState
+from iqa_soa.tools.sandbox import SUPPORTED_FAULT_MODES, FaultSpec, SandboxState
 from iqa_soa.types import Action, ToolResult
 
 
@@ -253,13 +253,11 @@ _DEFAULT_TOOLS: dict[str, Callable[[Action, SandboxState], ToolResult]] = {
     "robot.pick_up_simulated": _robot_pick_up,
 }
 
-_FAULT_MODES = {
-    "timeout",
-    "high_latency",
-    "malformed_response",
-    "unavailable",
-    "partial_failure",
-}
+#: The sandbox's own closed fault-mode vocabulary, imported rather than
+#: redefined so the dispatch path and the persisted-telemetry validator in
+#: ``iqa_soa.experiment.failure_events`` can never disagree about which modes
+#: this sandbox is able to stamp.
+_FAULT_MODES = SUPPORTED_FAULT_MODES
 
 
 class ToolRegistry:

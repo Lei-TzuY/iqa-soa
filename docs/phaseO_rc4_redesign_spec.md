@@ -254,14 +254,112 @@ byte-identical to its committed form.
 
 ### 5.4 The rc4 raw-row contract
 
-Two new REQUIRED fields, on the same terms K.2 established for `run_key` —
+Three REQUIRED fields, on the same terms K.2 established for `run_key` —
 missing is a mismatch, never a pass:
 
+- `failure_events` — the ordered list itself. *(Added in O-R1. Requiring only the
+  count let a row omit the evidence and still be classified.)*
 - `failure_event_count` — distinguishes "no failures" from "this row predates
   ordered telemetry". Without it the classifier could not tell a clean rc4 row
   from a schema-4 row, and would read the second as the first — which is how the
-  scalar hid a fault in the first place.
+  scalar hid a fault in the first place. It is also what makes a **lost** event
+  detectable at all, which is the whole basis of §5.5.
 - `tool_argument_contract_version` — the disclosure precondition of §4.
+
+### 5.5 (O-R1) The persistence contract: reading the telemetry back
+
+**Producing ordered telemetry correctly is only half the design.** The first
+Phase-O revision made the producer strict and left the reader permissive, and
+adversarial review of PR #13 held the phase for it. `events_from_row` returned
+`()` for a non-list, skipped malformed entries, coerced wrong types to `None`,
+fabricated an empty `provenance`, accepted `True` as sequence 1 (`bool`
+subclasses `int`), and **sorted** persisted events into order.
+`classify_row_detailed` checked only that `failure_event_count` was *present*.
+
+A corrupted schema-5 row therefore lost its evidence *while being read*, and the
+classifier — which cannot distinguish "no event was recorded" from "the event
+was dropped during parsing" — scored the cell `CELL_OK`, or
+`MODEL_MODALITY_MISS` for a task declaring a fault. **That is §5.1's own defect
+displaced one level down: evidence loss becoming a claim about a model.**
+
+#### The rule
+
+> Malformed persisted failure telemetry is **evidence corruption**. It is
+> `INSTRUMENT_DEFECT` → `IMMEDIATE_STOP`, decided **before** any scientific
+> classification is attempted. It is never a scientific outcome.
+
+#### One reader
+
+`parse_failure_events(row)` is the only function anywhere that turns a persisted
+row into events. `events_from_row` is **deleted**, not deprecated: a lenient
+sibling is an invitation for a later caller to take the unsafe path. The reader
+validates the **persisted** representation and **raises**
+`FailureEventTelemetryError` naming every defect. Nothing filters, coerces,
+repairs, sorts, truncates or infers.
+`failure_event_telemetry_defects(row)` is its reporting face over the same
+`_parse`, so it can never approve a row the parser would refuse.
+
+#### The invariants
+
+| group | requirement |
+|---|---|
+| presence | both columns present; `failure_event_count` a real `int` (never `bool`), `>= 0`; `failure_events` a `list` |
+| binding | `len(failure_events) == failure_event_count`, exactly, in both directions |
+| structure | each entry an object with the **exact** key set — no missing key, no unknown key |
+| sequence | real `int`, `> 0`, unique, **strictly increasing in persisted order**; gaps allowed (positions count all gateway outcomes); **never sorted** |
+| types | `tool`/`resource`: `str`; `executed`: real `bool`; `error`: non-blank `str` or `null`; `failure_class`/`fault_mode`: `str` or `null`; `provenance`: `str` |
+| taxonomy | `failure_class` ∈ `SANDBOX_ACTION_FAILURE_CLASSES`; `fault_mode` ∈ `SUPPORTED_FAULT_MODES`; `provenance` ∈ `FAILURE_EVENT_PROVENANCE_SOURCES` |
+| coherence | an `error` **or** a `fault_mode` is present; `failure_class` and `error` are present together or absent together |
+
+**Persisted order is evidence.** Sorting it would destroy exactly the
+relationship — *the fault came after the resource miss* — that §5 added the
+ordered list to record. An out-of-order row is refused, never repaired.
+
+**`tool` and `resource` may be empty.** Both are copied verbatim from the action
+the *model* proposed, so an empty one is a faithful record of an empty proposal.
+Requiring non-emptiness would invent a constraint and fail closed on real
+telemetry.
+
+**The provenance set is narrower than the runtime set, deliberately.**
+`FAILURE_EVENT_PROVENANCE_SOURCES` is `{gateway_outcome.executed_action,
+gateway_outcome.proposed_action}` — the only two the producer emits. The frozen
+`RUNTIME_FAULT_PROVENANCE_SOURCES` also admits `sandbox.operation_log` and
+`evidence.tool_call`, which are sources for the **row-level** Phase-M fault
+provenance; no failure **event** is read from them. The event set is a proper
+subset of the runtime set and disjoint from the declared set — asserted in
+`_self_check` — so the K.2 circularity guard is **strengthened**, never relaxed.
+
+**Closed vocabularies are imported, not restated.** `SUPPORTED_FAULT_MODES` lives
+in `sandbox.py` and `ToolRegistry` imports it; `SANDBOX_ACTION_FAILURE_CLASSES`
+lives in `failure_taxonomy.py` and is asserted at import to be a subset of
+`SCIENTIFIC_FAILURE_CLASSES`. Tests assert identity (`is`), so a copy cannot
+drift in.
+
+#### The classification order
+
+1. frozen row/cell identity binding → `FROZEN_ARTIFACT_MISMATCH`;
+2. instrument preconditions (tool-contract regression, provider attempt);
+3. the rc4 row-field contract of §5.4;
+4. **the schema-5 evidence gate** → `INSTRUMENT_DEFECT` / `IMMEDIATE_STOP`;
+5. only then any scientific branch.
+
+The gate precedes *every* scientific branch — including the provider-failure and
+model-protocol branches that rc3 evaluated first — because all of them read the
+row as a measurement, and a measurement may only be read from intact evidence.
+`IMMEDIATE_STOP` is correct because a driver writing telemetry the instrument
+cannot have produced will keep writing it; every later cell would be measured
+through the same defect.
+
+#### What this must not break, and does not
+
+A valid two-event `FAULT-004` trajectory still scores `EXPECTED_SCRIPTED_FAULT`
+with both events attributed in order. A genuine zero-event modality miss is
+still `MODEL_MODALITY_MISS`. A well-formed fault with the wrong tool, resource or
+mode still fails closed to `UNEXPECTED_SANDBOX_FAILURE` / `CELL_INVALID_AND_HOLD`
+— the **cell** is held, the run continues. The distinction is the design:
+*corrupt telemetry stops the run; wrong-but-intact telemetry holds the cell.*
+Declaration-derived provenance moves from the second category to the first,
+because no runtime path can stamp it.
 
 ---
 

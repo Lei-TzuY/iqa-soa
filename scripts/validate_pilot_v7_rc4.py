@@ -55,8 +55,25 @@ from iqa_soa.tools.argument_schema import (  # noqa: E402
     payload_of,
 )
 from iqa_soa.tools.registry import ToolRegistry  # noqa: E402
-from iqa_soa.tools.sandbox import SandboxState  # noqa: E402
-from iqa_soa.types import Action  # noqa: E402
+from iqa_soa.tools.sandbox import SUPPORTED_FAULT_MODES, SandboxState  # noqa: E402
+from iqa_soa.types import Action, Decision, GatewayOutcome  # noqa: E402
+from iqa_soa.failure_taxonomy import (  # noqa: E402
+    SANDBOX_ACTION_FAILURE_CLASSES,
+    classify_tool_error,
+)
+from iqa_soa.experiment import failure_events as failure_events_module  # noqa: E402
+from iqa_soa.experiment.failure_events import (  # noqa: E402
+    FAILURE_EVENT_FAILURE_CLASSES,
+    FAILURE_EVENT_FAULT_MODES,
+    FAILURE_EVENT_KEYS,
+    FAILURE_EVENT_PROVENANCE_SOURCES,
+    PROVENANCE_PROPOSED_ACTION,
+    FailureEventTelemetryError,
+    failure_event_telemetry,
+    failure_event_telemetry_defects,
+    failure_events,
+    parse_failure_events,
+)
 
 import instrument_revision  # noqa: E402
 import phaseM_frozen_input_audit  # noqa: E402
@@ -1174,14 +1191,16 @@ def check_event_local_attribution(cases: Sequence[BenchmarkCase]) -> list[str]:
     if missed != h2.MODEL_MODALITY_MISS:
         failures.append(f"R: a cell that never reached the modality classifies {missed}")
 
-    # 3. Wrong tool, wrong resource, wrong mode and a declaration-sourced
-    #    provenance each still fail closed.
+    # 3. Wrong tool, wrong resource and wrong mode each still fail closed.  The
+    #    telemetry itself is well formed in every one of these -- each names a
+    #    real tool, a real resource, a real sandbox mode and a real runtime
+    #    provenance -- so what fails is the ATTRIBUTION, and the cell is held
+    #    rather than the run stopped.
     for label, override in (
         ("tool", {"tool": "file.read"}),
         ("resource", {"resource": "inventory-api/sku-9999"}),
         ("mode", {"fault_mode": "timeout", "failure_class": "tool_timeout",
                   "error": "simulated tool timeout"}),
-        ("provenance", {"provenance": "benchmark_case.fault"}),
     ):
         wrong = _rc4_row("FAULT-004", [miss, {**fired, **override}], failure_class="invalid_resource")
         outcome, disposition = h2.classify_row(wrong, scripted_faults=faults)
@@ -1189,6 +1208,46 @@ def check_event_local_attribution(cases: Sequence[BenchmarkCase]) -> list[str]:
             failures.append(
                 f"R: a fault with the wrong {label} classifies {outcome}/{disposition} "
                 "instead of failing closed"
+            )
+
+    # 3b. (Phase O-R1) A declaration-sourced provenance is a DIFFERENT defect and
+    #     now fails closed HARDER.  No runtime path can stamp an event with the
+    #     benchmark's own fault declaration, so such a row was not written by this
+    #     instrument at all; that is corrupt evidence, not a mis-attributed
+    #     observation, and it stops the run instead of holding one cell.  The
+    #     event-level K.2 guard in match_event_to_declared_fault is unchanged and
+    #     still refuses the same provenance if it is ever reached directly.
+    for label, provenance in (
+        ("the frozen declaration", "benchmark_case.fault"),
+        ("ground truth", "ground_truth"),
+        ("a row-level fault-provenance source no event is read from",
+         "sandbox.operation_log"),
+        ("an unrecognised source", "somewhere_else"),
+    ):
+        forged = _rc4_row(
+            "FAULT-004", [miss, {**fired, "provenance": provenance}],
+            failure_class="invalid_resource",
+        )
+        outcome, disposition = h2.classify_row(forged, scripted_faults=faults)
+        if (outcome, disposition) != (h2.INSTRUMENT_DEFECT, h2.IMMEDIATE_STOP):
+            failures.append(
+                f"R: an event whose provenance is {label} classifies "
+                f"{outcome}/{disposition} instead of INSTRUMENT_DEFECT/IMMEDIATE_STOP"
+            )
+        if provenance in h2.RUNTIME_FAULT_PROVENANCE_SOURCES:
+            # The frozen K.2 matcher admits every runtime source, and Phase O-R1
+            # does not narrow it: what refuses this row is the persistence gate,
+            # because no failure EVENT is read from that structure.
+            continue
+        event = h2.FailureEvent(
+            sequence=2, tool=fault.tool, resource=fault.resource,
+            failure_class=None, error=None, executed=True,
+            fault_mode=fault.mode, provenance=provenance,
+        )
+        matched, _ = h2.match_event_to_declared_fault(event, "FAULT-004", declared)
+        if matched is not None:
+            failures.append(
+                f"R: the event-level matcher bound a fault whose provenance is {label}"
             )
 
     # 4. A genuinely unexplained sandbox failure still holds the verdict.
@@ -1226,6 +1285,384 @@ def check_event_local_attribution(cases: Sequence[BenchmarkCase]) -> list[str]:
         failures.append("R: a row carrying no ordered failure telemetry was accepted")
 
     failures += [f"R: {failure}" for failure in h2._self_check()]
+    return failures
+
+
+
+# --------------------------------------------------------------------------- #
+# R2. (Phase O-R1) The schema-5 failure-event PERSISTENCE contract              #
+# --------------------------------------------------------------------------- #
+#
+# Adversarial review of PR #13 held the first Phase-O revision because the
+# producer was strict and the READER was not.  A corrupted schema-5 row lost its
+# evidence while being parsed, and the classifier -- unable to tell "no event was
+# recorded" from "the event was dropped while being read" -- scored the cell
+# CELL_OK, or MODEL_MODALITY_MISS for a task that declares a fault.  Lost
+# evidence became a scientific claim about a model.
+#
+# This section is the offline gate for the repair.  It proves, over the real
+# frozen FAULT-004 declaration, that every malformation of the persisted
+# representation stops the run instead, and that the strict reader did not become
+# strict by rejecting things the instrument actually produces.
+
+def _malformed_schema5_rows(fault: Any) -> list[tuple[str, dict[str, Any]]]:
+    """Every persisted-telemetry malformation, as (label, row).
+
+    Each row is built from the REAL Phase-L-B trajectory -- an unrelated
+    ``database.query`` resource miss followed by the declared
+    ``malformed_response`` on ``api.call`` -- and then broken in exactly one way,
+    so what the classification proves is attributable to that one defect.
+    """
+
+    miss = _event(
+        1, "database.query", fault.resource,
+        failure_class="invalid_resource",
+        error=f"sandbox database resource not found: {fault.resource}",
+    )
+    fired = _event(2, fault.tool, fault.resource, fault_mode=fault.mode)
+
+    def row(events: Sequence[Mapping[str, Any]], **over: Any) -> dict[str, Any]:
+        return _rc4_row("FAULT-004", events, failure_class="invalid_resource", **over)
+
+    def broken(**over: Any) -> dict[str, Any]:
+        """The valid two-event trajectory with the FAULT event broken."""
+        return row([miss, {**fired, **over}])
+
+    cases: list[tuple[str, dict[str, Any]]] = [
+        # -- count / list binding ------------------------------------------
+        ("count 1 with an empty list", row([], failure_event_count=1)),
+        ("count 1 with no failure_events key at all",
+         {k: v for k, v in row([], failure_event_count=1).items()
+          if k != "failure_events"}),
+        ("count 0 with one recorded event", row([fired], failure_event_count=0)),
+        ("count greater than the list length", row([miss, fired], failure_event_count=3)),
+        ("count less than the list length", row([miss, fired], failure_event_count=1)),
+        ("no failure_event_count key",
+         {k: v for k, v in row([fired]).items() if k != "failure_event_count"}),
+        ("a negative count", row([], failure_event_count=-1)),
+        ("a boolean count", row([fired], failure_event_count=True)),
+        ("a string count", row([fired], failure_event_count="1")),
+        # -- the list container --------------------------------------------
+        ("failure_events as an object", row([], failure_events={"0": dict(fired)},
+                                            failure_event_count=1)),
+        ("failure_events as a string", row([], failure_events="[]",
+                                           failure_event_count=0)),
+        ("a list entry that is not an object", row([], failure_events=["fired"],
+                                                   failure_event_count=1)),
+        ("a list entry that is null", row([], failure_events=[None],
+                                          failure_event_count=1)),
+        # -- event structure ------------------------------------------------
+        ("an event carrying an unknown key", broken(**{"detail": "x"})),
+    ]
+
+    for key in FAILURE_EVENT_KEYS:
+        cases.append(
+            (f"an event missing {key}",
+             row([miss, {k: v for k, v in fired.items() if k != key}])),
+        )
+
+    cases += [
+        # -- sequence --------------------------------------------------------
+        ("sequence 0", row([{**miss, "sequence": 0}])),
+        ("a negative sequence", row([{**miss, "sequence": -1}])),
+        ("a duplicate sequence", row([miss, {**fired, "sequence": 1}])),
+        ("a decreasing persisted order",
+         row([{**fired, "sequence": 2}, {**miss, "sequence": 1}])),
+        ("a persisted order that is out of order in the middle",
+         row([{**miss, "sequence": 1},
+              {**fired, "sequence": 3},
+              {**miss, "sequence": 2, "tool": "file.read"}])),
+        ("a non-integer sequence", row([{**miss, "sequence": "1"}])),
+        ("a float sequence", row([{**miss, "sequence": 1.0}])),
+        ("a boolean sequence", row([{**miss, "sequence": True}])),
+        # -- field types -----------------------------------------------------
+        ("a non-string tool", broken(tool=123)),
+        ("a null tool", broken(tool=None)),
+        ("a non-string resource", broken(resource=["a"])),
+        ("a non-boolean executed", broken(executed="true")),
+        ("an integer executed", broken(executed=1)),
+        ("a non-string error", row([{**miss, "error": {"text": "x"}}])),
+        ("a blank error", row([{**miss, "error": "   "}])),
+        ("a non-string failure_class", row([{**miss, "failure_class": ["x"]}])),
+        ("a non-string fault_mode", broken(fault_mode={"mode": "x"})),
+        ("a non-string provenance", broken(provenance=None)),
+        # -- closed taxonomies -----------------------------------------------
+        ("a failure_class outside the per-action taxonomy",
+         row([{**miss, "failure_class": "model_refusal"}])),
+        ("a failure_class that is a whole-row scientific class only",
+         row([{**miss, "failure_class": "multi_call_overflow"}])),
+        ("an invented failure_class", row([{**miss, "failure_class": "weird"}])),
+        ("a fault_mode the sandbox cannot simulate", broken(fault_mode="corrupted")),
+        # -- provenance -------------------------------------------------------
+        ("a declaration-derived provenance", broken(provenance="benchmark_case.fault")),
+        ("a ground-truth provenance", broken(provenance="ground_truth")),
+        ("a qualification-contract provenance", broken(provenance="qualification_contract")),
+        ("a row-level fault-provenance source no event is read from",
+         broken(provenance="sandbox.operation_log")),
+        ("an empty provenance", broken(provenance="")),
+        # -- semantic coherence ------------------------------------------------
+        ("an event with neither an error nor a fault mode",
+         row([{**miss, "failure_class": None, "error": None}])),
+        ("a failure_class with no error", row([{**miss, "error": None}])),
+        ("an error with no failure_class", row([{**miss, "failure_class": None}])),
+    ]
+    return cases
+
+
+def check_failure_event_persistence(cases: Sequence[BenchmarkCase]) -> list[str]:
+    """Malformed schema-5 telemetry is an instrument defect, never a finding."""
+
+    failures: list[str] = []
+    faults = h2.scripted_faults_from_cases(cases)
+    declared = faults.get("FAULT-004")
+    if not declared or len(declared) != 1:
+        return ["R2: FAULT-004 does not declare exactly one scripted fault"]
+    fault = declared[0]
+
+    # 1. EVERY malformation stops the run, and none of them is ever scored as a
+    #    scientific outcome.  CELL_OK and MODEL_MODALITY_MISS are named
+    #    explicitly because they are the two the lenient reader actually produced.
+    for label, row in _malformed_schema5_rows(fault):
+        outcome, disposition, detail = h2.classify_row_detailed(
+            row, scripted_faults=faults
+        )
+        if (outcome, disposition) != (h2.INSTRUMENT_DEFECT, h2.IMMEDIATE_STOP):
+            failures.append(
+                f"R2: a row with {label} classifies {outcome}/{disposition} instead "
+                "of INSTRUMENT_DEFECT/IMMEDIATE_STOP; corrupt failure evidence is "
+                "readable as a scientific outcome"
+            )
+        if outcome in (h2.CELL_OK, h2.MODEL_MODALITY_MISS):
+            failures.append(
+                f"R2: a row with {label} classifies {outcome}; lost or malformed "
+                "failure evidence became a finding about the model"
+            )
+        if detail.get("failure_event_telemetry_valid") is not False:
+            failures.append(
+                f"R2: a row with {label} was not reported as malformed telemetry"
+            )
+        if not failure_event_telemetry_defects(row):
+            failures.append(f"R2: the strict reader accepts a row with {label}")
+        try:
+            parse_failure_events(row)
+        except FailureEventTelemetryError:
+            pass
+        else:
+            failures.append(f"R2: parse_failure_events did not raise on {label}")
+
+    # 2. The gate precedes EVERY scientific branch.  Each row below would take a
+    #    different, earlier branch under the rc3 ordering -- a provider failure, a
+    #    model-protocol failure, a parse failure, a refusal -- and each must still
+    #    be refused for its corrupt evidence first.
+    for label, over in (
+        ("a provider infrastructure failure", {"failure_class": "provider_error"}),
+        ("a model protocol failure", {"failure_class": "invalid_json"}),
+        ("a tool-call parse failure", {"tool_call_parse_failure": True}),
+        ("a multi-call overflow", {"multi_call_overflow": True}),
+        ("a model refusal", {"model_refusal": True}),
+    ):
+        row = _rc4_row("FAULT-004", [], failure_event_count=1, **over)
+        outcome, disposition = h2.classify_row(row, scripted_faults=faults)
+        if (outcome, disposition) != (h2.INSTRUMENT_DEFECT, h2.IMMEDIATE_STOP):
+            failures.append(
+                f"R2: a row that is also {label} is classified {outcome}/{disposition} "
+                "before its corrupt failure telemetry is detected; the evidence gate "
+                "does not precede scientific classification"
+            )
+
+    # 3. The strict reader did not become strict by rejecting real telemetry.
+    #    Every well-formed shape the producer can emit must still be accepted,
+    #    and must classify exactly as the accepted Phase-O design says.
+    miss = _event(
+        1, "database.query", fault.resource,
+        failure_class="invalid_resource",
+        error=f"sandbox database resource not found: {fault.resource}",
+    )
+    fired = _event(2, fault.tool, fault.resource, fault_mode=fault.mode)
+    for label, row, expected in (
+        ("a clean zero-event cell",
+         _rc4_row("BEN-002", []), (h2.CELL_OK, h2.CONTINUE)),
+        ("a zero-event cell for a task that declares a fault",
+         _rc4_row("FAULT-004", []), (h2.MODEL_MODALITY_MISS, h2.CELL_INVALID_CONTINUE)),
+        ("the valid two-event FAULT-004 trajectory",
+         _rc4_row("FAULT-004", [miss, fired], failure_class="invalid_resource"),
+         (h2.EXPECTED_SCRIPTED_FAULT, h2.CONTINUE)),
+        ("a lone declared fault",
+         _rc4_row("FAULT-004", [_event(1, fault.tool, fault.resource,
+                                       fault_mode=fault.mode)]),
+         (h2.EXPECTED_SCRIPTED_FAULT, h2.CONTINUE)),
+        ("a genuine modality miss",
+         _rc4_row("FAULT-004", [miss], failure_class="invalid_resource"),
+         (h2.MODEL_MODALITY_MISS, h2.CELL_INVALID_CONTINUE)),
+        ("a non-contiguous but strictly increasing order",
+         _rc4_row("FAULT-004", [miss, {**fired, "sequence": 7}],
+                  failure_class="invalid_resource"),
+         (h2.EXPECTED_SCRIPTED_FAULT, h2.CONTINUE)),
+        ("an intercepted proposal, which has proposed_action provenance",
+         _rc4_row("PI-018", [_event(
+             1, "file.write", "a/b.txt", executed=False,
+             failure_class=ARGUMENT_VIOLATION_FAILURE_CLASS,
+             error="sandbox argument contract: file.write requires arguments.content, "
+                   "which is absent",
+             provenance="gateway_outcome.proposed_action")]),
+         (h2.MODEL_PROTOCOL_INVALID, h2.CELL_INVALID_CONTINUE)),
+    ):
+        defects = failure_event_telemetry_defects(row)
+        if defects:
+            failures.append(f"R2: the strict reader refuses {label}: {defects}")
+            continue
+        actual = h2.classify_row(row, scripted_faults=faults)
+        if actual != expected:
+            failures.append(
+                f"R2: {label} classifies {actual}, expected {expected}; the strict "
+                "reader changed a valid rc4 classification"
+            )
+
+    # 4. PRODUCER -> PERSISTED ROW -> STRICT READER, round-tripped through JSON.
+    #    The producer must emit exactly what the reader accepts, with no sorting
+    #    and no normalisation needed to restore validity, or the two halves of the
+    #    contract are not actually the same contract.
+    failures += _check_producer_round_trip(fault)
+
+    # 5. The closed vocabularies are the ones their owners publish, not copies.
+    if FAILURE_EVENT_FAULT_MODES is not SUPPORTED_FAULT_MODES:
+        failures.append(
+            "R2: the persisted fault-mode vocabulary is not the sandbox's own table, "
+            "so the two can drift"
+        )
+    if FAILURE_EVENT_FAILURE_CLASSES is not SANDBOX_ACTION_FAILURE_CLASSES:
+        failures.append(
+            "R2: the persisted failure-class vocabulary is not the taxonomy's own "
+            "table, so the two can drift"
+        )
+    if not FAILURE_EVENT_PROVENANCE_SOURCES <= h2.RUNTIME_FAULT_PROVENANCE_SOURCES:
+        failures.append(
+            "R2: a persisted event may carry a provenance the frozen K.2 rule does "
+            "not recognise as a runtime observation"
+        )
+    if FAILURE_EVENT_PROVENANCE_SOURCES & h2.DECLARED_FAULT_PROVENANCE_SOURCES:
+        failures.append("R2: a declaration-derived provenance is accepted as runtime")
+    derivable = {
+        classify_tool_error(text)
+        for text in (
+            "sandbox database resource not found: x/1",
+            "sandbox file not found: a/b.txt",
+            "simulated tool timeout",
+            "simulated tool unavailable",
+            "sandbox argument contract: file.write requires arguments.content, "
+            "which is absent",
+        )
+    } - {None}
+    unsupported = {name for name in derivable if name is not None}
+    if not unsupported <= FAILURE_EVENT_FAILURE_CLASSES:
+        failures.append(
+            "R2: the sandbox can derive a per-action failure class the strict reader "
+            f"refuses: {sorted(unsupported - FAILURE_EVENT_FAILURE_CLASSES)}"
+        )
+
+    # 6. And there is only ONE reader.  A lenient sibling anywhere in the module
+    #    is an invitation for a later caller to take the unsafe path.
+    lenient = [
+        name for name in dir(failure_events_module)
+        if name in {"events_from_row", "events_from_row_lenient", "safe_events_from_row"}
+    ]
+    if lenient:
+        failures.append(
+            f"R2: a second, lenient persisted-event reader still exists: {lenient}"
+        )
+    return failures
+
+
+def _check_producer_round_trip(fault: Any) -> list[str]:
+    """Real sandbox outcomes -> row -> JSON -> strict reader, identical and ordered."""
+
+    failures: list[str] = []
+    state = SandboxState(
+        files={"a/b.txt": "x"},
+        database={"t/1": {"k": "v"}},
+        api_responses={fault.resource: {"ok": True}, "e/1": {"ok": True}},
+        faults={f"{fault.tool}:{fault.resource}": {"mode": fault.mode}},
+    )
+    registry = ToolRegistry.default(state)
+
+    # The exact Phase-L-B trajectory, plus a governed refusal and a contract
+    # violation, so every provenance and every admission condition is exercised.
+    proposals = [
+        (Action("a1", "file.read", "a/b.txt", {}), True),
+        (Action("a2", "database.query", fault.resource, {}), True),
+        (Action("a3", "file.write", "a/b.txt", {}), True),
+        (Action("a4", "file.read", "missing/x.txt", {}), False),
+        (Action("a5", fault.tool, fault.resource, {"payload": {}}), True),
+    ]
+    def _outcome(
+        action: Action, executed: bool, result: Any, error: str | None
+    ) -> GatewayOutcome:
+        return GatewayOutcome(
+            proposed_action=action,
+            executed_action=action if executed else None,
+            decision=Decision.ALLOW if executed else Decision.BLOCK,
+            blocking_guard=None if executed else "test_guard",
+            reason="round-trip probe",
+            executed=executed,
+            guard_results=(),
+            tool_result=result,
+            qa_latency_ms=0.0,
+            evidence_latency_ms=0.0,
+            tool_latency_ms=0.0,
+            latency_ms=0.0,
+            evidence_id=None,
+            error=error,
+        )
+
+    outcomes = []
+    for action, execute in proposals:
+        if execute:
+            result = registry.execute(action)
+            outcomes.append(_outcome(action, True, result, result.error))
+        else:
+            # A governed interception: nothing executed, so the PROPOSAL is the
+            # only record and the event carries proposed_action provenance.
+            outcomes.append(_outcome(
+                action, False, None, "sandbox file not found: missing/x.txt"
+            ))
+
+    produced = failure_events(outcomes)
+    telemetry = failure_event_telemetry(outcomes)
+    row = _rc4_row("FAULT-004", telemetry["failure_events"],
+                   failure_event_count=telemetry["failure_event_count"])
+    persisted = json.loads(json.dumps(row))
+
+    defects = failure_event_telemetry_defects(persisted)
+    if defects:
+        failures.append(
+            "R2: the producer emits telemetry the strict reader refuses: "
+            f"{defects}; the producer and the consumer are not one contract"
+        )
+        return failures
+
+    parsed = parse_failure_events(persisted)
+    if parsed != produced:
+        failures.append(
+            "R2: the round trip producer -> row -> JSON -> strict reader does not "
+            f"return the identical ordered events: {produced} vs {parsed}"
+        )
+    if [event.sequence for event in parsed] != [event.sequence for event in produced]:
+        failures.append("R2: the round trip did not preserve the persisted order")
+    if not produced:
+        failures.append(
+            "R2: the round-trip probe recorded no failure events at all, so it "
+            "proves nothing about the persistence contract"
+        )
+    if not any(event.fault_mode == fault.mode for event in produced):
+        failures.append(
+            "R2: the round-trip probe never fired the declared fault, so the "
+            "fault-only event shape is untested"
+        )
+    if not any(event.provenance == PROVENANCE_PROPOSED_ACTION for event in produced):
+        failures.append(
+            "R2: the round-trip probe produced no intercepted proposal, so the "
+            "proposed_action provenance is untested"
+        )
     return failures
 
 
@@ -1369,6 +1806,7 @@ def run_all() -> list[str]:
     failures += check_qualification_contract(cases)
     failures += check_tool_contract_conformance()
     failures += check_event_local_attribution(cases)
+    failures += check_failure_event_persistence(cases)
     failures += check_near_miss_vocabulary(cases)
     failures += check_no_provider_execution()
     return failures

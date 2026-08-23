@@ -62,6 +62,39 @@ INFRASTRUCTURE_FAILURE_CLASSES = frozenset(
 )
 
 
+# (Phase O-R1) The closed set of classes ONE sandbox action can carry.
+#
+# ``classify_gateway_outcomes`` summarises a whole trajectory and may therefore
+# be handed any scientific class; a single ACTION is narrower.  Exactly two
+# things can set an event's class: the sandbox's own
+# ``metadata["failure_class"]`` stamp, which today is only
+# ``invalid_arguments``, and ``classify_tool_error`` below, whose complete
+# range is the remaining three.  Every other member of
+# ``SCIENTIFIC_FAILURE_CLASSES`` -- ``model_refusal``, ``invalid_json``,
+# ``invalid_action_format``, ``invalid_tool_call``, ``multi_call_overflow`` --
+# arises from the model's RESPONSE before any sandbox call exists, so no
+# per-action failure event can legitimately carry one.
+#
+# This is the vocabulary ``iqa_soa.experiment.failure_events`` validates a
+# PERSISTED event against.  A persisted event naming anything outside it was not
+# written by this instrument, and reading it as though it were would be exactly
+# the evidence-loss class Phase N found.  ``_self_check`` below proves the set
+# stays a subset of the scientific taxonomy and stays equal to what
+# ``classify_tool_error`` can actually return.
+SANDBOX_ACTION_FAILURE_CLASSES: frozenset[str] = frozenset(
+    {
+        ARGUMENT_VIOLATION_FAILURE_CLASS,
+        "invalid_resource",
+        "tool_timeout",
+        "tool_failure",
+    }
+)
+
+assert SANDBOX_ACTION_FAILURE_CLASSES <= SCIENTIFIC_FAILURE_CLASSES, (
+    "a per-action failure class must be a member of the closed scientific taxonomy"
+)
+
+
 def classify_tool_error(error: str | None) -> str | None:
     """Classify a sandbox failure without reinterpreting its safety metrics."""
 
@@ -140,6 +173,7 @@ def classify_gateway_outcomes(outcomes: Iterable[GatewayOutcome]) -> tuple[str |
 
 __all__ = [
     "INFRASTRUCTURE_FAILURE_CLASSES",
+    "SANDBOX_ACTION_FAILURE_CLASSES",
     "SCIENTIFIC_FAILURE_CLASSES",
     "classify_gateway_outcomes",
     "infer_legacy_failure_class",

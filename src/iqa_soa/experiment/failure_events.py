@@ -52,11 +52,29 @@ KEY names appear, because a contract violation is unreportable without naming
 the key that was wrong; keys are drawn from the published contract and from the
 model's own proposal, not from protected data.
 
-**The same structural invariant as ``fault_provenance``.** Every public function
-here accepts ``Sequence[GatewayOutcome]`` and nothing else.  The benchmark case,
-its ``fault:`` block, ``ground_truth``, a ``ScriptedFault`` and the qualification
-contract are all out of scope, so an event cannot be manufactured from the
-declaration it will later be compared against.
+**The same structural invariant as ``fault_provenance``.** Every PRODUCING
+function here accepts ``Sequence[GatewayOutcome]`` and nothing else.  The
+benchmark case, its ``fault:`` block, ``ground_truth``, a ``ScriptedFault`` and
+the qualification contract are all out of scope, so an event cannot be
+manufactured from the declaration it will later be compared against.
+
+READING IT BACK  (Phase O-R1)
+=============================
+
+Producing the telemetry correctly is only half the contract.  Adversarial review
+of PR #13 found the other half unguarded: the reader that turned a persisted row
+back into events was lenient, and a corrupted schema-5 row therefore lost its
+evidence *during parsing* and was then classified as though the missing evidence
+had never existed -- ``CELL_OK``, or ``MODEL_MODALITY_MISS`` for a task that
+declares a fault.  That is the same evidence-loss class as finding N-2, moved
+one level down.
+
+:func:`parse_failure_events` is the repair and the ONLY reader.  It validates
+the persisted representation against a closed schema and REFUSES the row on any
+defect; it never drops, filters, sorts, coerces, truncates or infers.  Malformed
+telemetry is evidence corruption, and its consumers must translate a refusal
+into ``INSTRUMENT_DEFECT`` -> ``IMMEDIATE_STOP`` before any scientific
+classification is attempted.
 """
 
 from __future__ import annotations
@@ -64,7 +82,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-from iqa_soa.failure_taxonomy import classify_tool_error
+from iqa_soa.failure_taxonomy import (
+    SANDBOX_ACTION_FAILURE_CLASSES,
+    classify_tool_error,
+)
+from iqa_soa.tools.sandbox import SUPPORTED_FAULT_MODES
 from iqa_soa.types import GatewayOutcome
 
 #: The gateway executed the action and the sandbox answered it.
@@ -85,8 +107,16 @@ FAILURE_EVENT_FIELDS: tuple[str, ...] = (
     "failure_event_count",
 )
 
-#: The keys of one event.  Frozen and closed: a future addition appends, so a
-#: reader written against this version keeps working.
+#: The keys of one event.  Frozen and CLOSED, in both directions.
+#:
+#: (Phase O-R1.)  This tuple is not merely the set a producer writes; it is the
+#: exact set ``parse_failure_events`` requires a PERSISTED event to carry.  A
+#: missing key is unfillable -- nothing may be inferred into an evidence slot --
+#: and an extra key means the row was written by an instrument this reader does
+#: not model, which is a fact a classifier must act on rather than ignore.  An
+#: additive field is therefore a raw-schema bump (schema 5 -> 6) and the reader
+#: bumps with it; it is deliberately NOT a change a schema-5 reader absorbs
+#: silently.
 FAILURE_EVENT_KEYS: tuple[str, ...] = (
     "sequence",
     "tool",
@@ -225,53 +255,378 @@ def failure_event_telemetry(outcomes: Sequence[GatewayOutcome]) -> dict[str, Any
     }
 
 
-def events_from_row(row: Mapping[str, Any]) -> tuple[FailureEvent, ...]:
-    """Rebuild the ordered events from a persisted row, refusing malformed input.
+# --------------------------------------------------------------------------
+# Reading persisted telemetry back: the ONE strict, fail-closed path
+# --------------------------------------------------------------------------
+#
+# (Phase O-R1.)  The first Phase-O revision read a persisted row with a lenient
+# parser: a non-list yielded ``()``, a non-object entry was skipped, an entry
+# whose ``sequence``/``tool``/``resource`` failed a type check was skipped, a
+# wrong-typed ``failure_class``/``error``/``fault_mode`` was coerced to ``None``,
+# a missing ``provenance`` became ``""``, and the survivors were SORTED by
+# sequence before being returned.  Adversarial review of PR #13 established that
+# this recreates the evidence-loss class Phase N found, one level down: a
+# corrupted expected-fault event vanishes during parsing, and the classifier --
+# which cannot distinguish "no event was recorded" from "the event was dropped
+# while being read" -- then scores the cell CELL_OK, or MODEL_MODALITY_MISS for
+# a task that declares a fault.  Lost evidence became a scientific claim.
+#
+# There is now exactly ONE function that turns a persisted row into events, it
+# validates the PERSISTED representation rather than the producer's in-memory
+# one, and it raises rather than returning anything at all when that
+# representation is not exactly what the instrument writes.  Malformed telemetry
+# is evidence corruption, and the only correct answer to evidence corruption is
+# INSTRUMENT_DEFECT -> IMMEDIATE_STOP, decided before any scientific
+# classification is attempted.
+#
+# Nothing here repairs, filters, coerces, sorts, truncates or infers.
 
-    A row that carries no ``failure_events`` list yields an empty tuple.  A
-    caller must therefore never read "no events" as "no failure": whether the row
-    was written by an instrument that records events at all is a separate
-    question, answered by ``failure_event_count`` being present.
+
+#: The closed set of provenance labels a persisted failure event may carry.
+#:
+#: Both are members of ``RUNTIME_FAULT_PROVENANCE_SOURCES`` in the qualification
+#: harness, and they are the ONLY two ``failure_events`` above can emit.  The
+#: harness's wider runtime set also admits ``sandbox.operation_log`` and
+#: ``evidence.tool_call``, which are sources for the ROW-level Phase-M fault
+#: provenance and which no failure EVENT is ever read from; admitting them here
+#: would accept a label this instrument cannot produce.  The frozen
+#: declaration-derived sources (``benchmark_case.fault``, ``ground_truth``, and
+#: the rest) are excluded a fortiori: an event naming one has copied the
+#: benchmark's own answer into the observation slot, and it did not come from
+#: this producer.
+FAILURE_EVENT_PROVENANCE_SOURCES: frozenset[str] = frozenset(
+    {
+        PROVENANCE_EXECUTED_ACTION,
+        PROVENANCE_PROPOSED_ACTION,
+    }
+)
+
+#: The closed set of per-action failure classes, and of sandbox fault modes.
+#: Both are imported from the modules that OWN them -- the taxonomy and the
+#: sandbox -- rather than restated, so the validator cannot drift from the
+#: producer it validates.
+FAILURE_EVENT_FAILURE_CLASSES: frozenset[str] = SANDBOX_ACTION_FAILURE_CLASSES
+FAILURE_EVENT_FAULT_MODES: frozenset[str] = SUPPORTED_FAULT_MODES
+
+
+class FailureEventTelemetryError(ValueError):
+    """Persisted failure-event telemetry is not what the instrument writes.
+
+    Raised by :func:`parse_failure_events`, and never caught inside this module.
+    A classification-critical caller must translate it into an instrument defect
+    that stops the run; it must NOT substitute an empty event list, because
+    "the evidence is corrupt" and "there was no failure" are different facts and
+    conflating them is the defect this exception exists to prevent.
     """
 
-    raw = row.get("failure_events")
-    if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
-        return ()
-    events: list[FailureEvent] = []
-    for entry in raw:
-        if not isinstance(entry, Mapping):
-            continue
-        sequence = entry.get("sequence")
-        tool = entry.get("tool")
-        resource = entry.get("resource")
-        if not isinstance(sequence, int) or not isinstance(tool, str) or not isinstance(resource, str):
-            continue
-        failure_class = entry.get("failure_class")
-        error = entry.get("error")
-        mode = entry.get("fault_mode")
-        provenance = entry.get("provenance")
-        events.append(
-            FailureEvent(
-                sequence=sequence,
-                tool=tool,
-                resource=resource,
-                failure_class=failure_class if isinstance(failure_class, str) else None,
-                error=error if isinstance(error, str) else None,
-                executed=entry.get("executed") is True,
-                fault_mode=mode if isinstance(mode, str) and mode.strip() else None,
-                provenance=provenance if isinstance(provenance, str) else "",
-            )
+    def __init__(self, reasons: Sequence[str]) -> None:
+        self.reasons: tuple[str, ...] = tuple(reasons)
+        super().__init__("; ".join(self.reasons) or "malformed failure-event telemetry")
+
+
+def _is_int(value: Any) -> bool:
+    """A real integer.
+
+    ``bool`` is a subclass of ``int`` in Python, so a plain ``isinstance`` check
+    silently accepts ``True`` as the sequence number 1 and ``False`` as the count
+    0.  Both are corrupt telemetry, and the second would satisfy the count
+    binding for an empty list.
+    """
+
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _validate_event(index: int, entry: Any, reasons: list[str]) -> FailureEvent | None:
+    """Validate ONE persisted event, appending every defect found.
+
+    Returns the event only when it is completely valid.  A ``None`` return means
+    at least one reason was appended, so the caller fails closed on the whole
+    row; it never means "skip this entry and carry on".
+    """
+
+    where = f"failure_events[{index}]"
+    if not isinstance(entry, Mapping):
+        reasons.append(f"{where} is {type(entry).__name__}, not an object")
+        return None
+
+    # THE EXACT KEY SET, not a superset and not a subset.  A missing key cannot
+    # be inferred; an unknown key means the row was written by an instrument this
+    # reader does not understand, and reading it as though it were understood is
+    # precisely how a behaviourally significant alternate representation goes
+    # unnoticed.  An additive field is therefore a raw-schema bump, and the
+    # reader for it bumps with it.
+    present = set(entry)
+    expected = set(FAILURE_EVENT_KEYS)
+    missing = sorted(expected - present)
+    unknown = sorted(present - expected)
+    if missing:
+        reasons.append(f"{where} is missing required key(s) {missing}")
+    if unknown:
+        reasons.append(
+            f"{where} carries unknown key(s) {unknown}; the persisted event schema "
+            f"is exactly {list(FAILURE_EVENT_KEYS)}"
         )
-    return tuple(sorted(events, key=lambda item: item.sequence))
+    if missing or unknown:
+        return None
+
+    ok = True
+
+    sequence = entry["sequence"]
+    if not _is_int(sequence):
+        reasons.append(f"{where}.sequence is {type(sequence).__name__}, not an integer")
+        ok = False
+    elif sequence <= 0:
+        reasons.append(
+            f"{where}.sequence is {sequence}; positions are 1-based over the gateway "
+            "outcomes of the run and are always positive"
+        )
+        ok = False
+
+    tool = entry["tool"]
+    if not isinstance(tool, str):
+        reasons.append(f"{where}.tool is {type(tool).__name__}, not a string")
+        ok = False
+
+    resource = entry["resource"]
+    if not isinstance(resource, str):
+        reasons.append(f"{where}.resource is {type(resource).__name__}, not a string")
+        ok = False
+
+    # ``tool`` and ``resource`` are deliberately NOT required to be non-empty.
+    # Both are copied verbatim from the action the model proposed, so an empty
+    # one is a faithful record of an empty proposal -- a model-side observation
+    # this instrument must be able to carry, not a defect in the instrument.
+
+    failure_class = entry["failure_class"]
+    if failure_class is not None and not isinstance(failure_class, str):
+        reasons.append(
+            f"{where}.failure_class is {type(failure_class).__name__}, not a string "
+            "or null"
+        )
+        ok = False
+    elif (
+        isinstance(failure_class, str)
+        and failure_class not in FAILURE_EVENT_FAILURE_CLASSES
+    ):
+        reasons.append(
+            f"{where}.failure_class is {failure_class!r}, which is not one of the "
+            f"per-action classes {sorted(FAILURE_EVENT_FAILURE_CLASSES)}"
+        )
+        ok = False
+
+    error = entry["error"]
+    if error is not None and not isinstance(error, str):
+        reasons.append(f"{where}.error is {type(error).__name__}, not a string or null")
+        ok = False
+    elif isinstance(error, str) and not error.strip():
+        reasons.append(
+            f"{where}.error is blank; the sandbox never emits an empty error, and a "
+            "blank one would carry no evidence while looking like evidence"
+        )
+        ok = False
+
+    executed = entry["executed"]
+    if not isinstance(executed, bool):
+        reasons.append(f"{where}.executed is {type(executed).__name__}, not a boolean")
+        ok = False
+
+    fault_mode = entry["fault_mode"]
+    if fault_mode is not None and not isinstance(fault_mode, str):
+        reasons.append(
+            f"{where}.fault_mode is {type(fault_mode).__name__}, not a string or null"
+        )
+        ok = False
+    elif isinstance(fault_mode, str) and fault_mode not in FAILURE_EVENT_FAULT_MODES:
+        reasons.append(
+            f"{where}.fault_mode is {fault_mode!r}, which is not one of the sandbox's "
+            f"simulated modes {sorted(FAILURE_EVENT_FAULT_MODES)}"
+        )
+        ok = False
+
+    provenance = entry["provenance"]
+    if not isinstance(provenance, str):
+        reasons.append(
+            f"{where}.provenance is {type(provenance).__name__}, not a string"
+        )
+        ok = False
+    elif provenance not in FAILURE_EVENT_PROVENANCE_SOURCES:
+        reasons.append(
+            f"{where}.provenance is {provenance!r}, which is not one of the runtime "
+            "structures this instrument reads an event from "
+            f"{sorted(FAILURE_EVENT_PROVENANCE_SOURCES)}"
+        )
+        ok = False
+
+    if not ok:
+        return None
+
+    # COHERENCE.  Both rules restate the producer exactly, so a valid row can
+    # never fail them and a row that fails them was not written by the producer.
+    #
+    # 1. An outcome contributes an event only when it carries an error OR a
+    #    sandbox-stamped fault mode.  An event with neither records nothing.
+    # 2. The class is the sandbox's own stamp, which always accompanies an error,
+    #    or ``classify_tool_error(error)``, which is non-null for exactly the
+    #    non-blank errors.  So a class and an error are present together or
+    #    absent together.
+    if error is None and fault_mode is None:
+        reasons.append(
+            f"{where} carries neither an error nor a sandbox-stamped fault mode, so "
+            "the producer would not have recorded it at all"
+        )
+        return None
+    if (failure_class is None) != (error is None):
+        reasons.append(
+            f"{where} has failure_class={failure_class!r} with error={error!r}; a "
+            "per-action class is derived from the error or stamped alongside it, so "
+            "the two are present together or absent together"
+        )
+        return None
+
+    return FailureEvent(
+        sequence=sequence,
+        tool=tool,
+        resource=resource,
+        failure_class=failure_class,
+        error=error,
+        executed=executed,
+        fault_mode=fault_mode,
+        provenance=provenance,
+    )
+
+
+def _parse(row: Mapping[str, Any]) -> tuple[tuple[FailureEvent, ...], list[str]]:
+    """Validate a persisted row, returning ``(events, reasons)``.
+
+    A non-empty ``reasons`` means the row is refused and ``events`` is empty, so
+    the two are never both meaningful and no caller can accidentally act on
+    partially validated evidence.
+    """
+
+    reasons: list[str] = []
+
+    # A. TOP-LEVEL PRESENCE.
+    if "failure_event_count" not in row:
+        reasons.append(
+            "failure_event_count is missing; a row that does not state how many "
+            "failure events it carries cannot be checked for having lost any"
+        )
+    if "failure_events" not in row:
+        reasons.append(
+            "failure_events is missing; the ordered per-action telemetry that "
+            "schema 5 exists to persist was not written"
+        )
+    if reasons:
+        return (), reasons
+
+    count = row["failure_event_count"]
+    raw = row["failure_events"]
+
+    if not _is_int(count):
+        reasons.append(f"failure_event_count is {type(count).__name__}, not an integer")
+    elif count < 0:
+        reasons.append(f"failure_event_count is {count}, which is negative")
+
+    if not isinstance(raw, list):
+        reasons.append(
+            f"failure_events is {type(raw).__name__}, not a list; the persisted "
+            "representation of an ordered event sequence is a JSON array"
+        )
+    if reasons:
+        return (), reasons
+
+    # B. COUNT BINDING.  The count is what makes a lost event DETECTABLE, so a
+    # disagreement is never tolerated in either direction: a short list means
+    # evidence went missing, a long one means the count was not written by the
+    # producer that wrote the list.
+    if len(raw) != count:
+        entries = "entry" if len(raw) == 1 else "entries"
+        reasons.append(
+            f"failure_event_count is {count} but failure_events holds {len(raw)} "
+            f"{entries}; the two disagree, so at least one of them is not what the "
+            "run produced"
+        )
+        return (), reasons
+
+    # C, E, F, G. Every event, structurally, in PERSISTED ORDER.
+    events: list[FailureEvent] = []
+    for index, entry in enumerate(raw):
+        event = _validate_event(index, entry, reasons)
+        if event is not None:
+            events.append(event)
+    if reasons:
+        return (), reasons
+
+    # D. SEQUENCE, over the order the row actually persists.  Nothing is sorted:
+    # the persisted order IS the evidence, and repairing it into validity would
+    # destroy the very relationship -- "the fault came AFTER the resource miss"
+    # -- that the ordered list was added to record.
+    seen: set[int] = set()
+    previous: int | None = None
+    for position, event in enumerate(events):
+        if event.sequence in seen:
+            reasons.append(
+                f"failure_events[{position}].sequence is {event.sequence}, which "
+                "already appeared; two actions cannot occupy one position"
+            )
+        seen.add(event.sequence)
+        if previous is not None and event.sequence <= previous:
+            reasons.append(
+                f"failure_events[{position}].sequence is {event.sequence} after "
+                f"{previous}; persisted events must be strictly increasing in the "
+                "order they occurred, and this reader does not sort them into order"
+            )
+        previous = event.sequence
+    if reasons:
+        return (), reasons
+
+    return tuple(events), []
+
+
+def failure_event_telemetry_defects(row: Mapping[str, Any]) -> list[str]:
+    """Every reason the row's schema-5 failure telemetry is malformed; ``[]`` if valid.
+
+    Reports ALL defects rather than the first, so a diagnosis names everything
+    that is wrong with a corrupted row instead of one symptom at a time.  It is
+    the reporting face of :func:`parse_failure_events` and shares its rules
+    exactly -- both are the same ``_parse`` -- so it can never approve a row the
+    parser would refuse.
+    """
+
+    return _parse(row)[1]
+
+
+def parse_failure_events(row: Mapping[str, Any]) -> tuple[FailureEvent, ...]:
+    """The ordered events of a persisted schema-5 row, or refuse the row entirely.
+
+    THE ONE authoritative reader.  It returns the events exactly as persisted --
+    same entries, same order -- or raises :class:`FailureEventTelemetryError`
+    naming every defect.  There is no lenient sibling: a caller that wants
+    "whatever could be salvaged" is asking for the defect adversarial review of
+    PR #13 rejected, and this module does not offer it.
+
+    An empty tuple therefore means one specific, verified thing: the row is
+    well-formed schema-5 telemetry that records zero failure events.
+    """
+
+    events, reasons = _parse(row)
+    if reasons:
+        raise FailureEventTelemetryError(reasons)
+    return events
 
 
 __all__ = [
+    "FAILURE_EVENT_FAILURE_CLASSES",
+    "FAILURE_EVENT_FAULT_MODES",
     "FAILURE_EVENT_FIELDS",
     "FAILURE_EVENT_KEYS",
+    "FAILURE_EVENT_PROVENANCE_SOURCES",
     "PROVENANCE_EXECUTED_ACTION",
     "PROVENANCE_PROPOSED_ACTION",
     "FailureEvent",
-    "events_from_row",
+    "FailureEventTelemetryError",
     "failure_event_telemetry",
+    "failure_event_telemetry_defects",
     "failure_events",
+    "parse_failure_events",
 ]

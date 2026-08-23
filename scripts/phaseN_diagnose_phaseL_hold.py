@@ -658,6 +658,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tasks", nargs="*", default=list(UNQUALIFIED_TASKS))
     parser.add_argument("--reconcile", action="store_true")
     parser.add_argument("--verify-offline", action="store_true")
+    parser.add_argument(
+        "--with-extraction",
+        action="store_true",
+        help=(
+            "with --verify-offline, run the whole extraction FIRST and then verify. "
+            "The check then covers what the diagnosis actually does, rather than "
+            "only what importing it does"
+        ),
+    )
     parser.add_argument("--digest", action="store_true")
     parser.add_argument(
         "--both-bases",
@@ -688,6 +697,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.verify_offline:
+        if args.with_extraction:
+            # Discarded on purpose: the artifact is irrelevant here, and what is
+            # being proved is that producing it loads no provider, imports no
+            # network client and trips no audit event.
+            extract(archive, tuple(args.tasks))
         failures = verify_offline()
         for failure in failures:
             print(f"OFFLINE-CHECK FAIL: {failure}")

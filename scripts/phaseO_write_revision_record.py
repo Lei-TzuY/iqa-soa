@@ -32,6 +32,12 @@ import instrument_revision as ir  # noqa: E402
 import phaseO_frozen_input_supersession as supersession  # noqa: E402
 import qualification_harness_v2 as h2  # noqa: E402
 import rc4_scoring_vocabulary as vocabulary  # noqa: E402
+from iqa_soa.experiment.failure_events import (  # noqa: E402
+    FAILURE_EVENT_FAILURE_CLASSES,
+    FAILURE_EVENT_FAULT_MODES,
+    FAILURE_EVENT_KEYS,
+    FAILURE_EVENT_PROVENANCE_SOURCES,
+)
 from iqa_soa.instrument import (  # noqa: E402
     INSTRUMENT_VERSION,
     NATIVE_TOOL_ADAPTER_VERSION,
@@ -167,6 +173,133 @@ def build_record() -> dict[str, Any]:
             "raw_schema_version": RAW_SCHEMA_VERSION,
             "row_contract": h2.prospective_row_contract(),
         },
+        "adversarial_review_history": [
+            {
+                "revision": "O",
+                "commit": "26853b2512a9b778a4c1df5ca8289cac58881cd6",
+                "claimed_verdict": "READY_FOR_RC4_PROTOCOL_FREEZE",
+                "review_verdict": "HOLD",
+                "accepted": False,
+                "core_redesign_rejected": False,
+                "finding": (
+                    "The classification-critical schema-5 failure_events "
+                    "persistence path was not fail-closed on malformed persisted "
+                    "telemetry. events_from_row silently returned (), skipped "
+                    "malformed entries, coerced wrong types to None, fabricated an "
+                    "empty provenance, accepted bool as an integer sequence, and "
+                    "SORTED persisted events into order. "
+                    "classify_row_detailed checked only that failure_event_count "
+                    "was present, never that failure_events existed, was a list, "
+                    "matched the count, or held structurally valid entries. A "
+                    "corrupted row therefore lost its evidence during parsing and "
+                    "was then scored CELL_OK, or MODEL_MODALITY_MISS for a task "
+                    "declaring a fault: Phase N finding N-2 displaced one level "
+                    "down, from the row scalar into the parser."
+                ),
+            },
+            {
+                "revision": "O-R1",
+                "action": "REPAIR",
+                "verdict": "READY_FOR_PHASE_O_R1_ADVERSARIAL_REREVIEW",
+                "predecessor_verdict_carried_forward": False,
+                "authorizes_merge": False,
+                "authorizes_ready": False,
+                "authorizes_protocol_freeze": False,
+                "authorizes_seed_selection": False,
+                "authorizes_execution": False,
+                "requires_separate_adversarial_rereview": True,
+            },
+        ],
+        "failure_event_persistence_repair": {
+            "revision": "O-R1",
+            "module": "src/iqa_soa/experiment/failure_events.py",
+            "authoritative_reader": "parse_failure_events",
+            "authoritative_reader_is_unique": True,
+            "lenient_reader_removed": "events_from_row",
+            "lenient_reader_deprecated_rather_than_removed": False,
+            "raises": "FailureEventTelemetryError",
+            "validates": "the PERSISTED representation, not the in-memory producer",
+            "reports_all_defects": True,
+            "invariants": {
+                "failure_event_count_required": True,
+                "failure_events_required": True,
+                "count_is_int_not_bool": True,
+                "count_is_non_negative": True,
+                "failure_events_is_a_list": True,
+                "count_binds_list_length_exactly": True,
+                "event_key_set_is_exact": list(FAILURE_EVENT_KEYS),
+                "sequence_is_int_not_bool": True,
+                "sequence_is_positive": True,
+                "sequence_is_unique": True,
+                "sequence_is_strictly_increasing_in_persisted_order": True,
+                "persisted_order_is_never_sorted": True,
+                "executed_is_a_real_bool": True,
+                "error_is_string_or_null_and_never_blank": True,
+                "failure_class_closed_set": sorted(FAILURE_EVENT_FAILURE_CLASSES),
+                "fault_mode_closed_set": sorted(FAILURE_EVENT_FAULT_MODES),
+                "provenance_closed_set": sorted(FAILURE_EVENT_PROVENANCE_SOURCES),
+                "declaration_derived_provenance_accepted": False,
+                "coherence_error_or_fault_mode_required": True,
+                "coherence_failure_class_iff_error": True,
+                "tool_and_resource_may_be_empty": True,
+                "tool_and_resource_emptiness_rationale": (
+                    "both are copied verbatim from the action the MODEL proposed, "
+                    "so an empty one is a faithful record of an empty proposal and "
+                    "not a defect in the instrument"
+                ),
+            },
+            "provenance_set_is_narrower_than_runtime_set": True,
+            "provenance_narrowing_rationale": (
+                "sandbox.operation_log and evidence.tool_call are sources for the "
+                "ROW-level Phase-M fault provenance; no failure EVENT is ever read "
+                "from them, so admitting them would accept a label this instrument "
+                "cannot produce. The event set is a proper subset of "
+                "RUNTIME_FAULT_PROVENANCE_SOURCES and is disjoint from "
+                "DECLARED_FAULT_PROVENANCE_SOURCES, so the K.2 circularity guard is "
+                "strengthened and never relaxed."
+            ),
+            "closed_vocabularies_are_imported_not_copied": {
+                "fault_modes": "iqa_soa.tools.sandbox.SUPPORTED_FAULT_MODES",
+                "failure_classes": (
+                    "iqa_soa.failure_taxonomy.SANDBOX_ACTION_FAILURE_CLASSES"
+                ),
+            },
+            "classification_order": [
+                "frozen row/cell identity binding",
+                "instrument preconditions (tool-contract regression, provider attempt)",
+                "the rc4 row-field contract, including failure_events",
+                "THE SCHEMA-5 EVIDENCE GATE",
+                "scientific classification",
+            ],
+            "gate_precedes_every_scientific_branch": True,
+            "malformed_telemetry_classification": h2.INSTRUMENT_DEFECT,
+            "malformed_telemetry_disposition": h2.IMMEDIATE_STOP,
+            "corrupted_expected_fault_can_become_cell_ok": False,
+            "corrupted_expected_fault_can_become_modality_miss": False,
+            "valid_classifications_preserved": True,
+            "producer_persistence_consumer_round_trip_proved": True,
+            "mutation_checks": 14,
+            "mutation_checks_include_pre_repair_harness_reconstruction": True,
+        },
+        "phase_n_import_pollution_repair": {
+            "revision": "O-R1",
+            "finding": (
+                "test_offline_verification_passes and "
+                "test_no_provider_or_agent_module_is_loaded inspected the pytest "
+                "process's own sys.modules, so a Phase-O test that legitimately "
+                "imports iqa_soa.agent.providers to prove tool-schema conformance "
+                "made both fail in a whole-suite run while both passed alone"
+            ),
+            "repair": "process isolation",
+            "invariant_weakened": False,
+            "sys_modules_mutated_globally": False,
+            "helper_flag_added": "--with-extraction",
+            "isolated_check_covers_the_whole_extraction": True,
+            "vacuity_check_present": True,
+            "order_independence_check_present": True,
+            "passes_alone": True,
+            "passes_in_full_pytest": True,
+        },
         "scoring_vocabulary": vocabulary.summary(),
         "instrument": {
             "instrument_version": INSTRUMENT_VERSION,
@@ -230,6 +363,9 @@ def build_record() -> dict[str, Any]:
             "It does not select seeds; the Phase-L triple is CONSUMED.",
             "It does not create a preregistration or an execution driver.",
             "It authorizes no model inference of any kind.",
+            "It does not mark PR #13 ready and does not merge it.",
+            "It does not carry forward the first Phase-O revision's "
+            "READY_FOR_RC4_PROTOCOL_FREEZE claim, which adversarial review held.",
         ],
     }
 
