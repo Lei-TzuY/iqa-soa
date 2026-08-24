@@ -694,12 +694,50 @@ contact.
 
 ### 11.8 Fresh detached-worktree battery at the P-R2 commit
 
-To be run in a worktree checked out clean at the P-R2 implementation commit and
-recorded in the immediately following commit — exactly as the §9 and §10.6
-batteries were, and for the same reason: a report cannot contain the results of a
-run performed at a commit that already contains those results. The freeze report
-is not itself a frozen input, so recording the figures changes no hash the driver
-asserts.
+Run at `7d0263b5d847d65b4e102721c0e42ed90e15d5da`, in a worktree checked out
+clean (`0 modified/untracked` at start), and recorded in the immediately
+following commit — exactly as the §9 and §10.6 batteries were, and for the same
+reason: a report cannot contain the results of a run performed at a commit that
+already contains those results. The freeze report is not itself a frozen input,
+so recording the figures changes no hash the driver asserts.
+
+| Check | Result |
+|---|---|
+| Phase-P focused suite | **262 passed** (4m33s) |
+| Full `pytest` | **1647 passed** (20m18s) |
+| `mypy src` | clean (48 files) |
+| `MYPYPATH=src mypy --strict` over the five Phase-P scripts | clean (5 files) |
+| all 15 validator / `--check` / `--verify` invocations | **PASS** |
+
+Immutability vs the Phase-P canonical base `f65ee49`, files changed:
+
+| Path | Changed |
+|---|---|
+| `benchmark/` | **0** |
+| `src/` | **0** |
+| `results/` | **0** |
+| `docs/phaseL_*`, `docs/phaseM_*`, `docs/phaseN_*`, `docs/phaseO_*` | **0** |
+| `scripts/qualification_harness.py`, `scripts/qualification_harness_v2.py` | **0** |
+| `scripts/rc4_scoring_vocabulary.py` | **0** |
+| `scripts/analyze_phaseL_requalification.py`, `scripts/phaseL_protocol.py` | **0** |
+
+Frozen quantities, recomputed from the clean checkout:
+
+| | |
+|---|---|
+| seeds | `[1197050110, 1904689056, 1133353488]` |
+| planned cells | `102` |
+| schedule digest | `26b9b65bda1f580088a407ff03cae7ca9fe8d1d8c0a46f4e674dfdbaa8f4d130` |
+| rc4 manifest sha256 | `e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14` |
+
+All four are byte-identical to the original freeze and to the P-R1 battery: P-R2
+changed no seed, no schedule and no benchmark byte.
+
+`results/phaseP-rc4-qualification/`: **ABSENT**. The tree was still clean after
+the entire battery (`0 modified/untracked`) — the 262 Phase-P regressions, which
+include a complete 102-cell run and a complete *qualifying* 102-cell run, wrote
+every byte of that evidence into pytest temporary directories and left nothing
+behind. Zero model inference, zero Ollama contact, zero provider contact.
 
 ### 11.9 Status
 
