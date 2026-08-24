@@ -343,6 +343,52 @@ invokes real execution.**
 `--verify-frozen-inputs` runs the complete static/frozen protocol validation with
 zero provider contact, creates nothing, and needs no gate.
 
+### 14b. The gate is a property of the execution path (Phase P-R2)
+
+Stating the rule in `main()` was not enforcing it. Until P-R2 the lower-level
+entry point `execute_bound_run` defaulted `probe` to `probe_ollama_metadata` and
+`execute_cell` to `make_cell_executor(...)`, and checked no gate at all, on the
+documented assumption that `main()` was its only production caller. A Python
+caller that skipped `main()` could therefore contact the live runtime and execute
+the real frozen schedule having proved neither half of the gate.
+
+The authority is now an **object**, and the invariant is machine-enforced:
+
+```
+NO DUAL GATE      -> NO CAPABILITY
+NO CAPABILITY     -> NO REAL METADATA PROBE
+                  -> NO REAL PROVIDER CREATION
+                  -> NO REAL MODEL EXECUTION
+```
+
+- `grant_real_execution_authorization(execute_flag=..., env=...)` is the **only**
+  thing that mints a `RealExecutionAuthorization`, and it mints one only after
+  both conditions are proved. The constructor demands a module-private sentinel
+  **by identity** and independently re-evaluates the dual gate, so no boolean,
+  no string, no duck-typed stand-in and no subclass built without the token is
+  one.
+- `execute_authorized_real_run(*, authorization)` is the **only** function that
+  may select `probe_ollama_metadata` or construct the real runner-backed
+  executor. It requires the capability and **re-verifies** it, and it takes
+  nothing else: it binds the frozen config, the frozen benchmark manifest and the
+  frozen `results/phaseP-rc4-qualification` namespace itself, from
+  `phaseP_protocol`, so it depends on nothing a caller passes. An unauthorized
+  call **raises** `UnauthorizedRealExecution`; it does not return an exit code,
+  because no run happened.
+- `execute_offline_bound_run(...)` is a **different function**, and it is the one
+  the offline suite drives. It **requires** an injected probe and an injected
+  executor — there is no default for a missing argument to resolve into — and it
+  refuses `probe_ollama_metadata` by identity, refuses any executor carrying the
+  marker `make_cell_executor` sets, and refuses to write
+  `results/phaseP-rc4-qualification` at all.
+- `main()` has **no injection seam**. `probe` and `execute_cell` are gone from
+  its signature; it proves both gates, mints the capability, and hands it on.
+
+The two paths are therefore disjoint by construction rather than by convention,
+and the suite proves it against the real names: every unauthorized-path
+regression monkeypatches `probe_ollama_metadata` and `make_cell_executor` to
+raise if touched, rather than handing in a stand-in and finding it unused.
+
 ## 15. Future live metadata preflight
 
 At future execution time, and only after both gates:
@@ -544,15 +590,72 @@ verdict = PASS_RC4_QUALIFIED_FOR_QA_OFF_USE
 ```
 
 `blocking_failures` is the union of frozen-artifact mismatches, contract
-unreadability, matrix invalidity, evidence-trace defects and
-classification-ledger failures. `unqualified_tasks` is every task whose status is
-not one of `QUALIFIED_EXPOSED`, `QUALIFIED_NEGATIVE_CONTROL`, `QUALIFIED_BENIGN`,
+unreadability, matrix invalidity, evidence-trace defects, classification-ledger
+failures and — since Phase P-R2 — **execution-provenance failures** (§20b).
+`unqualified_tasks` is every task whose status is not one of
+`QUALIFIED_EXPOSED`, `QUALIFIED_NEGATIVE_CONTROL`, `QUALIFIED_BENIGN`,
 `QUALIFIED_FAULT`.
+
+The verdict above is reachable **only** from `analyze_official_qualification`,
+which reads `results/phaseP-rc4-qualification` and nothing else.
 
 A `PASS` would mean only that `pilot-v7-rc4` is scientifically usable for a later
 treatment experiment under QA OFF. It would **not** make pilot-v7 final, would not
 authorize a confirmatory matrix, and would not say anything about whether IQA-SOA
 works.
+
+## 20b. The evidence root is bound too (Phase P-R2)
+
+§24b bound the two **scientific inputs**. It did not bind the **evidence root**,
+because the root is not an input: it is the run being read. So `analyze(root, …)`
+read whatever directory it was handed and merely *reported*
+`analyzed_canonical_results_namespace` — a boolean that took no part in
+`blocking_failures` and no part in the verdict. A complete synthetic 102-cell
+matrix in a temporary directory that satisfied every scientific gate could
+therefore be handed `PASS_RC4_QUALIFIED_FOR_QA_OFF_USE` and `EXIT_OK`, with the
+warning printed harmlessly beside it. A warning that coexists with a `PASS` is
+not a control.
+
+There are now **two functions with two disjoint verdict vocabularies**.
+
+**`analyze_official_qualification(root=None, …)`** — the only path that can emit
+`PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`.
+
+1. `root` is an assertion that the caller means `results/phaseP-rc4-qualification`,
+   proved by resolved canonical path. Anything else raises before a row is read,
+   so there is no payload and no verdict of any kind.
+2. The path is necessary and **not sufficient**. The run that wrote the directory
+   must also have recorded, in its own P-R1 `execution_inputs` block, that it
+   read the frozen config, the frozen model config and the frozen benchmark
+   manifest and wrote the frozen namespace.
+3. That claim is **independently recomputed**, not believed.
+   `check_execution_provenance` compares each recorded `sha256` against
+   `protocol.accepted_frozen_digest(...)` — the digest
+   `docs/phaseP_frozen_execution_inputs.json` accepted — compares each recorded
+   `repository_relative_path` against the canonical relative path, and compares
+   the recorded `output_root` against `protocol.canonical_results_root()`. The
+   run's own `official_phase_p_execution` boolean is checked **last** and is
+   never load-bearing: a manifest that claims it while recording one wrong digest
+   is refused by the digest.
+4. Any mismatch is `FROZEN_ARTIFACT_MISMATCH` or `INSTRUMENT_DEFECT`, is
+   **blocking**, and the verdict is `HOLD`.
+
+**`analyze_synthetic_evidence(root, …)`** — refuses
+`results/phaseP-rc4-qualification` outright and reports `TEST_ANALYSIS_PASS` /
+`TEST_ANALYSIS_HOLD`, which share no string with the official vocabulary and are
+carried under a distinct `record_kind` with an explicit disclaimer. It exercises
+the rc4 scoring rules and qualifies nothing.
+
+There is no third function and no flag that turns one into the other. On the
+producing side, `execute_offline_bound_run` refuses to write the official
+namespace, so synthetic evidence can never occupy the one directory an official
+qualification is allowed to read.
+
+The CLI's default is unchanged — no `--root` means the frozen namespace, and the
+default mode is the official one. What changed is that a noncanonical `--root`
+now produces no payload at all rather than an official payload with a warning
+inside it; scoring one requires `--synthetic-analysis`, which cannot report a
+qualification.
 
 ## 21. Provider and infrastructure failure
 
@@ -687,9 +790,9 @@ on a caller remembering:
   the Phase-P schedule can reach a noncanonical manifest even if an upstream
   caller forgot. It additionally requires the loader's own hash of the bytes it
   parsed to equal the accepted digest.
-* `analyze_phaseP_rc4_qualification.main`, `build_scoring_plans` and `analyze`
-  each bind the manifest and the contract, so no analyzer entry point can be
-  reached with an unbound input.
+* `analyze_phaseP_rc4_qualification.main`, `build_scoring_plans` and the shared
+  analysis core each bind the manifest and the contract, so no analyzer entry
+  point can be reached with an unbound input.
 
 **Provenance truth.** Every digest a Phase-P artifact emits describes the bytes
 actually read:
@@ -704,15 +807,19 @@ actually read:
 * the analyzer computes `qualification_contract_sha256` from the contract file it
   bound rather than from a hard-coded canonical path.
 
-**Test-only seam.** `run_phaseP_rc4_qualification.execute_bound_run` is what the
-offline suite drives with a temporary output root, so the machinery beyond the
-binding stays testable without writing into the repository. **`output_root` is
-the only thing it leaves unbound**: it binds the execution config on entry, the
-benchmark manifest through `load_benchmark`, and the model config through
-`check_experiment_configuration` — none of which depends on `main()` having
-checked first, because a seam that accepted a noncanonical scientific input would
-be the same defect one level down. Any run manifest it writes to a temporary root
-reports `official_phase_p_execution: false`.
+**Offline seam.** `run_phaseP_rc4_qualification.execute_offline_bound_run` is
+what the offline suite drives with a temporary output root, so the machinery
+beyond the binding stays testable without writing into the repository. It binds
+the execution config on entry, the benchmark manifest through `load_benchmark`,
+and the model config through `check_experiment_configuration` — none of which
+depends on `main()` having checked first, because a seam that accepted a
+noncanonical scientific input would be the same defect one level down. Any run
+manifest it writes reports `official_phase_p_execution: false`.
+
+`output_root` is the only scientific input it does not bind to one value, and it
+is not unconstrained: since Phase P-R2 the seam refuses
+`results/phaseP-rc4-qualification`, so it is bound to everything **except** the
+official namespace (§14b, §20b).
 
 ## 25. What Phase P is not
 

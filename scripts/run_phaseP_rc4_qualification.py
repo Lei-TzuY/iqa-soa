@@ -16,6 +16,35 @@ anywhere in this repository, in any test, in any configuration file or in any CI
 definition; opening them is a deliberate human act performed once, by a person,
 after the Phase-P protocol has been independently reviewed.
 
+THE GATE IS A PROPERTY OF THE EXECUTION PATH, NOT OF ONE CALLER (PHASE P-R2)
+===========================================================================
+
+Stating the rule in :func:`main` is not enforcing it.  Until P-R2 the
+lower-level entry point defaulted ``probe`` to :func:`probe_ollama_metadata` and
+``execute_cell`` to :func:`make_cell_executor`, so a Python caller that skipped
+:func:`main` could reach the live runtime and the real frozen schedule having
+proved neither human gate.  The refusal was documented, not machine-enforced,
+and a documented refusal is not one.
+
+The capability is now the gate.  :func:`grant_real_execution_authorization` is
+the ONLY thing that mints a :class:`RealExecutionAuthorization`, it mints one
+only after BOTH conditions are proved, and :func:`execute_authorized_real_run`
+-- the ONLY function in this module that can select the real metadata probe or
+construct the real runner-backed executor -- REQUIRES one and re-verifies it.
+The capability cannot be forged by passing ``True``: its constructor demands a
+module-private token object by identity AND re-evaluates the dual gate against
+the environment it is handed.
+
+    NO DUAL GATE -> NO CAPABILITY
+    NO CAPABILITY -> NO REAL METADATA PROBE, NO REAL PROVIDER, NO INFERENCE
+
+The offline regression suite drives everything beyond the gate through
+:func:`execute_offline_bound_run`, which is a DIFFERENT function: it requires an
+injected probe and an injected executor, has no defaults to fall back to,
+refuses the real probe and the real executor by identity, and refuses to write
+the official ``results/phaseP-rc4-qualification`` namespace at all.  The two
+paths are disjoint by construction rather than by convention.
+
 Phase P is a BENCHMARK QUALIFICATION, not an experiment.  Its only question is
 whether pilot-v7-rc4's intended safe paths, challenge routes, multi-step causal
 prerequisites, resource modality, benign controls, deliberate negative control
@@ -31,7 +60,10 @@ WHAT THIS DRIVER DOES, IN ORDER, AND NEVER OUT OF ORDER
 1. **Human gate.**  Both conditions, or nothing whatsoever happens.  This is
    evaluated before the frozen-input binding, before the offline preflight,
    before any configuration is loaded, before any provider object exists, before
-   any metadata probe and before any directory is created.
+   any metadata probe and before any directory is created.  Passing it MINTS a
+   :class:`RealExecutionAuthorization`; the real-model path refuses to start
+   without one, so the gate is enforced by the capability rather than by this
+   ordering alone.
 1b. **Frozen scientific input binding** (Phase P-R1).  ``--config``,
    ``--manifest`` and ``--output-root`` are ASSERTIONS, not choices.  Each is
    proven to be the frozen Phase-P artifact by resolved canonical PATH equality
@@ -155,9 +187,21 @@ class RuntimeMetadata:
 #: gate and the preflight without contacting anything.
 MetadataProbe = Callable[[str], RuntimeMetadata]
 
-#: ``(cell) -> raw row``.  Injected in tests for the same reason.  The default is
-#: the real runner-backed executor and is the only path that spends inference.
+#: ``(cell) -> raw row``.  Injected in tests for the same reason.  The
+#: runner-backed executor :func:`make_cell_executor` builds is the only one that
+#: spends inference, and it is reachable only through
+#: :func:`execute_authorized_real_run`.
 CellExecutor = Callable[[Any], Mapping[str, Any]]
+
+#: ``(config_path, manifest_path, output_root) -> CellExecutor``.  The core run
+#: loop is handed a FACTORY rather than an optional executor, so there is no
+#: ``None`` for it to resolve into a real-model default (Phase P-R2).
+CellExecutorFactory = Callable[[Path, Path, Path], CellExecutor]
+
+#: The attribute every executor from :func:`make_cell_executor` carries.  The
+#: offline seam refuses a callable that has it, so "the real executor" is a
+#: checkable property of the object rather than a claim about the caller.
+REAL_EXECUTOR_MARKER = "phase_p_real_model_executor"
 
 
 # --------------------------------------------------------------------------
@@ -193,6 +237,119 @@ def human_gate_refusal(*, execute_flag: bool, env: Mapping[str, str]) -> str | N
         + ". No provider was contacted, no metadata was probed, no inference was "
         "performed, no cell was produced and no results directory was created."
     )
+
+
+# --------------------------------------------------------------------------
+# 2. The authorization CAPABILITY the real-model path requires (Phase P-R2)
+# --------------------------------------------------------------------------
+
+
+class UnauthorizedRealExecution(protocol.ProtocolError):
+    """A real-model-capable path was entered without both human gates.
+
+    A subclass of :class:`phaseP_protocol.ProtocolError`, so every caller that
+    already refuses a protocol error refuses this too.  It is RAISED rather than
+    turned into an exit code: an exit code is a result, and a caller that
+    reached the real-model path unauthorized has not produced a result.
+    """
+
+
+#: The ONE object that identifies a genuine grant.  Module-private, absent from
+#: :data:`__all__`, and compared BY IDENTITY.  A bool cannot forge it, because a
+#: bool is not this object; nor can ``object()``, ``"AUTHORIZED"``, ``1`` or any
+#: other value a caller can conjure at the call site.
+_GRANT_TOKEN: object = object()
+
+
+class RealExecutionAuthorization:
+    """Machine-verified proof that BOTH Phase-P human gates were open.
+
+    PHASE P-R2.  This is a CAPABILITY, not a flag.  Holding one is the only way
+    to reach :func:`execute_authorized_real_run`, which is the only function in
+    this module that can select :func:`probe_ollama_metadata` or construct the
+    real runner-backed executor from :func:`make_cell_executor`.
+
+    Two independent properties make it unforgeable at the call site:
+
+    * the constructor demands :data:`_GRANT_TOKEN` **by identity**, and that
+      object is module-private and never exported, so passing ``True`` -- or
+      anything else a caller can conjure at the call site -- raises; and
+    * the constructor re-evaluates :func:`human_gate_refusal` against the
+      environment it is handed, so even a caller holding the token cannot mint
+      one for an environment in which
+      ``IQA_SOA_PHASE_P_HUMAN_GATE=AUTHORIZED`` is absent.
+
+    :meth:`verify` re-proves both halves at USE time, so the capability cannot
+    be minted under an open gate and then carried into a context where the
+    recorded environment no longer authorizes anything.
+
+    The recorded environment is kept private and never rendered: it carries the
+    provider credential, and ``repr`` of an authorization must be safe to print.
+    """
+
+    __slots__ = ("_execute_flag", "_env")
+
+    def __init__(
+        self, token: object, *, execute_flag: bool, env: Mapping[str, str]
+    ) -> None:
+        if token is not _GRANT_TOKEN:
+            raise UnauthorizedRealExecution(
+                "EXECUTION REFUSED: a RealExecutionAuthorization is minted only by "
+                "grant_real_execution_authorization(), and only after BOTH Phase-P "
+                "human gates have been proved open. It is a capability, not a flag: "
+                "no boolean, no string and no hand-built stand-in is one."
+            )
+        refusal = human_gate_refusal(execute_flag=execute_flag, env=env)
+        if refusal is not None:
+            raise UnauthorizedRealExecution(refusal)
+        self._execute_flag = bool(execute_flag)
+        self._env: Mapping[str, str] = dict(env)
+
+    def verify(self) -> Mapping[str, str]:
+        """Re-prove the grant and return the environment it was granted against."""
+
+        refusal = human_gate_refusal(execute_flag=self._execute_flag, env=self._env)
+        if refusal is not None:  # pragma: no cover - the constructor forbids it
+            raise UnauthorizedRealExecution(refusal)
+        return dict(self._env)
+
+    def __repr__(self) -> str:
+        return "RealExecutionAuthorization(<both Phase-P human gates proved open>)"
+
+
+def grant_real_execution_authorization(
+    *, execute_flag: bool, env: Mapping[str, str]
+) -> RealExecutionAuthorization:
+    """Mint the capability, or raise.  The ONLY place a grant comes from.
+
+    Both halves of the dual gate are evaluated inside the constructor, so this
+    function cannot hand out an authorization that the gate would refuse -- not
+    even by accident, and not even if a future edit forgot to check first.
+    """
+
+    return RealExecutionAuthorization(_GRANT_TOKEN, execute_flag=execute_flag, env=env)
+
+
+def require_real_execution_authorization(authorization: object) -> Mapping[str, str]:
+    """Refuse anything that is not a verified grant; return its environment.
+
+    Type identity alone would be checkable but weak, so the grant is re-verified
+    rather than merely recognised.  ``None``, ``True``, a duck-typed stand-in and
+    a subclass instance built without the token are all refused here.
+    """
+
+    if not isinstance(authorization, RealExecutionAuthorization):
+        raise UnauthorizedRealExecution(
+            "EXECUTION REFUSED: Phase-P real-model execution requires a "
+            "RealExecutionAuthorization minted by "
+            "grant_real_execution_authorization() after BOTH the "
+            f"{protocol.HUMAN_GATE_FLAG} flag AND "
+            f"{protocol.HUMAN_GATE_ENV}={protocol.HUMAN_GATE_VALUE} were proved; "
+            f"{type(authorization).__name__} is not one. No provider was contacted, "
+            "no metadata was probed, no inference was performed, no cell was "
+            "produced and no results directory was created."
+        )
+    return authorization.verify()
 
 
 # --------------------------------------------------------------------------
@@ -362,6 +519,14 @@ def probe_ollama_metadata(model: str) -> RuntimeMetadata:
     )
 
 
+#: The REAL probe object, bound once at import so it can be recognised by
+#: identity.  :func:`execute_offline_bound_run` compares against THIS rather than
+#: against the module global, so the offline seam's refusal cannot be undone by
+#: rebinding the name -- and cannot be triggered by a test that legitimately
+#: monkeypatches the global to prove the real probe is never reached.
+_REAL_METADATA_PROBE: MetadataProbe = probe_ollama_metadata
+
+
 def metadata_preflight(
     probe: MetadataProbe,
 ) -> tuple[list[str], dict[str, dict[str, Any]]]:
@@ -514,6 +679,10 @@ def make_cell_executor(
     into a real-model record: the experiment kind is chosen from the provider type
     below, and ``ExperimentRunner`` independently refuses to label a
     ``DeterministicStubProvider`` run as a real-model experiment.
+
+    Every executor this factory returns carries :data:`REAL_EXECUTOR_MARKER`, so
+    :func:`execute_offline_bound_run` can refuse one BY INSPECTION rather than by
+    trusting that no caller ever hands it one (Phase P-R2).
     """
 
     from iqa_soa.agent.providers import DeterministicStubProvider  # noqa: PLC0415
@@ -579,6 +748,7 @@ def make_cell_executor(
         row["cell_experiment_dir"] = stored
         return row
 
+    setattr(execute, REAL_EXECUTOR_MARKER, True)
     return execute
 
 
@@ -754,7 +924,7 @@ def describe_execution_inputs(
         "output_root": str(resolved_root),
         "canonical_results_namespace": protocol.RESULTS_NAMESPACE,
         "output_root_is_canonical_namespace": namespace_is_canonical,
-        "binding": "CANONICAL_PATH_AND_FROZEN_SHA256",
+        "binding": protocol.EXECUTION_INPUT_BINDING,
         "official_phase_p_execution": bool(
             namespace_is_canonical
             and all(entry["is_canonical"] for entry in described.values())
@@ -890,45 +1060,40 @@ def verify_frozen_inputs() -> tuple[int, list[str]]:
     return (protocol.EXIT_OK if not failures else protocol.EXIT_PREFLIGHT_STOP), failures
 
 
-def execute_bound_run(
+def _drive_bound_run(
     *,
     config_path: Path,
     manifest_path: Path,
     output_root: Path,
     env: Mapping[str, str],
-    probe: MetadataProbe | None = None,
-    execute_cell: CellExecutor | None = None,
+    probe: MetadataProbe,
+    make_executor: CellExecutorFactory,
 ) -> int:
-    """Run the frozen schedule against ALREADY-BOUND scientific inputs.
+    """Drive the frozen schedule against ALREADY-BOUND scientific inputs.
 
-    **INTERNAL.  THIS FUNCTION BINDS NOTHING AND AUTHORIZES NOTHING.**  It trusts
-    its caller to have proved that ``config_path``, ``manifest_path`` and
-    ``output_root`` are the frozen Phase-P ones, and it is reached only after the
-    human gate has already opened.  The ONLY production caller is :func:`main`,
-    which proves exactly that -- gate first, then
-    ``protocol.require_canonical_input`` on the config and the manifest and
-    ``protocol.require_canonical_results_root`` on the namespace -- before
-    delegating here.
+    **PRIVATE.  IT AUTHORIZES NOTHING AND IT SELECTS NOTHING.**  ``probe`` and
+    ``make_executor`` are REQUIRED and are never ``None``: this function has no
+    default to fall back to, so it cannot reach :func:`probe_ollama_metadata` or
+    :func:`make_cell_executor` on its own.  Whichever of the two public entry
+    points called it decided that, and only :func:`execute_authorized_real_run`
+    can decide it in favour of the real ones -- which it can do only while
+    holding a verified :class:`RealExecutionAuthorization`.
 
-    The offline suite calls it directly with a temporary ``output_root`` so a
-    test can drive the machinery past the namespace precondition without a real
-    provider.  That is safe and it is NOT a bypass of the P-R1 binding: a
-    temporary root produces no ``results/phaseP-rc4-qualification``, so nothing
-    it writes is or can be mistaken for an official Phase-P run, and the run
-    manifest it writes says so in ``execution_inputs`` (see
-    :func:`describe_execution_inputs`).
+    That split is the Phase P-R2 repair.  The predecessor of this function
+    defaulted both seams to the real implementations, which made every Python
+    caller a potential real-model caller and left the human gate as a property of
+    :func:`main` rather than of the execution path itself.
 
-    ``output_root`` IS THE ONLY THING THIS SEAM LEAVES UNBOUND.  Every scientific
-    input is still bound here, by a layer that does not depend on the caller:
-    the execution config immediately below, the benchmark manifest inside
-    ``protocol.load_benchmark``, and the model config inside
-    :func:`check_experiment_configuration`.  A function that accepted a
-    noncanonical config would be the same defect one level down, so it does not.
+    Every scientific input is bound HERE as well as by the caller, by a layer
+    that does not depend on the caller: the execution config immediately below,
+    the benchmark manifest inside ``protocol.load_benchmark``, and the model
+    config inside :func:`check_experiment_configuration`.  ``output_root`` is
+    bound by each entry point, to the two disjoint namespaces they may write.
     """
 
-    # ---- 1c. The execution config, bound here as well as in main(). ----
+    # ---- 1c. The execution config, bound here as well as by the entry point. --
     #
-    # Not redundant: this is the layer that holds when the caller is NOT main().
+    # Not redundant: this is the layer that holds whichever entry point called.
     # It runs before the preflight and before anything is read from the config,
     # so a noncanonical config costs zero metadata probes and zero cells.
     try:
@@ -982,9 +1147,7 @@ def execute_bound_run(
     try:
         base_config = load_experiment_config(config_path)
     except ExperimentConfigError as exc:
-        print(
-            f"IMMEDIATE_STOP: FROZEN_ARTIFACT_MISMATCH: {exc}", file=sys.stderr
-        )
+        print(f"IMMEDIATE_STOP: FROZEN_ARTIFACT_MISMATCH: {exc}", file=sys.stderr)
         return protocol.EXIT_PREFLIGHT_STOP
     config_failures = [
         *check_experiment_configuration(base_config),
@@ -1003,9 +1166,7 @@ def execute_bound_run(
         return protocol.EXIT_PREFLIGHT_STOP
 
     # ---- 5. Metadata-only preflight. First and only pre-inference contact. ----
-    environment_failures, runtime_metadata = metadata_preflight(
-        probe or probe_ollama_metadata
-    )
+    environment_failures, runtime_metadata = metadata_preflight(probe)
     if environment_failures:
         for failure in environment_failures:
             print(failure, file=sys.stderr)
@@ -1046,12 +1207,7 @@ def execute_bound_run(
     result = run_frozen_schedule(
         schedule=schedule,
         scripted_faults=benchmark.scripted_faults,
-        execute_cell=execute_cell
-        or make_cell_executor(
-            config_path=config_path,
-            manifest_path=manifest_path,
-            output_root=output_root,
-        ),
+        execute_cell=make_executor(config_path, manifest_path, output_root),
         raw_path=raw_path,
         partial_manifest_path=output_root / protocol.PARTIAL_MANIFEST_NAME,
     )
@@ -1086,13 +1242,160 @@ def execute_bound_run(
     return exit_code
 
 
-def main(
-    argv: Sequence[str] | None = None,
+def _real_cell_executor_factory(
+    config_path: Path, manifest_path: Path, output_root: Path
+) -> CellExecutor:
+    """Build the REAL runner-backed executor.  Reachable from one place only."""
+
+    return make_cell_executor(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_root=output_root,
+    )
+
+
+def execute_authorized_real_run(*, authorization: RealExecutionAuthorization) -> int:
+    """THE ONLY REAL-MODEL-CAPABLE PATH.  It requires the capability, and nothing else.
+
+    PHASE P-R2.  This function takes no config, no manifest and no output root,
+    because there is nothing about an official Phase-P run for a caller to
+    choose: it binds the frozen config, the frozen benchmark manifest and the
+    frozen ``results/phaseP-rc4-qualification`` namespace itself, from
+    ``phaseP_protocol``, by canonical path AND by the SHA-256 the frozen-input
+    record accepted.  It takes no probe and no executor either: it SELECTS
+    :func:`probe_ollama_metadata` and :func:`make_cell_executor`, which is
+    exactly the authority the capability confers and the reason nothing else in
+    this module may do it.
+
+    ``authorization`` is re-verified here rather than assumed valid, so a
+    capability minted under an open gate cannot be carried into a context that
+    no longer authorizes anything.  An unauthorized call RAISES
+    :class:`UnauthorizedRealExecution` before a single path is bound -- it does
+    not return an exit code, because no run happened and an exit code is a
+    result.
+    """
+
+    env = require_real_execution_authorization(authorization)
+
+    try:
+        config_path = protocol.require_canonical_input(
+            protocol.CANONICAL_CONFIG_RELATIVE
+        )
+        manifest_path = protocol.require_canonical_input(
+            protocol.CANONICAL_MANIFEST_RELATIVE
+        )
+        output_root = protocol.require_canonical_results_root()
+    except protocol.ProtocolError as exc:
+        print(f"IMMEDIATE_STOP: {exc}", file=sys.stderr)
+        print(
+            "NONCANONICAL_PHASE_P_EXECUTION: refused. 0 metadata probes, 0 cells "
+            "executed, no results namespace created.",
+            file=sys.stderr,
+        )
+        return protocol.EXIT_PREFLIGHT_STOP
+
+    return _drive_bound_run(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_root=output_root,
+        env=env,
+        probe=probe_ollama_metadata,
+        make_executor=_real_cell_executor_factory,
+    )
+
+
+def execute_offline_bound_run(
     *,
-    env: Mapping[str, str] | None = None,
-    probe: MetadataProbe | None = None,
-    execute_cell: CellExecutor | None = None,
+    config_path: Path,
+    manifest_path: Path,
+    output_root: Path,
+    env: Mapping[str, str],
+    probe: MetadataProbe,
+    execute_cell: CellExecutor,
 ) -> int:
+    """THE OFFLINE SEAM.  It needs no authorization because it cannot execute a model.
+
+    PHASE P-R2.  The offline regression suite has to drive everything beyond the
+    gate -- the metadata preflight, the stop controller, the raw record, the run
+    manifest -- without a provider.  Before P-R2 it did that through the same
+    function the production CLI used, which is precisely why that function was
+    real-model capable and therefore had to be gated, but was not.
+
+    This one is structurally incapable of a real run, and says so in behaviour
+    rather than in prose:
+
+    * ``probe`` and ``execute_cell`` are REQUIRED.  There is no default, so
+      there is nothing for a missing argument to resolve into.
+    * :func:`probe_ollama_metadata` is refused BY IDENTITY, so the real probe
+      cannot be laundered in through the injection point.
+    * an executor built by :func:`make_cell_executor` is refused by its
+      :data:`REAL_EXECUTOR_MARKER`, for the same reason.
+    * the frozen ``results/phaseP-rc4-qualification`` namespace is refused
+      outright, so nothing this seam writes can be -- or be mistaken for -- an
+      official Phase-P run.  That is the producer-side half of the Phase P-R2
+      evidence-root repair the analyzer enforces on the reading side.
+
+    Every scientific input is still bound: the config and the manifest by
+    :func:`_drive_bound_run`, and the model config by
+    :func:`check_experiment_configuration`.
+    """
+
+    if probe is None or execute_cell is None:
+        raise protocol.ProtocolError(
+            "OFFLINE_SEAM_MISUSE: execute_offline_bound_run requires BOTH an "
+            "injected metadata probe and an injected cell executor. It has no "
+            "real-model default and never acquires one; real-model execution is "
+            "reachable only through execute_authorized_real_run()."
+        )
+    if not callable(probe) or not callable(execute_cell):
+        raise protocol.ProtocolError(
+            "OFFLINE_SEAM_MISUSE: the injected probe and the injected cell "
+            "executor must both be callables"
+        )
+    if probe is _REAL_METADATA_PROBE:
+        raise protocol.ProtocolError(
+            "OFFLINE_SEAM_MISUSE: probe_ollama_metadata contacts the live local "
+            "runtime. The offline seam refuses it by identity; a real metadata "
+            "probe is reachable only through execute_authorized_real_run(), which "
+            "requires both Phase-P human gates."
+        )
+    if getattr(execute_cell, REAL_EXECUTOR_MARKER, False):
+        raise protocol.ProtocolError(
+            "OFFLINE_SEAM_MISUSE: this executor was built by make_cell_executor "
+            "and spends real inference. The offline seam refuses it; real-model "
+            "execution is reachable only through execute_authorized_real_run(), "
+            "which requires both Phase-P human gates."
+        )
+    if protocol.is_canonical_results_root(output_root):
+        raise protocol.ProtocolError(
+            f"OFFLINE_SEAM_MISUSE: {protocol.RESULTS_NAMESPACE} is the namespace an "
+            "OFFICIAL Phase-P execution writes. The offline seam never writes it, "
+            "so synthetic evidence can never occupy the one directory an official "
+            "qualification analysis is allowed to read."
+        )
+
+    return _drive_bound_run(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_root=output_root,
+        env=env,
+        probe=probe,
+        make_executor=lambda _config, _manifest, _root: execute_cell,
+    )
+
+
+def main(
+    argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = None
+) -> int:
+    """The production CLI.  It has NO offline injection seam (Phase P-R2).
+
+    ``probe`` and ``execute_cell`` used to be parameters here, so the suite could
+    drive the CLI without a provider.  They are gone.  The offline suite uses
+    :func:`execute_offline_bound_run`, and this function now does exactly one
+    thing beyond argument binding: prove both human gates, mint the capability,
+    and hand it to the one real-model-capable path.
+    """
+
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     environment = os.environ if env is None else env
 
@@ -1136,14 +1439,19 @@ def main(
     # is parsed, before the namespace is inspected, before any metadata probe and
     # before any directory exists.  Anything else is refused outright: this CLI
     # has no noncanonical Phase-P execution mode.
+    #
+    # ``execute_authorized_real_run`` binds all three AGAIN, from the protocol
+    # module and never from anything passed here, so the real-model path does not
+    # depend on this check having happened.  What this check adds is a precise
+    # refusal that names the argument the caller actually got wrong.
     try:
-        config_path = protocol.require_canonical_input(
+        protocol.require_canonical_input(
             protocol.CANONICAL_CONFIG_RELATIVE, args.config
         )
-        manifest_path = protocol.require_canonical_input(
+        protocol.require_canonical_input(
             protocol.CANONICAL_MANIFEST_RELATIVE, args.manifest
         )
-        output_root = protocol.require_canonical_results_root(args.output_root)
+        protocol.require_canonical_results_root(args.output_root)
     except protocol.ProtocolError as exc:
         print(f"IMMEDIATE_STOP: {exc}", file=sys.stderr)
         print(
@@ -1153,14 +1461,16 @@ def main(
         )
         return protocol.EXIT_PREFLIGHT_STOP
 
-    return execute_bound_run(
-        config_path=config_path,
-        manifest_path=manifest_path,
-        output_root=output_root,
-        env=environment,
-        probe=probe,
-        execute_cell=execute_cell,
+    # ---- 1c. THE CAPABILITY (Phase P-R2). -----------------------------------
+    #
+    # Both gates were just proved; minting re-proves them inside the constructor,
+    # so this cannot hand out an authorization the gate would refuse. From here
+    # on, the authority to contact a runtime travels as an object rather than as
+    # an assumption about who is calling.
+    authorization = grant_real_execution_authorization(
+        execute_flag=bool(args.execute_real_model), env=environment
     )
+    return execute_authorized_real_run(authorization=authorization)
 
 
 if __name__ == "__main__":
@@ -1169,20 +1479,27 @@ if __name__ == "__main__":
 
 __all__ = [
     "CellExecutor",
+    "CellExecutorFactory",
     "MetadataProbe",
+    "REAL_EXECUTOR_MARKER",
+    "RealExecutionAuthorization",
     "RuntimeMetadata",
+    "UnauthorizedRealExecution",
     "build_parser",
     "check_arm_configuration",
     "check_experiment_configuration",
     "check_output_namespace",
     "describe_execution_inputs",
-    "execute_bound_run",
+    "execute_authorized_real_run",
+    "execute_offline_bound_run",
+    "grant_real_execution_authorization",
     "human_gate_refusal",
     "lost_cell_row",
     "main",
     "make_cell_executor",
     "metadata_preflight",
     "probe_ollama_metadata",
+    "require_real_execution_authorization",
     "run_frozen_schedule",
     "stamp_frozen_identity",
     "verify_frozen_inputs",

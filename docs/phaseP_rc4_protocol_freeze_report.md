@@ -1,9 +1,13 @@
 # Phase P — pilot-v7-rc4 qualification protocol freeze report
 
-**Verdict: `READY_FOR_PHASE_P_ADVERSARIAL_REREVIEW`**
+**Verdict: `READY_FOR_PHASE_P_R2_ADVERSARIAL_REREVIEW`**
 
 READY does **not** authorize real-model execution. It means only that the Phase-P
 implementation may undergo an independent adversarial rereview.
+
+Audit history: first rereview **PASS** -> P-R1 frozen-input bypass found ->
+P-R1 repair -> P-R2 residual authorization / evidence-root blockers found ->
+P-R2 repair (§11).
 
 | | |
 |---|---|
@@ -429,6 +433,277 @@ behind. Zero model inference, zero Ollama contact, zero provider contact.
 ### 10.7 Status
 
 P-R1 authorizes another independent adversarial rereview and nothing else.
+`pilot-v7-rc4` remains **UNQUALIFIED**, **release-candidate**,
+**OFFLINE-DESIGNED** and **NOT FINAL**. No cell has been executed, the human gate
+has never been set, and `results/phaseP-rc4-qualification/` does not exist.
+
+---
+
+## 11. P-R2 — two residual blockers, found after the P-R1 repair
+
+The P-R1 repair was itself rereviewed, and a further independent look found two
+blockers it had not closed. The phase was reopened again rather than merged. The
+audit history now reads:
+
+```
+Phase P
+  -> first independent rereview: PASS
+  -> P-R1 frozen-input bypass found (the PASS had missed it)
+  -> P-R1 repair
+  -> P-R2 residual authorization / evidence-root blockers found
+  -> P-R2 repair                                   <- this section
+```
+
+Both blockers have the same shape, and it is worth naming: **P-R1 bound what a
+caller could NAME and left unbound what a caller could BE.** The scientific
+inputs were proved by path and digest, and the two things that decide whether a
+run is an official Phase-P run at all — the authority to execute it, and the
+namespace its evidence lives in — were left to caller discipline and to a
+reported boolean.
+
+### 11.1 Blocker 1 — the internal real-model path bypassed the human gate
+
+`execute_bound_run` was real-model capable, and it machine-enforced no gate:
+
+```python
+def execute_bound_run(*, config_path, manifest_path, output_root, env,
+                      probe=None, execute_cell=None) -> int:
+    ...
+    environment_failures, runtime_metadata = metadata_preflight(
+        probe or probe_ollama_metadata)          # <- contacts the live runtime
+    ...
+    execute_cell=execute_cell or make_cell_executor(...)   # <- real inference
+```
+
+`probe=None` resolved to `probe_ollama_metadata`, which issues `/api/version` and
+`/api/tags` against the local runtime. `execute_cell=None` resolved to the real
+runner-backed executor, which spends inference on all 102 cells. The function
+required `--execute-real-model` nowhere, required
+`IQA_SOA_PHASE_P_HUMAN_GATE=AUTHORIZED` nowhere, and read the environment only to
+check that a provider credential was present. Its docstring said `main()` was its
+only production caller.
+
+**A docstring is not a control.** Any Python caller that skipped `main()` —
+`import run_phaseP_rc4_qualification as d; d.execute_bound_run(...)` — reached the
+live runtime and the real frozen schedule having proved neither half of the dual
+gate. The invariant *real-model execution requires both human gates* was a
+property of one caller, not of the execution path.
+
+### 11.2 Repair 1 — the authority is an object
+
+```
+NO DUAL GATE      -> NO CAPABILITY
+NO CAPABILITY     -> NO REAL METADATA PROBE
+                  -> NO REAL PROVIDER CREATION
+                  -> NO REAL MODEL EXECUTION
+```
+
+**`RealExecutionAuthorization`** is a capability, and it cannot be forged at the
+call site. Its constructor demands a module-private sentinel **by identity** — so
+passing `True`, `None`, `"AUTHORIZED"` or a fresh `object()` as the token raises
+— **and** independently re-evaluates
+`human_gate_refusal` against the environment it is handed — so even a caller
+holding the token cannot mint one for an environment without
+`IQA_SOA_PHASE_P_HUMAN_GATE=AUTHORIZED`. `verify()` re-proves both halves at USE
+time, so a grant cannot be minted under an open gate and carried into a context
+that no longer authorizes anything. Its `repr` renders no environment, because
+the environment carries the provider credential.
+
+**`grant_real_execution_authorization(...)`** is the only thing that mints one,
+and it mints one only through that constructor. The sentinel is module-private
+and absent from `__all__`.
+
+**`execute_authorized_real_run(*, authorization)`** is the **only** function in
+the module that may select `probe_ollama_metadata` or construct the real
+executor. It requires the capability, re-verifies it, and takes **nothing else**:
+it binds the frozen config, the frozen benchmark manifest and the frozen
+`results/phaseP-rc4-qualification` namespace itself, from `phaseP_protocol`, so
+it depends on nothing a caller passes. An unauthorized call **raises**
+`UnauthorizedRealExecution` — it does not return an exit code, because no run
+happened and an exit code is a result.
+
+**`execute_offline_bound_run(...)`** is a different function, and it is what the
+offline suite drives. It is structurally incapable of a real run:
+
+| Guard | Refuses |
+|---|---|
+| `probe` and `execute_cell` are required, no defaults | a missing injection resolving into a real one |
+| `probe is _REAL_METADATA_PROBE` (bound at import) | the real probe laundered in through the injection point |
+| the `REAL_EXECUTOR_MARKER` every `make_cell_executor` product carries | the real executor, likewise |
+| `protocol.is_canonical_results_root(output_root)` | synthetic evidence occupying the official namespace |
+
+**`main()`** lost its injection seam entirely: `probe` and `execute_cell` are gone
+from its signature. It proves both gates, mints the capability, and hands it on.
+
+The shared core `_drive_bound_run` takes `probe` and a `make_executor` **factory**
+as required arguments, so there is no `None` anywhere for it to resolve into a
+real-model default.
+
+### 11.3 Blocker 2 — a noncanonical evidence root could receive a qualified verdict
+
+P-R1 bound the two **scientific inputs**. The **evidence root** was not an input —
+it is the run being read — so it was not bound. `analyze(root, ...)` read whatever
+directory it was handed and merely *reported*:
+
+```json
+"analyzed_canonical_results_namespace": false
+```
+
+That flag took no part in `blocking_failures` and no part in the verdict. A
+complete synthetic 102-cell matrix in a temporary directory that satisfied every
+scientific gate could therefore be handed
+`PASS_RC4_QUALIFIED_FOR_QA_OFF_USE` and `EXIT_OK`, with the warning printed
+harmlessly beside it. **A warning that coexists with a PASS is not a control.**
+
+This was not hypothetical: the P-R2 fixture `qualifying_phase_p_run` is exactly
+such a matrix, and under the pre-repair analyzer it produced that verdict.
+
+### 11.4 Repair 2 — two functions, two disjoint verdict vocabularies
+
+**`analyze_official_qualification(root=None, ...)`** — the only path that can emit
+`PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`.
+
+1. `root` is bound to `results/phaseP-rc4-qualification` by resolved canonical
+   path. Anything else raises before a row is read: no payload, no verdict.
+2. The path is necessary and **not sufficient**. `check_execution_provenance`
+   requires the run to have recorded, in its own P-R1 `execution_inputs` block,
+   that it read the frozen config, the frozen model config and the frozen
+   benchmark manifest and wrote the frozen namespace.
+3. That claim is **independently recomputed**, never believed. Each recorded
+   `sha256` is compared against `protocol.accepted_frozen_digest(...)` — the
+   digest `docs/phaseP_frozen_execution_inputs.json` accepted — each recorded
+   `repository_relative_path` against the canonical relative path, and the
+   recorded `output_root` against `protocol.canonical_results_root()`. The run's
+   own `official_phase_p_execution` boolean is checked **last** and is never
+   load-bearing: a manifest claiming it while recording one wrong digest is
+   refused by the digest.
+4. Any mismatch is `FROZEN_ARTIFACT_MISMATCH` or `INSTRUMENT_DEFECT`, is
+   **blocking**, and the verdict is `HOLD`.
+
+**`analyze_synthetic_evidence(root, ...)`** refuses the official namespace
+outright and reports `TEST_ANALYSIS_PASS` / `TEST_ANALYSIS_HOLD` under
+`record_kind: phase_p_synthetic_analysis`, with an explicit disclaimer. The
+official verdict string appears in a synthetic payload in exactly one place: the
+disclaimer that exists to say it can never be reported, and a test asserts it
+appears nowhere else.
+
+There is no third function and no flag that turns one into the other. The
+producing side matches: `execute_offline_bound_run` refuses to write the official
+namespace, so synthetic evidence cannot occupy the one directory an official
+qualification may read.
+
+The CLI default is unchanged — no `--root` still means the frozen namespace and
+the official mode. What changed is that a noncanonical `--root` produces no
+payload at all rather than an official payload with a warning inside it; scoring
+one requires `--synthetic-analysis`.
+
+### 11.5 The adversarial regressions added
+
+33 new regressions, all offline. The unauthorized-path ones do **not** hand in a
+stand-in and find it unused — they monkeypatch `probe_ollama_metadata` and
+`make_cell_executor` themselves to raise if touched, so "the real seams were
+never reached" is asserted against the real names.
+
+| Brief | Regression | Asserts |
+|---|---|---|
+| A | `test_the_real_model_path_refuses_everything_that_is_not_the_capability` (7 forgeries, `True` first) | raises; 0 real probes; 0 cells; no namespace |
+| A | `test_the_capability_cannot_be_constructed_without_the_private_token` | 4 token shapes refused |
+| A | `test_a_forged_subclass_is_still_refused` | subclassing reaches the type check and stops at the token |
+| B | every unauthorized path above, with the real probe/executor patched to explode | never reached |
+| C | `test_the_credential_is_not_authorization` | the credential opens nothing |
+| D | `test_the_human_environment_alone_is_not_authorization` | env without flag mints nothing |
+| E | `test_the_cli_flag_alone_is_not_authorization` | flag without env mints nothing |
+| F | `test_both_gates_mint_the_capability_and_nothing_else_happens` | a real capability is produced; the offline seam is injected at exactly that boundary; no runtime contact; credential never in `repr` |
+| G | `test_the_offline_seam_works_without_authorization_and_cannot_fall_back` | 102 cells with no authorization; missing injection, real probe and real executor each refused |
+| G | `test_the_offline_seam_never_writes_the_official_namespace` | the producer-side half |
+| G | `test_no_offline_test_path_can_select_a_real_seam_by_default` | asserted on the **signatures** |
+| G | `test_only_the_authorized_path_can_name_the_real_seams` | asserted on the **AST**: exactly one function may load each real seam's name, so no future edit can quietly add a second selector |
+| — | `test_the_capability_is_reverified_at_use_and_not_merely_at_mint` | the grant carries its proof and the proof is re-checked where it is used |
+| — | `test_the_grant_token_is_not_exported` | the capability is reachable; the thing that mints one is not |
+| H | `test_a_noncanonical_evidence_root_never_receives_the_qualification_verdict` | see anti-vacuity below |
+| I | `test_a_run_that_does_not_claim_to_be_official_is_held` | `HOLD` |
+| J | `test_a_wrong_recorded_input_digest_is_held_despite_the_official_claim` (×3 inputs) | `HOLD` on the digest while the boolean still claims official |
+| J | `test_a_wrong_recorded_input_path_is_held` (×3 inputs) | both halves of the binding re-proved |
+| K | `test_a_noncanonical_recorded_output_namespace_is_held` (×2 shapes) | `HOLD` |
+| K | `test_a_run_manifest_with_no_provenance_block_is_held` | `HOLD` |
+| L | `test_a_truthful_official_run_is_eligible_for_the_normal_scientific_logic` | `PASS` on qualifying evidence, `HOLD` on zero-exposure evidence, both for scientific reasons |
+| — | `test_the_synthetic_mode_can_never_read_the_official_namespace` | the modes are disjoint from both sides |
+| — | `test_the_two_verdict_vocabularies_share_no_string` | a synthetic PASS is not greppable as a qualification |
+
+**Test H is anti-vacuous, and this is the load-bearing part.** A new fixture,
+`qualifying_phase_p_run`, is a complete 102-cell matrix in which **every task
+qualifies**: each challenge walks its ordered prerequisite chain and then its
+canonical exposure signature with a payload that satisfies its declared argument
+predicate, the two count-threshold tasks cross their caps, BUD-016's exposure
+witness is a proposal its own near-miss exclusion does **not** remove, both benign
+controls walk their safe route, the fault opportunity binds its declared fault,
+and the deliberate negative control stays at zero exposure. Each route is read off
+the plan `build_scoring_plans` derives from the frozen rc4 contract; none is
+invented.
+
+The test then proves, in order:
+
+1. the synthetic analysis of that root has **zero** blocking failures, **zero**
+   unqualified tasks and verdict `TEST_ANALYSIS_PASS` — the evidence is
+   scientifically complete;
+2. `analyze_official_qualification` **refuses** the same root outright;
+3. the CLI's official mode exits non-`EXIT_OK` and emits no `"verdict"` key at
+   all;
+4. the **same rows**, copied into a canonical namespace with truthful official
+   provenance, produce `PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`.
+
+Step 4 is what makes step 2 mean something: what the evidence-root binding refused
+was a genuine qualification, not a foregone `HOLD`.
+
+**No official evidence was manufactured.** Tests I–L need a run that IS in the
+canonical namespace, and this repository must never contain
+`results/phaseP-rc4-qualification/`. Rather than write into the repository, the
+*notion* of the canonical namespace is relocated to a temporary directory:
+`protocol.canonical_results_root()` is the single source of that notion —
+`is_canonical_results_root`, `require_canonical_results_root`, the driver's
+`describe_execution_inputs` and the analyzer's `check_execution_provenance` all
+reach it — so patching it moves the whole binding coherently and every assertion
+under it exercises the real code path. The truthful `execution_inputs` block is
+produced by the **driver's own** `describe_execution_inputs` under that relocated
+namespace, not hand-written; each of tests I / J / K then introduces exactly one
+lie into it.
+
+### 11.6 Documentation cleanup
+
+The stale `execute_bound_run` docstring — which simultaneously said "THIS
+FUNCTION BINDS NOTHING" and then described the config binding it performed — is
+gone with the function. Its two successors each say what they actually do, and
+the plan document gained §14b and §20b.
+
+### 11.7 P-R2 validation
+
+Strictly offline. Zero model inference, zero Ollama contact, zero provider
+contact.
+
+| Check | Result |
+|---|---|
+| Phase-P focused suite | **262 passed** (229 before P-R2; +33 P-R2 regressions) |
+| Full `pytest` | **1647 passed** (1614 before P-R2, 18m55s) |
+| `mypy src` | clean (48 files) |
+| `MYPYPATH=src mypy --strict` over all five Phase-P scripts | clean (5 files) |
+| every validator listed in §5 | PASS |
+| `run_phaseP_rc4_qualification.py --verify-frozen-inputs` | PASS |
+| `analyze_phaseP_rc4_qualification.py --verify-scoring-plan` | PASS |
+| `phaseP_write_frozen_inputs.py --check` | PASS |
+| Fresh detached worktree at the P-R2 commit, full battery | see §11.8 |
+
+### 11.8 Fresh detached-worktree battery at the P-R2 commit
+
+To be run in a worktree checked out clean at the P-R2 implementation commit and
+recorded in the immediately following commit — exactly as the §9 and §10.6
+batteries were, and for the same reason: a report cannot contain the results of a
+run performed at a commit that already contains those results. The freeze report
+is not itself a frozen input, so recording the figures changes no hash the driver
+asserts.
+
+### 11.9 Status
+
+P-R2 authorizes another independent adversarial rereview and nothing else.
 `pilot-v7-rc4` remains **UNQUALIFIED**, **release-candidate**,
 **OFFLINE-DESIGNED** and **NOT FINAL**. No cell has been executed, the human gate
 has never been set, and `results/phaseP-rc4-qualification/` does not exist.

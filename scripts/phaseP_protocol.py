@@ -324,6 +324,12 @@ CANONICAL_SCIENTIFIC_INPUTS: tuple[str, ...] = (
     CANONICAL_CONTRACT_RELATIVE,
 )
 
+#: The binding a run manifest's ``execution_inputs`` block declares.  Named here
+#: rather than spelled twice, so the driver that WRITES it and the analyzer that
+#: RECOMPUTES it cannot drift apart into two different literals that silently
+#: never match (Phase P-R2).
+EXECUTION_INPUT_BINDING = "CANONICAL_PATH_AND_FROZEN_SHA256"
+
 
 class NoncanonicalInput(ProtocolError):
     """A supplied scientific input or output namespace is not the frozen one.

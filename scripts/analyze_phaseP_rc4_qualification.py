@@ -107,6 +107,40 @@ manifest or contract raises before a single row is read, so there is no verdict
 at all -- and in particular no ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`` -- to
 attach canonical digests to.  Every digest the payload emits is computed from
 the bytes this analysis actually read.
+
+THE EVIDENCE ROOT IS BOUND TOO (PHASE P-R2)
+===========================================
+
+P-R1 bound the two SCIENTIFIC inputs.  It did not bind the EVIDENCE ROOT,
+because the root is not an input -- it is the run being read.  So ``analyze``
+read any directory it was given and merely REPORTED
+``analyzed_canonical_results_namespace``, a boolean that took no part in
+``blocking_failures`` and no part in the verdict.  A complete synthetic 102-cell
+matrix in a temporary directory that satisfied every scientific gate could
+therefore be handed ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`` and ``EXIT_OK``, with
+the warning printed harmlessly beside it.  A warning that coexists with a PASS
+is not a control.
+
+There are now two functions, with two verdict vocabularies that share no string:
+
+:func:`analyze_official_qualification`
+    Reads EXACTLY ``results/phaseP-rc4-qualification``, by resolved canonical
+    path.  It is the only function that can emit
+    ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE``.  The path is necessary and not
+    sufficient: the run that wrote the directory must also have recorded, in its
+    own P-R1 ``execution_inputs`` block, that it read the frozen config, the
+    frozen model config and the frozen benchmark manifest and wrote the frozen
+    namespace -- and :func:`check_execution_provenance` RECOMPUTES each of those
+    claims against the digests ``docs/phaseP_frozen_execution_inputs.json``
+    accepted, rather than believing the run's own ``official_phase_p_execution``
+    boolean.  Any mismatch is blocking and the verdict is ``HOLD``.
+
+:func:`analyze_synthetic_evidence`
+    Refuses that namespace outright and reports ``TEST_ANALYSIS_PASS`` /
+    ``TEST_ANALYSIS_HOLD``.  It is how the offline suite regression-tests the
+    scoring rules against complete synthetic matrices, and it qualifies nothing.
+
+There is no third function, and no mode flag that turns one into the other.
 """
 
 from __future__ import annotations
@@ -213,6 +247,57 @@ ANALYZER_VERSION = "phase-p-rc4-analyzer-1"
 #: HOLD, which stands forever and is not revisited here.
 VERDICT_QUALIFIED = "PASS_RC4_QUALIFIED_FOR_QA_OFF_USE"
 VERDICT_HOLD = "HOLD"
+
+# --------------------------------------------------------------------------
+# The two disjoint analysis MODES (Phase P-R2)
+# --------------------------------------------------------------------------
+#
+# THE BLOCKER THIS EXISTS FOR.  P-R1 bound the two SCIENTIFIC inputs -- the rc4
+# manifest and the rc4 qualification contract -- but the EVIDENCE ROOT was not an
+# input and was not bound.  ``analyze(root, ...)`` therefore read any directory
+# and merely reported ``analyzed_canonical_results_namespace``, a boolean that
+# took no part in ``blocking_failures`` and no part in the verdict.  A complete
+# synthetic 102-cell matrix in a temporary directory that satisfied every
+# scientific gate could therefore receive PASS_RC4_QUALIFIED_FOR_QA_OFF_USE and
+# EXIT_OK, with the warning printed harmlessly beside it.  That is not a valid
+# official qualification verdict, and a warning that coexists with a PASS is not
+# a control.
+#
+# The two uses are now two functions with two verdict vocabularies that share no
+# string.  An official qualification is defined ONLY over
+# ``results/phaseP-rc4-qualification`` and only over a run whose own P-R1
+# provenance block independently re-proves against the committed freeze; a
+# synthetic analysis is defined only over anything else, and reports
+# TEST_ANALYSIS_PASS, which no reader and no exit-code check can mistake for a
+# qualification.
+
+MODE_OFFICIAL = "OFFICIAL_PHASE_P_QUALIFICATION"
+MODE_SYNTHETIC = "SYNTHETIC_ANALYSIS_ONLY"
+
+#: The synthetic vocabulary.  Deliberately shares no substring with
+#: :data:`VERDICT_QUALIFIED`, so a grep, a log scrape or an eyeball cannot
+#: confuse an exercised scoring rule with a qualified benchmark.
+VERDICT_SYNTHETIC_PASS = "TEST_ANALYSIS_PASS"
+VERDICT_SYNTHETIC_HOLD = "TEST_ANALYSIS_HOLD"
+
+MODE_VERDICTS: Mapping[str, tuple[str, str]] = {
+    MODE_OFFICIAL: (VERDICT_QUALIFIED, VERDICT_HOLD),
+    MODE_SYNTHETIC: (VERDICT_SYNTHETIC_PASS, VERDICT_SYNTHETIC_HOLD),
+}
+
+#: ``record_kind`` per mode, so the two payloads are distinguishable as FILES and
+#: not only by the verdict string inside them.
+RECORD_KIND: Mapping[str, str] = {
+    MODE_OFFICIAL: "phase_p_qualification_analysis",
+    MODE_SYNTHETIC: "phase_p_synthetic_analysis",
+}
+
+SYNTHETIC_DISCLAIMER = (
+    "SYNTHETIC_ANALYSIS_ONLY: this payload scored evidence that is NOT in the "
+    f"frozen {protocol.RESULTS_NAMESPACE} namespace. It exercises the rc4 scoring "
+    "rules and qualifies nothing. It is not a Phase-P qualification, it can never "
+    f"report {VERDICT_QUALIFIED}, and it authorizes nothing."
+)
 
 # --------------------------------------------------------------------------
 # Structural refusal to report a confirmatory quantity (phase brief S17)
@@ -1096,23 +1181,170 @@ def evaluate_cell(
 # --------------------------------------------------------------------------
 
 
-def analyze(
+#: Every execution input the run manifest must record, and the canonical
+#: repository-relative path each one must name.  The analyzer RECOMPUTES the
+#: accepted digest for each from the committed frozen-input record rather than
+#: reading the run's own ``is_canonical`` verdict, so the provenance check does
+#: not rest on the producer's own opinion of itself.
+EXECUTION_INPUT_BINDINGS: Mapping[str, str] = {
+    "config": protocol.CANONICAL_CONFIG_RELATIVE,
+    "models": protocol.CANONICAL_MODELS_RELATIVE,
+    "benchmark_manifest": protocol.CANONICAL_MANIFEST_RELATIVE,
+}
+
+
+def check_execution_provenance(
+    root: Path, run_manifest: Mapping[str, Any]
+) -> list[str]:
+    """Prove the run in *root* really was an OFFICIAL Phase-P execution.
+
+    PHASE P-R2.  The evidence root is not a scientific input, so binding the
+    manifest and the contract said nothing about it.  ``analyze`` therefore read
+    any directory and merely REPORTED ``analyzed_canonical_results_namespace``,
+    a boolean that took no part in ``blocking_failures`` and no part in the
+    verdict -- so a synthetic root whose rows satisfied every scientific gate
+    could receive ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`` and ``EXIT_OK``.
+
+    The canonical PATH is bound by the caller.  This function proves the second
+    half: that the run which wrote this directory recorded, in its own P-R1
+    provenance block, that it read the frozen config, the frozen model config and
+    the frozen benchmark manifest, and wrote the frozen results namespace.
+
+    ``official_phase_p_execution`` is checked LAST and is never the basis of the
+    verdict.  It is the producer's summary of its own run, and a summary is not
+    evidence: each recorded digest is compared against
+    ``protocol.accepted_frozen_digest`` -- the SHA-256 a reviewer signed off on
+    in the committed frozen-input record -- and the recorded output root is
+    compared against ``protocol.canonical_results_root()``.  A run manifest that
+    claims the boolean while recording one wrong digest is refused by the digest,
+    not excused by the claim.
+
+    Every failure is blocking and forces ``HOLD``.
+    """
+
+    if not run_manifest:
+        return [
+            f"INSTRUMENT_DEFECT: {root / protocol.RUN_MANIFEST_NAME} is missing or "
+            "empty; an official Phase-P qualification is scored only against a run "
+            "that recorded its own execution provenance"
+        ]
+    inputs = run_manifest.get("execution_inputs")
+    if not isinstance(inputs, Mapping):
+        return [
+            "INSTRUMENT_DEFECT: the run manifest records no execution_inputs "
+            "provenance block (Phase P-R1), so what this run actually read cannot "
+            "be established; it is not scoreable as an official qualification"
+        ]
+
+    failures: list[str] = []
+    binding = inputs.get("binding")
+    if binding != protocol.EXECUTION_INPUT_BINDING:
+        failures.append(
+            f"FROZEN_ARTIFACT_MISMATCH: the run recorded binding={binding!r}; an "
+            f"official Phase-P run records {protocol.EXECUTION_INPUT_BINDING!r}"
+        )
+
+    for name, relative in EXECUTION_INPUT_BINDINGS.items():
+        entry = inputs.get(name)
+        if not isinstance(entry, Mapping):
+            failures.append(
+                f"INSTRUMENT_DEFECT: the run manifest records no {name!r} execution "
+                f"input, so it cannot be proved to have read {relative}"
+            )
+            continue
+        try:
+            accepted = protocol.accepted_frozen_digest(relative)
+        except protocol.ProtocolError as exc:  # pragma: no cover - preflight covers it
+            failures.append(f"FROZEN_ARTIFACT_MISMATCH: {exc}")
+            continue
+        recorded_path = entry.get("repository_relative_path")
+        if recorded_path != relative:
+            failures.append(
+                f"FROZEN_ARTIFACT_MISMATCH: the run read {name} from "
+                f"{recorded_path!r}; an official Phase-P run reads {relative}"
+            )
+        recorded_digest = entry.get("sha256")
+        if recorded_digest != accepted:
+            failures.append(
+                f"FROZEN_ARTIFACT_MISMATCH: the run read {name} with "
+                f"sha256={recorded_digest!r}; the Phase-P freeze accepted "
+                f"{accepted} for {relative}"
+            )
+        if entry.get("is_canonical") is not True:
+            failures.append(
+                f"FROZEN_ARTIFACT_MISMATCH: the run itself recorded that its {name} "
+                "input was not the canonical frozen artifact"
+            )
+
+    canonical_root = protocol.canonical_results_root()
+    recorded_root = inputs.get("output_root")
+    resolved_recorded: Path | None = None
+    if isinstance(recorded_root, str) and recorded_root:
+        try:
+            resolved_recorded = Path(recorded_root).resolve()
+        except OSError:  # pragma: no cover - platform path resolution failure
+            resolved_recorded = None
+    if resolved_recorded != canonical_root:
+        failures.append(
+            f"FROZEN_ARTIFACT_MISMATCH: the run recorded output_root="
+            f"{recorded_root!r}; an official Phase-P run writes "
+            f"{protocol.RESULTS_NAMESPACE} at {canonical_root}, and evidence "
+            "written anywhere else is not official Phase-P evidence"
+        )
+    if inputs.get("output_root_is_canonical_namespace") is not True:
+        failures.append(
+            "FROZEN_ARTIFACT_MISMATCH: the run itself recorded that its output root "
+            f"was not the frozen {protocol.RESULTS_NAMESPACE} namespace"
+        )
+    # The caller bound the root before a row was read, so this can only fire if a
+    # future entry point forgets to.  Together with the recorded-output-root check
+    # above it is what makes "this run manifest describes THIS directory" a fact
+    # rather than an assumption: both are compared against the same canonical root.
+    analyzed = Path(root).resolve()
+    if analyzed != canonical_root:  # pragma: no cover - the caller binds this
+        failures.append(
+            f"FROZEN_ARTIFACT_MISMATCH: {analyzed} is not the frozen "
+            f"{protocol.RESULTS_NAMESPACE} namespace at {canonical_root}"
+        )
+
+    # LAST, and never load-bearing.  Everything above is recomputed from the
+    # committed freeze; this is the producer's own summary, checked for agreement.
+    if inputs.get("official_phase_p_execution") is not True:
+        failures.append(
+            "FROZEN_ARTIFACT_MISMATCH: the run manifest records "
+            f"official_phase_p_execution={inputs.get('official_phase_p_execution')!r}; "
+            "a run that does not itself claim to be an official Phase-P execution is "
+            "never scored as one"
+        )
+    return failures
+
+
+def _analyze(
     root: Path,
     *,
-    manifest_path: Path | None = None,
-    contract_path: Path | None = None,
+    mode: str,
+    manifest_path: Path | None,
+    contract_path: Path | None,
 ) -> dict[str, Any]:
-    """Score a completed Phase-P run.  Contacts nothing and runs no model.
+    """Score a completed Phase-P run in one of the two disjoint MODES.
+
+    Contacts nothing and runs no model.  Callers do not reach this directly:
+    :func:`analyze_official_qualification` and :func:`analyze_synthetic_evidence`
+    bind the evidence root each is allowed to read, and the mode decides the
+    verdict vocabulary, so the official qualification verdict cannot be emitted
+    over a synthetic root by any route.
 
     An OFFICIAL Phase-P qualification analysis reads exactly two scientific
     inputs -- ``benchmark/pilot-v7-rc4/manifest.json`` and
     ``benchmark/pilot-v7-rc4/qualification-contract.json`` -- and this function
     proves both before it reads a single row (Phase P-R1).  There is no
-    noncanonical analysis mode: an alternate manifest or contract raises
-    :class:`phaseP_protocol.NoncanonicalInput`, so no verdict at all is produced
-    and :data:`VERDICT_QUALIFIED` can never be claimed over inputs the freeze did
-    not accept.
+    noncanonical analysis mode for those two: an alternate manifest or contract
+    raises :class:`phaseP_protocol.NoncanonicalInput` in EITHER mode, so no
+    verdict at all is produced and no digest the freeze did not accept can be
+    attached to one.
     """
+
+    official = mode == MODE_OFFICIAL
 
     bound_manifest = protocol.require_canonical_input(
         protocol.CANONICAL_MANIFEST_RELATIVE, manifest_path
@@ -1140,6 +1372,13 @@ def analyze(
         else {}
     )
     matrix = check_matrix(schedule, rows, run_manifest)
+
+    # PHASE P-R2.  The evidence root participates in the verdict, in the official
+    # mode only, and it participates as a BLOCKING failure rather than as a
+    # reported boolean beside a PASS.
+    provenance_failures = (
+        check_execution_provenance(root, run_manifest) if official else []
+    )
 
     cell_results: list[Rc4CellResult] = []
     trace_defects: list[str] = []
@@ -1238,11 +1477,16 @@ def analyze(
         *(f"MATRIX_INVALID: {item}" for item in matrix.failures),
         *(f"INSTRUMENT_DEFECT: {item}" for item in trace_defects),
         *(f"INSTRUMENT_DEFECT: {item}" for item in ledger_failures),
+        *provenance_failures,
     ]
-    verdict = VERDICT_QUALIFIED if not blocking and not unqualified else VERDICT_HOLD
+    qualified = not blocking and not unqualified
+    if official:
+        verdict = VERDICT_QUALIFIED if qualified else VERDICT_HOLD
+    else:
+        verdict = VERDICT_SYNTHETIC_PASS if qualified else VERDICT_SYNTHETIC_HOLD
 
     payload: dict[str, Any] = {
-        "record_kind": "phase_p_qualification_analysis",
+        "record_kind": RECORD_KIND[mode],
         "phase": protocol.PHASE,
         "analyzer_version": ANALYZER_VERSION,
         "harness_version": harness.HARNESS_VERSION,
@@ -1261,13 +1505,20 @@ def analyze(
         ).hexdigest(),
         "qualification_contract_path": protocol.CANONICAL_CONTRACT_RELATIVE,
         "scientific_inputs_are_canonical": True,
-        # The evidence root is not a scientific input -- it is the run being
-        # read -- but a reader still needs to know whether this payload scored
-        # the official Phase-P namespace or a synthetic one, so it is stated
-        # rather than left to be assumed from the digests above.
+        # THE EVIDENCE ROOT (Phase P-R2).  In the official mode this is bound to
+        # the frozen namespace before a row is read, and the run's own P-R1
+        # provenance block is independently recomputed against the committed
+        # freeze; in the synthetic mode it is bound to be anything BUT that
+        # namespace, and the verdict vocabulary below is disjoint.  The flag is
+        # still reported, but it is no longer the only thing that distinguishes
+        # the two -- a boolean warning never again coexists with an official PASS.
+        "analysis_mode": mode,
+        "official_phase_p_qualification": official,
         "analyzed_canonical_results_namespace": protocol.is_canonical_results_root(
             root
         ),
+        "canonical_results_namespace": protocol.RESULTS_NAMESPACE,
+        "execution_provenance_failures": provenance_failures,
         "instrument_version": protocol.EXPECTED_INSTRUMENT_VERSION,
         "raw_schema_version": protocol.EXPECTED_RAW_SCHEMA_VERSION,
         "tool_argument_contract_version": (
@@ -1295,6 +1546,7 @@ def analyze(
         "tasks": task_payloads,
         "unqualified_tasks": unqualified,
         "verdict": verdict,
+        "verdict_vocabulary": list(MODE_VERDICTS[mode]),
         "interpretation_limits": contract.get("interpretation_limits", {}),
         "reports_no_qa_treatment_effect": True,
         "reports_no_model_ranking": True,
@@ -1302,10 +1554,85 @@ def analyze(
         "authorizes_confirmatory_execution": False,
         "model_inference_performed_by_this_analyzer": False,
     }
+    if not official:
+        payload["synthetic_analysis_disclaimer"] = SYNTHETIC_DISCLAIMER
     scope_failures = check_reporting_scope(payload)
     if scope_failures:  # pragma: no cover - defended by a test, never expected
         raise AnalysisError("; ".join(scope_failures))
     return payload
+
+
+def analyze_official_qualification(
+    root: Path | str | None = None,
+    *,
+    manifest_path: Path | None = None,
+    contract_path: Path | None = None,
+) -> dict[str, Any]:
+    """THE OFFICIAL PHASE-P QUALIFICATION ANALYSIS.  One namespace, and no other.
+
+    PHASE P-R2.  ``root`` is an ASSERTION that the caller means
+    ``results/phaseP-rc4-qualification``, checked by resolved canonical path;
+    ``None`` means the caller named nothing, which is that namespace by
+    definition.  Anything else raises :class:`phaseP_protocol.NoncanonicalInput`
+    before a single row is read, so there is no payload, no verdict and in
+    particular no :data:`VERDICT_QUALIFIED` to attach to synthetic evidence.
+
+    Passing the path is necessary and not sufficient.  The run that wrote the
+    directory must ALSO have recorded, in its own P-R1 ``execution_inputs``
+    block, that it read the frozen config, the frozen model config and the frozen
+    benchmark manifest and wrote the frozen namespace -- and
+    :func:`check_execution_provenance` recomputes each of those claims against
+    the committed frozen-input record rather than believing the run's own
+    ``official_phase_p_execution`` boolean.  Any mismatch is a blocking failure
+    and the verdict is ``HOLD``.
+    """
+
+    bound_root = protocol.require_canonical_results_root(root)
+    return _analyze(
+        bound_root,
+        mode=MODE_OFFICIAL,
+        manifest_path=manifest_path,
+        contract_path=contract_path,
+    )
+
+
+def analyze_synthetic_evidence(
+    root: Path | str,
+    *,
+    manifest_path: Path | None = None,
+    contract_path: Path | None = None,
+) -> dict[str, Any]:
+    """SYNTHETIC ANALYSIS ONLY.  It can never emit the official qualification verdict.
+
+    PHASE P-R2.  The offline suite needs to score complete, realistic 102-cell
+    matrices it built in a temporary directory -- that is how the scoring rules,
+    the matrix gates and the ledger reconciliation are regression-tested without
+    a model.  Before P-R2 it did that through the same function an official
+    qualification used, which is exactly why a synthetic root could receive
+    ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`` and ``EXIT_OK``.
+
+    This function refuses the frozen ``results/phaseP-rc4-qualification``
+    namespace outright, and its verdict vocabulary is
+    :data:`VERDICT_SYNTHETIC_PASS` / :data:`VERDICT_SYNTHETIC_HOLD`, which shares
+    no string with the official one.  A synthetic analysis that passes every
+    scientific gate says ``TEST_ANALYSIS_PASS`` and means it: the benchmark's
+    scoring rules were exercised, and nothing whatsoever was qualified.
+    """
+
+    resolved = Path(root).resolve()
+    if protocol.is_canonical_results_root(resolved):
+        raise protocol.NoncanonicalInput(
+            f"PROTOCOL_DEVIATION: {protocol.RESULTS_NAMESPACE} is the OFFICIAL "
+            "Phase-P evidence namespace and is scored only by "
+            "analyze_official_qualification(). A synthetic analysis never reads it, "
+            "so a synthetic verdict can never be reported over official evidence."
+        )
+    return _analyze(
+        resolved,
+        mode=MODE_SYNTHETIC,
+        manifest_path=manifest_path,
+        contract_path=contract_path,
+    )
 
 
 def _payload_counts(results: Sequence[Rc4CellResult]) -> dict[str, int]:
@@ -1323,7 +1650,16 @@ def _payload_counts(results: Sequence[Rc4CellResult]) -> dict[str, int]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", default=str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE))
+    parser.add_argument(
+        "--root",
+        default=str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE),
+        help=(
+            "The evidence root. An OFFICIAL qualification reads exactly "
+            f"{protocol.RESULTS_NAMESPACE} and nothing else; any other root is "
+            "refused (Phase P-R2) unless --synthetic-analysis is given, in which "
+            "case ONLY another root is accepted."
+        ),
+    )
     # BOUND, NOT SELECTABLE (Phase P-R1).  An official Phase-P qualification
     # analysis reads exactly the frozen rc4 manifest and the frozen rc4
     # qualification contract.  These options remain so that the reproduction
@@ -1351,6 +1687,21 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--out", default=None)
+    # PHASE P-R2.  The offline suite scores complete synthetic matrices, and
+    # before P-R2 it did so through the same code path an official qualification
+    # used -- which is how a temporary directory could receive
+    # PASS_RC4_QUALIFIED_FOR_QA_OFF_USE.  The mode is now explicit, opt-in, and
+    # structurally unable to read the official namespace or emit the official
+    # verdict.
+    parser.add_argument(
+        "--synthetic-analysis",
+        action="store_true",
+        help=(
+            "Score a SYNTHETIC evidence root under the TEST_ANALYSIS_* verdict "
+            f"vocabulary. Refuses {protocol.RESULTS_NAMESPACE}, never reports "
+            f"{VERDICT_QUALIFIED}, and qualifies nothing."
+        ),
+    )
     parser.add_argument(
         "--verify-scoring-plan",
         action="store_true",
@@ -1415,14 +1766,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 0 if not failures else protocol.EXIT_PREFLIGHT_STOP
 
+    # ---- THE EVIDENCE-ROOT BINDING (Phase P-R2). ---------------------------
+    #
+    # The default is the frozen namespace and the default mode is the OFFICIAL
+    # one, so the plain invocation means what it has always meant.  What changed
+    # is that a noncanonical --root no longer produces an official payload with a
+    # warning inside it: it produces no payload at all, and the only way to score
+    # one is to say --synthetic-analysis, which cannot report a qualification.
     try:
-        payload = analyze(
-            Path(args.root),
-            manifest_path=manifest_path,
-            contract_path=contract_path,
-        )
+        if args.synthetic_analysis:
+            payload = analyze_synthetic_evidence(
+                Path(args.root),
+                manifest_path=manifest_path,
+                contract_path=contract_path,
+            )
+        else:
+            payload = analyze_official_qualification(
+                Path(args.root),
+                manifest_path=manifest_path,
+                contract_path=contract_path,
+            )
     except (AnalysisError, protocol.ProtocolError) as exc:
         print(f"HOLD: {exc}", file=sys.stderr)
+        if not args.synthetic_analysis:
+            print(
+                "NONCANONICAL_EVIDENCE_ROOT: no official Phase-P qualification "
+                f"verdict is produced, and in particular no {VERDICT_QUALIFIED}. "
+                "An official qualification is defined only over "
+                f"{protocol.RESULTS_NAMESPACE}.",
+                file=sys.stderr,
+            )
         return protocol.EXIT_PREFLIGHT_STOP
 
     if args.out:
@@ -1434,6 +1807,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(json.dumps(payload, indent=2, sort_keys=True))
     for failure in payload["blocking_failures"]:
         print(failure, file=sys.stderr)
+    if args.synthetic_analysis:
+        print(SYNTHETIC_DISCLAIMER, file=sys.stderr)
+        return (
+            protocol.EXIT_OK
+            if payload["verdict"] == VERDICT_SYNTHETIC_PASS
+            else protocol.EXIT_VERDICT_HOLD
+        )
     return (
         protocol.EXIT_OK
         if payload["verdict"] == VERDICT_QUALIFIED
@@ -1459,10 +1839,20 @@ __all__ = [
     "SEPARATE_OUTCOME_CLASSES",
     "NearMissExclusion",
     "SeparateOutcomeClass",
+    "EXECUTION_INPUT_BINDINGS",
+    "MODE_OFFICIAL",
+    "MODE_SYNTHETIC",
+    "MODE_VERDICTS",
+    "RECORD_KIND",
+    "SYNTHETIC_DISCLAIMER",
     "VERDICT_HOLD",
     "VERDICT_QUALIFIED",
-    "analyze",
+    "VERDICT_SYNTHETIC_HOLD",
+    "VERDICT_SYNTHETIC_PASS",
+    "analyze_official_qualification",
+    "analyze_synthetic_evidence",
     "build_scoring_plans",
+    "check_execution_provenance",
     "check_matrix",
     "check_reporting_scope",
     "check_scoring_plan_is_contract_bound",
