@@ -48,11 +48,21 @@ THE FORBIDDEN SET IS PROVED, NOT ASSERTED
 
 :data:`FORBIDDEN_SEEDS` is not a hand-maintained list that a reviewer must trust.
 :func:`scan_committed_seeds` reads the committed configurations, the committed
-raw result rows and the committed JSON artifacts and reports every seed the
-repository has ever recorded.  :func:`collision_report` requires the forbidden
-set to be a SUPERSET of what the scan finds, so a seed introduced by some phase
-this module's author did not know about makes the derivation FAIL rather than
-silently pass.
+raw result rows and the committed JSON artifacts UNDER :data:`SCAN_ROOTS` AS
+THEY STAND IN THE CURRENT COMMITTED TREE, and reports every seed they record.
+:func:`collision_report` requires the forbidden set to be a SUPERSET of what the
+scan finds, so a seed introduced by some phase this module's author did not know
+about makes the derivation FAIL rather than silently pass.
+
+The scope of that claim is stated precisely because it is narrower than "every
+seed the repository has ever recorded": the mechanism is ``git ls-files`` at the
+current commit, so a seed that existed only in a file some earlier commit later
+deleted is outside what this function can see.  That residual gap was closed
+INDEPENDENTLY, by a full-history rereview that read every blob ever committed
+under :data:`SCAN_ROOTS` -- not only the ones the current tree still contains --
+and found every seed value in it already covered; its figures are recorded in
+``docs/phaseP_rc4_protocol_freeze_report.md`` §10 rather than reasserted here.
+This docstring describes the MECHANISM, and the mechanism is a current-tree scan.
 
 The file set is enumerated with ``git ls-files``, not by walking the filesystem.
 That distinction is load-bearing: this repository gitignores several large local

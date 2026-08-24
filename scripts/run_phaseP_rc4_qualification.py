@@ -29,9 +29,22 @@ WHAT THIS DRIVER DOES, IN ORDER, AND NEVER OUT OF ORDER
 0. ``--verify-frozen-inputs``, if given, runs the complete OFFLINE protocol
    validation and exits.  It contacts nothing, creates nothing and needs no gate.
 1. **Human gate.**  Both conditions, or nothing whatsoever happens.  This is
-   evaluated before the offline preflight, before any configuration is loaded,
-   before any provider object exists, before any metadata probe and before any
-   directory is created.
+   evaluated before the frozen-input binding, before the offline preflight,
+   before any configuration is loaded, before any provider object exists, before
+   any metadata probe and before any directory is created.
+1b. **Frozen scientific input binding** (Phase P-R1).  ``--config``,
+   ``--manifest`` and ``--output-root`` are ASSERTIONS, not choices.  Each is
+   proven to be the frozen Phase-P artifact by resolved canonical PATH equality
+   AND by the SHA-256 that ``docs/phaseP_frozen_execution_inputs.json``
+   accepted, and ``--output-root`` is required to be the frozen
+   ``results/phaseP-rc4-qualification`` namespace.  The offline preflight proves
+   the canonical TREE is intact; it says nothing about which files a given
+   invocation was pointed at, so a structurally valid 17-case pilot-v7-rc4
+   look-alike, a Phase-P-shaped config with a changed runtime setting, or an
+   arbitrary output namespace would otherwise have executed under canonical
+   provenance.  Any of them is now an IMMEDIATE_STOP with zero metadata probes,
+   zero cells and no results namespace.  This CLI has NO noncanonical
+   Phase-P execution mode.
 2. **Offline preflight** (``scripts/phaseP_protocol.py``).  The frozen plan
    matches its sidecar; every frozen scientific execution input matches its
    recorded SHA-256; the instrument is version ``4`` with raw schema ``5``,
@@ -97,6 +110,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass, replace
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -261,13 +275,19 @@ def check_experiment_configuration(config: Any) -> list[str]:
             f"{config.repetitions}; Phase P executes exactly {protocol.SEED_COUNT} "
             "seeds per (arm, task)"
         )
-    resolved_models = Path(config.models_path).resolve()
-    expected_models = (PROJECT_ROOT / "configs" / "phaseP-models.yaml").resolve()
-    if resolved_models != expected_models:
+    # THE MODEL CONFIG IS BOUND, NOT MERELY LOCATED.  Canonical path equality
+    # refuses a historical or copied models file; the frozen digest refuses an
+    # edited one at the canonical path.  A config that "looks like" Phase P --
+    # right seeds, right treatment, right repetitions -- but points at, or is
+    # accompanied by, different model bytes is not a Phase-P input.
+    try:
+        protocol.require_canonical_input(
+            protocol.CANONICAL_MODELS_RELATIVE, config.models_path
+        )
+    except protocol.NoncanonicalInput as exc:
         failures.append(
-            f"FROZEN_ARTIFACT_MISMATCH: the config points at models {resolved_models}, "
-            f"Phase P is frozen against {expected_models}. A configuration from a "
-            "historical phase is never a Phase-P input."
+            f"{exc} A configuration from a historical phase, or a copy of the "
+            "Phase-P one, is never a Phase-P input."
         )
     return failures
 
@@ -663,6 +683,85 @@ def run_frozen_schedule(
     return controller.result()
 
 
+def _describe_path(path: Path) -> dict[str, Any]:
+    """One input's ACTUAL identity: where it is, and what its bytes hash to.
+
+    Never the digest of the artifact we WISH had been read -- always the bytes
+    at the path this run actually used.
+    """
+
+    resolved = Path(path).resolve()
+    try:
+        relative = resolved.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        relative = None
+    try:
+        digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
+    except OSError:
+        digest = None
+    return {
+        "path": str(resolved),
+        "repository_relative_path": relative,
+        "sha256": digest,
+    }
+
+
+def describe_execution_inputs(
+    *,
+    config_path: Path,
+    models_path: Path,
+    manifest_path: Path,
+    output_root: Path,
+) -> dict[str, Any]:
+    """The provenance of what this run ACTUALLY read and wrote.
+
+    PHASE P-R1, requirement 5.  Every digest recorded here is computed from the
+    bytes at the path this invocation used, so a run manifest can never report a
+    canonical digest over noncanonical inputs.  ``*_is_canonical`` states the
+    binding verdict for each input separately, and
+    ``official_phase_p_execution`` is true only when EVERY one of them holds --
+    which is the single field a reader needs in order to know whether this
+    directory is an official Phase-P run or a harness exercise.
+    """
+
+    described = {
+        "config": _describe_path(config_path),
+        "models": _describe_path(models_path),
+        "benchmark_manifest": _describe_path(manifest_path),
+    }
+    canonical = {
+        "config": protocol.CANONICAL_CONFIG_RELATIVE,
+        "models": protocol.CANONICAL_MODELS_RELATIVE,
+        "benchmark_manifest": protocol.CANONICAL_MANIFEST_RELATIVE,
+    }
+    for name, entry in described.items():
+        relative = canonical[name]
+        try:
+            accepted: str | None = protocol.accepted_frozen_digest(relative)
+        except protocol.ProtocolError:
+            accepted = None
+        entry["canonical_repository_relative_path"] = relative
+        entry["frozen_sha256"] = accepted
+        entry["is_canonical"] = bool(
+            entry["repository_relative_path"] == relative
+            and accepted is not None
+            and entry["sha256"] == accepted
+        )
+    resolved_root = Path(output_root).resolve()
+    namespace_is_canonical = protocol.is_canonical_results_root(resolved_root)
+    return {
+        **described,
+        "output_root": str(resolved_root),
+        "canonical_results_namespace": protocol.RESULTS_NAMESPACE,
+        "output_root_is_canonical_namespace": namespace_is_canonical,
+        "binding": "CANONICAL_PATH_AND_FROZEN_SHA256",
+        "official_phase_p_execution": bool(
+            namespace_is_canonical
+            and all(entry["is_canonical"] for entry in described.values())
+        ),
+    }
+
+
 def _write_run_manifest(
     path: Path,
     *,
@@ -670,6 +769,7 @@ def _write_run_manifest(
     summary: Mapping[str, Any],
     frozen_inputs: Mapping[str, Any],
     runtime_metadata: Mapping[str, Any],
+    execution_inputs: Mapping[str, Any],
 ) -> None:
     payload = {
         "record_kind": "phase_p_run_manifest",
@@ -677,6 +777,10 @@ def _write_run_manifest(
         "benchmark_version": protocol.BENCHMARK_VERSION,
         "protocol": dict(summary),
         "frozen_inputs": dict(frozen_inputs),
+        # THE INPUTS THIS RUN ACTUALLY READ, hashed from their own bytes.  Phase
+        # P-R1: a run manifest never reports a canonical digest for a file it did
+        # not read.
+        "execution_inputs": dict(execution_inputs),
         "runtime_metadata": dict(runtime_metadata),
         "terminal_status": result.terminal_status,
         "exit_code": result.exit_code,
@@ -728,17 +832,39 @@ def build_parser() -> argparse.ArgumentParser:
             "cell. Safe to run at any time and needs no gate."
         ),
     )
+    # THE THREE BOUND OPTIONS.  Each is an ASSERTION that the caller means the
+    # frozen Phase-P artifact, checked in main() by canonical path equality AND
+    # by the SHA-256 the frozen-input record accepted.  They exist so that a
+    # command line can be written out in full in a protocol document and still be
+    # exactly reproducible; they are NOT a way to select a different scientific
+    # input, and supplying anything else is refused before any provider contact.
     parser.add_argument(
-        "--config", default=str(PROJECT_ROOT / "configs" / "phaseP-qualification.yaml")
-    )
-    parser.add_argument(
-        "--manifest",
-        default=str(
-            PROJECT_ROOT / "benchmark" / protocol.BENCHMARK_VERSION / "manifest.json"
+        "--config",
+        default=str(PROJECT_ROOT / protocol.CANONICAL_CONFIG_RELATIVE),
+        help=(
+            "Must be the frozen "
+            f"{protocol.CANONICAL_CONFIG_RELATIVE}. A semantically similar "
+            "alternate config is not a frozen Phase-P input and is refused."
         ),
     )
     parser.add_argument(
-        "--output-root", default=str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE)
+        "--manifest",
+        default=str(PROJECT_ROOT / protocol.CANONICAL_MANIFEST_RELATIVE),
+        help=(
+            "Must be the frozen "
+            f"{protocol.CANONICAL_MANIFEST_RELATIVE}. A structurally valid "
+            f"look-alike -- same benchmark_version, same {protocol.TASK_COUNT} "
+            "tasks -- is refused."
+        ),
+    )
+    parser.add_argument(
+        "--output-root",
+        default=str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE),
+        help=(
+            "Must be the frozen "
+            f"{protocol.RESULTS_NAMESPACE}. This driver does not reinterpret an "
+            "alternate namespace as an official Phase-P run."
+        ),
     )
     return parser
 
@@ -749,9 +875,9 @@ def verify_frozen_inputs() -> tuple[int, list[str]]:
     failures = list(protocol.offline_preflight())
     try:
         config = load_experiment_config(
-            PROJECT_ROOT / "configs" / "phaseP-qualification.yaml"
+            protocol.require_canonical_input(protocol.CANONICAL_CONFIG_RELATIVE)
         )
-    except ExperimentConfigError as exc:
+    except (ExperimentConfigError, protocol.ProtocolError) as exc:
         failures.append(f"FROZEN_ARTIFACT_MISMATCH: the Phase-P config is invalid: {exc}")
     else:
         failures.extend(check_experiment_configuration(config))
@@ -764,39 +890,36 @@ def verify_frozen_inputs() -> tuple[int, list[str]]:
     return (protocol.EXIT_OK if not failures else protocol.EXIT_PREFLIGHT_STOP), failures
 
 
-def main(
-    argv: Sequence[str] | None = None,
+def execute_bound_run(
     *,
-    env: Mapping[str, str] | None = None,
+    config_path: Path,
+    manifest_path: Path,
+    output_root: Path,
+    env: Mapping[str, str],
     probe: MetadataProbe | None = None,
     execute_cell: CellExecutor | None = None,
 ) -> int:
-    args = build_parser().parse_args(list(argv) if argv is not None else None)
-    environment = os.environ if env is None else env
+    """Run the frozen schedule against ALREADY-BOUND scientific inputs.
 
-    # ---- 0. Offline-only verification. Contacts nothing, needs no gate. ----
-    if args.verify_frozen_inputs:
-        code, failures = verify_frozen_inputs()
-        for failure in failures:
-            print(failure, file=sys.stderr)
-        print(
-            f"Phase-P offline verification: {'PASS' if not failures else 'FAIL'} "
-            f"({len(failures)} failure(s)); no provider contacted, no runtime probed, "
-            "no directory created"
-        )
-        return code
+    **INTERNAL.  THIS FUNCTION BINDS NOTHING AND AUTHORIZES NOTHING.**  It trusts
+    its caller to have proved that ``config_path``, ``manifest_path`` and
+    ``output_root`` are the frozen Phase-P ones, and it is reached only after the
+    human gate has already opened.  The ONLY production caller is :func:`main`,
+    which proves exactly that -- gate first, then
+    ``protocol.require_canonical_input`` on the config and the manifest and
+    ``protocol.require_canonical_results_root`` on the namespace -- before
+    delegating here.
 
-    # ---- 1. HUMAN GATE. Nothing whatsoever happens before this passes. ----
-    #
-    # This is deliberately the FIRST thing after argument parsing: no config is
-    # loaded, no provider object is constructed, no metadata is probed and no
-    # directory is created until both conditions hold.
-    refusal = human_gate_refusal(
-        execute_flag=bool(args.execute_real_model), env=environment
-    )
-    if refusal is not None:
-        print(refusal, file=sys.stderr)
-        return protocol.EXIT_GATE_CLOSED
+    The offline suite calls it directly with a temporary ``output_root`` so a
+    test can drive the machinery past the namespace precondition without a real
+    provider.  That is safe and it is NOT a bypass of the P-R1 binding: a
+    temporary root produces no ``results/phaseP-rc4-qualification``, so nothing
+    it writes is or can be mistaken for an official Phase-P run, and the run
+    manifest it writes says so in ``execution_inputs`` (see
+    :func:`describe_execution_inputs`).  ``manifest_path`` is still bound a
+    second time inside ``protocol.load_benchmark``, which refuses a noncanonical
+    manifest no matter who calls it.
+    """
 
     # ---- 2. Offline preflight, still before any provider contact. ----
     failures = protocol.offline_preflight()
@@ -805,16 +928,36 @@ def main(
             print(f"IMMEDIATE_STOP: {failure}", file=sys.stderr)
         return protocol.EXIT_PREFLIGHT_STOP
 
-    config_path = Path(args.config).resolve()
-    manifest_path = Path(args.manifest).resolve()
-    output_root = Path(args.output_root).resolve()
-
     try:
         benchmark = protocol.load_benchmark(manifest_path)
         schedule = protocol.build_phase_p_schedule(benchmark)
         summary = protocol.protocol_summary()
     except (protocol.ProtocolError, ExperimentConfigError) as exc:
         print(f"IMMEDIATE_STOP: FROZEN_ARTIFACT_MISMATCH: {exc}", file=sys.stderr)
+        return protocol.EXIT_PREFLIGHT_STOP
+
+    # ---- 2b. PROVENANCE TRUTH.  The summary this run is about to persist must
+    # describe the schedule this run is about to execute.  ``protocol_summary``
+    # is derived from the CANONICAL manifest; ``schedule`` is derived from the
+    # manifest actually supplied.  If those two ever disagreed, the run manifest
+    # would report a canonical protocol over noncanonical rows -- exactly the
+    # P-R1 defect.  They cannot disagree once the binding holds, which is why
+    # this is checked rather than assumed.
+    executed_facts: tuple[tuple[str, Any], ...] = (
+        ("benchmark_manifest_sha256", benchmark.manifest_sha256),
+        ("task_order", list(benchmark.task_ids)),
+        ("planned_cells", len(schedule)),
+        ("schedule_digest", protocol.schedule_digest(schedule)),
+    )
+    drift = [
+        f"PROTOCOL_DEVIATION: the recorded protocol summary reports "
+        f"{field}={summary.get(field)!r} but this run would execute {value!r}"
+        for field, value in executed_facts
+        if summary.get(field) != value
+    ]
+    if drift:
+        for failure in drift:
+            print(f"IMMEDIATE_STOP: {failure}", file=sys.stderr)
         return protocol.EXIT_PREFLIGHT_STOP
 
     # ---- 3. Configuration assertion. Local reads only. ----
@@ -857,7 +1000,7 @@ def main(
 
     # Credential presence is checked by NAME only.  The value is never read into a
     # message, never printed and never written to an artifact.
-    if not environment.get(protocol.CREDENTIAL_ENV):
+    if not env.get(protocol.CREDENTIAL_ENV):
         print(
             f"STOP: environment variable {protocol.CREDENTIAL_ENV!r} is unset; the "
             "local OpenAI-compatible adapter requires a credential value even when "
@@ -900,6 +1043,12 @@ def main(
         summary=summary,
         frozen_inputs=protocol.load_frozen_inputs(),
         runtime_metadata=runtime_metadata,
+        execution_inputs=describe_execution_inputs(
+            config_path=config_path,
+            models_path=Path(base_config.models_path),
+            manifest_path=manifest_path,
+            output_root=output_root,
+        ),
     )
 
     if result.stopped:
@@ -919,6 +1068,83 @@ def main(
     return exit_code
 
 
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    env: Mapping[str, str] | None = None,
+    probe: MetadataProbe | None = None,
+    execute_cell: CellExecutor | None = None,
+) -> int:
+    args = build_parser().parse_args(list(argv) if argv is not None else None)
+    environment = os.environ if env is None else env
+
+    # ---- 0. Offline-only verification. Contacts nothing, needs no gate. ----
+    if args.verify_frozen_inputs:
+        code, failures = verify_frozen_inputs()
+        for failure in failures:
+            print(failure, file=sys.stderr)
+        print(
+            f"Phase-P offline verification: {'PASS' if not failures else 'FAIL'} "
+            f"({len(failures)} failure(s)); no provider contacted, no runtime probed, "
+            "no directory created"
+        )
+        return code
+
+    # ---- 1. HUMAN GATE. Nothing whatsoever happens before this passes. ----
+    #
+    # This is deliberately the FIRST thing after argument parsing: no config is
+    # loaded, no path is bound, no provider object is constructed, no metadata is
+    # probed and no directory is created until both conditions hold.
+    refusal = human_gate_refusal(
+        execute_flag=bool(args.execute_real_model), env=environment
+    )
+    if refusal is not None:
+        print(refusal, file=sys.stderr)
+        return protocol.EXIT_GATE_CLOSED
+
+    # ---- 1b. FROZEN SCIENTIFIC INPUT BINDING (Phase P-R1). ------------------
+    #
+    # The offline preflight proves the CANONICAL tree is intact.  It says nothing
+    # about which files THIS INVOCATION was pointed at.  Before P-R1 a caller
+    # could pass the canonical preflight and then hand ``--manifest`` a
+    # structurally valid 17-case pilot-v7-rc4 look-alike, ``--config`` a
+    # Phase-P-shaped config with a changed runtime setting, or ``--output-root``
+    # an arbitrary namespace -- and the run would proceed while its persisted
+    # provenance still described the canonical artifacts.
+    #
+    # These three options are therefore ASSERTIONS, not choices.  Each is proven
+    # by canonical path equality AND by the SHA-256 the frozen-input record
+    # accepted, and it happens before the preflight's own work, before the config
+    # is parsed, before the namespace is inspected, before any metadata probe and
+    # before any directory exists.  Anything else is refused outright: this CLI
+    # has no noncanonical Phase-P execution mode.
+    try:
+        config_path = protocol.require_canonical_input(
+            protocol.CANONICAL_CONFIG_RELATIVE, args.config
+        )
+        manifest_path = protocol.require_canonical_input(
+            protocol.CANONICAL_MANIFEST_RELATIVE, args.manifest
+        )
+        output_root = protocol.require_canonical_results_root(args.output_root)
+    except protocol.ProtocolError as exc:
+        print(f"IMMEDIATE_STOP: {exc}", file=sys.stderr)
+        print(
+            "NONCANONICAL_PHASE_P_EXECUTION: refused. 0 metadata probes, 0 cells "
+            "executed, no results namespace created.",
+            file=sys.stderr,
+        )
+        return protocol.EXIT_PREFLIGHT_STOP
+
+    return execute_bound_run(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_root=output_root,
+        env=environment,
+        probe=probe,
+        execute_cell=execute_cell,
+    )
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
 
@@ -931,6 +1157,8 @@ __all__ = [
     "check_arm_configuration",
     "check_experiment_configuration",
     "check_output_namespace",
+    "describe_execution_inputs",
+    "execute_bound_run",
     "human_gate_refusal",
     "lost_cell_row",
     "main",

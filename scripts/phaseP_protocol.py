@@ -47,6 +47,27 @@ WHAT THIS MODULE DELIBERATELY DOES NOT DO
 5. **It does not authorize execution.**  The human gate lives in the driver, is
    closed by default, requires two independent conditions, and is set nowhere in
    this repository.  This module only names it.
+6. **It does not accept a substitute scientific input.**  See below.
+
+FROZEN SCIENTIFIC INPUT BINDING (PHASE P-R1)
+============================================
+
+The original freeze checked that a supplied manifest was STRUCTURALLY plausible
+-- ``benchmark_version == pilot-v7-rc4`` with seventeen cases -- and that a
+supplied config declared the frozen seeds.  Those are properties, not identity.
+A copied manifest with the task order changed, a copied contract with one
+scoring clause loosened, or a copied config with a changed runtime setting all
+satisfy them while describing a DIFFERENT experiment, so a caller could pass the
+canonical offline preflight and then execute or score something else while the
+emitted provenance still named the canonical artifacts.
+
+:func:`require_canonical_input` closes that.  Every scientific input a caller can
+name is proven twice -- resolved canonical PATH equality, and SHA-256 equality
+with the digest ``docs/phaseP_frozen_execution_inputs.json`` accepted -- before
+it is read for anything.  :func:`load_benchmark` applies it to its OWN argument
+rather than trusting the caller, and :func:`require_canonical_results_root` binds
+the one namespace an official run may write.  A refusal is raised before any
+metadata probe, any provider object, any directory creation and any cell.
 
 THE CONTRACT-DRIFT CLASSIFIER
 =============================
@@ -271,6 +292,48 @@ NO_RETRY_POLICY: Mapping[str, bool] = {
 OUT_OF_SCOPE_TREATMENTS: tuple[str, ...] = ("full", "partial", "ablation", "confirmatory")
 
 # --------------------------------------------------------------------------
+# The ONE set of scientific inputs an official Phase-P run or analysis may read
+# --------------------------------------------------------------------------
+#
+# PHASE P-R1.  The original freeze let the driver and the analyzer accept
+# ``--config``, ``--manifest``, ``--contract`` and ``--output-root`` and checked
+# only that whatever arrived was STRUCTURALLY plausible: benchmark_version
+# ``pilot-v7-rc4`` with seventeen cases, a config with the right seeds.  A
+# structurally plausible look-alike is not a frozen input.  A copied manifest
+# with the tasks reordered, a copied contract with one scoring clause loosened,
+# or a copied config with a changed runtime setting all satisfied those checks,
+# so a caller could pass the canonical offline preflight and then execute or
+# score a DIFFERENT experiment while the emitted provenance still described the
+# canonical one.  Phase P binds the inputs themselves, by canonical path AND by
+# the SHA-256 the frozen-input record accepted, and refuses everything else.
+
+CANONICAL_MANIFEST_RELATIVE = f"benchmark/{BENCHMARK_VERSION}/manifest.json"
+CANONICAL_CONTRACT_RELATIVE = (
+    f"benchmark/{BENCHMARK_VERSION}/qualification-contract.json"
+)
+CANONICAL_CONFIG_RELATIVE = "configs/phaseP-qualification.yaml"
+CANONICAL_MODELS_RELATIVE = "configs/phaseP-models.yaml"
+
+#: Every scientific input a caller can name from outside this module.  Each one
+#: is also a hashed entry of :data:`FROZEN_INPUT_PATHS`, which is what makes the
+#: digest half of the binding checkable.
+CANONICAL_SCIENTIFIC_INPUTS: tuple[str, ...] = (
+    CANONICAL_CONFIG_RELATIVE,
+    CANONICAL_MODELS_RELATIVE,
+    CANONICAL_MANIFEST_RELATIVE,
+    CANONICAL_CONTRACT_RELATIVE,
+)
+
+
+class NoncanonicalInput(ProtocolError):
+    """A supplied scientific input or output namespace is not the frozen one.
+
+    Raised BEFORE any metadata probe, any provider object, any directory
+    creation and any cell.  It is a subclass of :class:`ProtocolError` so every
+    existing caller that already refuses a ``ProtocolError`` refuses this too.
+    """
+
+# --------------------------------------------------------------------------
 # Instrument / schema / contract pins -- the ACCEPTED Phase-O revision
 # --------------------------------------------------------------------------
 
@@ -408,8 +471,8 @@ PLAN_RELATIVE = "docs/phaseP_rc4_real_model_qualification_plan.md"
 FROZEN_INPUT_PATHS: tuple[str, ...] = (
     # The protocol itself.
     PLAN_RELATIVE,
-    "configs/phaseP-qualification.yaml",
-    "configs/phaseP-models.yaml",
+    CANONICAL_CONFIG_RELATIVE,
+    CANONICAL_MODELS_RELATIVE,
     "scripts/phaseP_protocol.py",
     "scripts/phaseP_derive_seeds.py",
     "scripts/run_phaseP_rc4_qualification.py",
@@ -432,9 +495,9 @@ FROZEN_INPUT_PATHS: tuple[str, ...] = (
     "scripts/phaseL_protocol.py",
     "scripts/analyze_phaseL_requalification.py",
     # The benchmark and its scoring contract.
-    "benchmark/pilot-v7-rc4/manifest.json",
+    CANONICAL_MANIFEST_RELATIVE,
     "benchmark/pilot-v7-rc4/provenance.json",
-    "benchmark/pilot-v7-rc4/qualification-contract.json",
+    CANONICAL_CONTRACT_RELATIVE,
     "benchmark/pilot-v7-rc4/AUDIT.md",
     "benchmark/pilot-v7-rc4/freeze-record.json",
     # The QA policy the future treatment would be defined against.  Phase P runs
@@ -595,6 +658,108 @@ def check_frozen_inputs() -> list[str]:
             "execution is authorized"
         )
     return failures
+
+
+# --------------------------------------------------------------------------
+# FROZEN SCIENTIFIC INPUT BINDING (Phase P-R1)
+# --------------------------------------------------------------------------
+#
+# TWO INDEPENDENT PROOFS, BOTH REQUIRED, for every scientific input a caller can
+# name:
+#
+#   1. CANONICAL PATH.  The resolved path must BE the frozen path.  This is what
+#      refuses a byte-identical copy placed somewhere else: a copy is not the
+#      artifact the freeze record, the AUDIT, the provenance record and the
+#      supersession audit are all talking about, and an official run that read a
+#      copy could not be reproduced from the commit.
+#   2. FROZEN DIGEST.  The bytes at that path must hash to the SHA-256 that
+#      ``docs/phaseP_frozen_execution_inputs.json`` ACCEPTED.  This is what
+#      refuses an EDITED canonical file -- a manifest with the tasks reordered,
+#      a contract with one scoring clause loosened, a config with a changed
+#      runtime setting -- even in the window where nothing else has looked at it
+#      yet.
+#
+# Neither proof subsumes the other and neither is skippable.  The digest half
+# deliberately duplicates work ``check_frozen_inputs`` already does during the
+# offline preflight, because the point of this layer is that it holds even if an
+# upstream caller forgot to run the preflight, ran it against a different tree,
+# or ran it and then swapped the argument.
+
+
+def canonical_input_path(relative: str) -> Path:
+    """The ONE resolved path Phase P accepts for *relative*."""
+
+    return (PROJECT_ROOT / relative).resolve()
+
+
+def accepted_frozen_digest(relative: str) -> str:
+    """The SHA-256 the committed frozen-input record ACCEPTED for *relative*.
+
+    Read from the record rather than recomputed, so this is the digest a
+    REVIEWER signed off on, not whatever the current working tree happens to
+    contain.
+    """
+
+    try:
+        record = load_frozen_inputs()
+    except (ProtocolError, json.JSONDecodeError) as exc:
+        raise NoncanonicalInput(
+            f"FROZEN_ARTIFACT_MISMATCH: the Phase-P frozen-input record could not "
+            f"be read, so no scientific input can be bound: {exc}"
+        ) from exc
+    files = record.get("files")
+    digest = files.get(relative) if isinstance(files, Mapping) else None
+    if not isinstance(digest, str) or len(digest) != 64:
+        raise NoncanonicalInput(
+            f"FROZEN_ARTIFACT_MISMATCH: {FROZEN_INPUTS_RELATIVE} records no accepted "
+            f"SHA-256 for {relative}; Phase P never freezes an input it cannot bind"
+        )
+    return digest
+
+
+def require_canonical_input(relative: str, supplied: Path | str | None = None) -> Path:
+    """Prove *supplied* is the frozen *relative* input, and return its path.
+
+    ``supplied`` is NOT a choice of scientific input.  It is an ASSERTION, made
+    by the caller, that it means the one frozen artifact -- and this function is
+    where that assertion is checked.  ``None`` means the caller named nothing,
+    which is the canonical artifact by definition; the digest proof still runs.
+
+    Raises :class:`NoncanonicalInput` -- never returns a "close enough" path.
+    """
+
+    canonical = canonical_input_path(relative)
+    if supplied is not None:
+        try:
+            offered = Path(supplied).resolve()
+        except OSError as exc:  # pragma: no cover - platform path resolution failure
+            raise NoncanonicalInput(
+                f"FROZEN_ARTIFACT_MISMATCH: {supplied!r} could not be resolved as a "
+                f"path while binding {relative}: {exc}"
+            ) from exc
+        if offered != canonical:
+            raise NoncanonicalInput(
+                f"FROZEN_ARTIFACT_MISMATCH: Phase P is bound to the frozen "
+                f"{relative} at {canonical}; {offered} is not that file. A "
+                f"STRUCTURALLY VALID look-alike -- same benchmark_version, same "
+                f"{TASK_COUNT} tasks, same seeds, same treatment -- is NOT a frozen "
+                "Phase-P scientific input, and no official Phase-P execution or "
+                "qualification analysis may read one."
+            )
+    expected = accepted_frozen_digest(relative)
+    try:
+        actual = sha256_file(relative)
+    except OSError as exc:
+        raise NoncanonicalInput(
+            f"FROZEN_ARTIFACT_MISMATCH: the frozen {relative} could not be read: {exc}"
+        ) from exc
+    if actual != expected:
+        raise NoncanonicalInput(
+            f"FROZEN_ARTIFACT_MISMATCH: {relative} recorded={expected} "
+            f"actual={actual}; the canonical path holds bytes the Phase-P freeze "
+            "never accepted"
+        )
+    return canonical
 
 
 def check_plan_sidecar() -> list[str]:
@@ -1328,14 +1493,34 @@ class LoadedBenchmark:
 
 
 def load_benchmark(manifest_path: Path | None = None) -> LoadedBenchmark:
-    """Load the frozen rc4 benchmark and refuse anything that is not it."""
+    """Load the frozen rc4 benchmark and refuse anything that is not it.
+
+    DEFENCE IN DEPTH (Phase P-R1).  This function binds its own input rather
+    than trusting the caller to have done it.  ``benchmark_version ==
+    pilot-v7-rc4`` and ``len(cases) == 17`` are STRUCTURAL checks: a copied
+    manifest with the tasks reordered, or with one case binding changed, passes
+    both while being a different experiment.  The manifest is therefore proven
+    to be the canonical frozen artifact -- by path, by the digest the frozen
+    record accepted, and by the loader's own independent hash of the bytes it
+    read -- before a single task id is taken from it.  An upstream caller that
+    forgets to check cannot make this one forget.
+    """
 
     from iqa_soa.benchmark import load_frozen_pilot  # noqa: PLC0415 - import shim
 
-    path = manifest_path or (
-        PROJECT_ROOT / "benchmark" / BENCHMARK_VERSION / "manifest.json"
-    )
+    path = require_canonical_input(CANONICAL_MANIFEST_RELATIVE, manifest_path)
     frozen_pilot = load_frozen_pilot(path)
+    # The loader hashed the raw bytes it actually parsed.  Requiring that to
+    # equal the accepted digest closes the gap between "the file at this path
+    # hashes correctly" and "the object we are about to build came from those
+    # bytes".
+    accepted = accepted_frozen_digest(CANONICAL_MANIFEST_RELATIVE)
+    if frozen_pilot.manifest_sha256 != accepted:
+        raise NoncanonicalInput(
+            f"FROZEN_ARTIFACT_MISMATCH: the loaded {CANONICAL_MANIFEST_RELATIVE} "
+            f"hashes to {frozen_pilot.manifest_sha256}, the Phase-P freeze accepted "
+            f"{accepted}"
+        )
     if frozen_pilot.benchmark_version != BENCHMARK_VERSION:
         raise ProtocolError(
             f"expected {BENCHMARK_VERSION}, got {frozen_pilot.benchmark_version}"
@@ -1432,6 +1617,45 @@ RAW_RECORD_NAME = "phaseP-runs.jsonl"
 RUN_MANIFEST_NAME = "phaseP-run-manifest.json"
 PARTIAL_MANIFEST_NAME = "phaseP-partial-manifest.json"
 ANALYSIS_NAME = "phaseP-analysis.json"
+
+
+def canonical_results_root() -> Path:
+    """The ONE directory an official Phase-P execution may write."""
+
+    return (PROJECT_ROOT / RESULTS_NAMESPACE).resolve()
+
+
+def is_canonical_results_root(output_root: Path | str) -> bool:
+    """Whether *output_root* IS the frozen Phase-P results namespace."""
+
+    return Path(output_root).resolve() == canonical_results_root()
+
+
+def require_canonical_results_root(supplied: Path | str | None = None) -> Path:
+    """Prove *supplied* is the frozen Phase-P results namespace.
+
+    PHASE P-R1.  Phase P froze ``results/phaseP-rc4-qualification`` as the
+    namespace its evidence lives in, and every downstream reader -- the
+    analyzer's default root, the freeze report, the plan -- names that path.  An
+    official run written anywhere else would be an official run nobody can find,
+    whose append-only/never-resumed precondition was checked against the wrong
+    directory.  The production CLI therefore binds the namespace instead of
+    accepting one.
+    """
+
+    canonical = canonical_results_root()
+    if supplied is None:
+        return canonical
+    offered = Path(supplied).resolve()
+    if offered != canonical:
+        raise NoncanonicalInput(
+            f"PROTOCOL_DEVIATION: Phase P froze {RESULTS_NAMESPACE} as the one "
+            f"namespace an official run writes; {offered} is not it. This driver "
+            "does not reinterpret an alternate output root as an official Phase-P "
+            "execution."
+        )
+    return canonical
+
 
 #: Where a cell's own experiment directory lives, beneath the Phase-P output
 #: root.  One cell is one ``ExperimentRunner`` invocation, so each gets its own
@@ -1707,6 +1931,11 @@ __all__ = [
     "ARM_PROVIDER_SLOT",
     "BENCHMARK_VERSION",
     "CANONICAL_BASE_COMMIT",
+    "CANONICAL_CONFIG_RELATIVE",
+    "CANONICAL_CONTRACT_RELATIVE",
+    "CANONICAL_MANIFEST_RELATIVE",
+    "CANONICAL_MODELS_RELATIVE",
+    "CANONICAL_SCIENTIFIC_INPUTS",
     "CELL_EXPERIMENT_DIR_CONTRACT",
     "CREDENTIAL_ENV",
     "DRIVER_STAMPED_IDENTITY_FIELDS",
@@ -1738,6 +1967,7 @@ __all__ = [
     "HUMAN_GATE_VALUE",
     "INFRASTRUCTURE_RETRY_LIMIT",
     "LoadedBenchmark",
+    "NoncanonicalInput",
     "MANIFEST_TRANSPORTED_FIELDS",
     "OLLAMA_BASE_URL",
     "PHASE_L_SEEDS",
@@ -1764,8 +1994,11 @@ __all__ = [
     "TASK_COUNT",
     "TRACE_IDENTITY_FIELDS",
     "PinAssertion",
+    "accepted_frozen_digest",
     "build_arms",
     "build_phase_p_schedule",
+    "canonical_input_path",
+    "canonical_results_root",
     "cell_evidence_root",
     "cell_experiment_dir_value",
     "cell_slug",
@@ -1782,11 +2015,14 @@ __all__ = [
     "compute_frozen_inputs",
     "contained_child",
     "contract_drift",
+    "is_canonical_results_root",
     "load_benchmark",
     "load_frozen_inputs",
     "model_pin_evidence",
     "offline_preflight",
     "protocol_summary",
+    "require_canonical_input",
+    "require_canonical_results_root",
     "schedule_digest",
     "sha256_file",
     "tree_digest",

@@ -236,3 +236,156 @@ the same commit agree.
 The final battery was then re-run in a fresh detached worktree at the head
 commit.
 
+## 10. P-R1 — the frozen-input binding blocker, found after a PASS rereview
+
+The first independent adversarial rereview of this phase returned **PASS**. A
+later, independent look found a blocker it had missed, and the phase was
+reopened rather than merged. This section records that sequence, because the
+sequence is part of the evidence.
+
+### 10.1 The blocker
+
+Pinning a file by SHA-256 proves the canonical **tree** is intact. It does not
+prove a given **invocation** was pointed at that tree.
+
+The driver accepted `--config`, `--manifest` and `--output-root`; the analyzer
+accepted `--manifest` and `--contract`. After the canonical
+`offline_preflight()` succeeded, `protocol.load_benchmark(manifest_path)`
+verified only `benchmark_version == pilot-v7-rc4` and `len(cases) == 17`, and
+`check_experiment_configuration` verified only that a config declared the frozen
+seeds, treatment and repetitions. Those are properties, not identity.
+
+Consequently a caller could pass every canonical check and then execute or score
+a **different experiment**:
+
+* a copied manifest with the task order changed, or with one case binding
+  changed, or claiming a different byte digest for a case — all structurally
+  valid, all 17 tasks, all `pilot-v7-rc4`;
+* a copied `phaseP-qualification.yaml` with `max_agent_steps` doubled — a runtime
+  setting rc4's budget tasks depend on for over-budget proposals to remain
+  observable;
+* an arbitrary `--output-root`, producing an "official" run in a namespace no
+  downstream reader knows, whose append-only precondition was checked against the
+  wrong directory;
+* an alternate qualification contract — including one that would make
+  qualification **easier**.
+
+And the emitted provenance would still have described the canonical artifacts:
+`_write_run_manifest` recorded `protocol.protocol_summary()`, which is derived
+from the canonical manifest, and the analyzer payload recorded
+`qualification_contract_sha256` by hashing the **canonical** contract path
+regardless of which contract it had scored. That is a provenance falsehood, and
+it violates frozen-input closure, prospective integrity and reproducibility.
+
+Nothing was executed under the defect: Phase P has never run a cell.
+
+### 10.2 The repair
+
+Scientific-input binding only. rc4 was not redesigned, no seed changed, no model
+ran and no provider was contacted. See
+`docs/phaseP_rc4_real_model_qualification_plan.md` §24b for the full statement.
+
+Every input a caller can name is proven twice — resolved canonical **path**
+equality and SHA-256 equality with the digest the frozen-input record accepted —
+in three independent places: the driver CLI (immediately after the human gate,
+before the preflight), `phaseP_protocol.load_benchmark` (on its own argument),
+and all three analyzer entry points. `--output-root` is bound to
+`results/phaseP-rc4-qualification/`. The four bound artifacts are
+`configs/phaseP-qualification.yaml`, `configs/phaseP-models.yaml`,
+`benchmark/pilot-v7-rc4/manifest.json` and
+`benchmark/pilot-v7-rc4/qualification-contract.json`.
+
+Provenance is now derived from what was read: the run manifest carries an
+`execution_inputs` block hashing each input as read with a per-input
+`is_canonical` verdict and a single `official_phase_p_execution` boolean; the
+driver refuses to proceed unless `protocol_summary()` agrees with the schedule it
+would execute on manifest digest, task order, cell count and schedule digest; and
+the analyzer hashes the contract it bound rather than a hard-coded path.
+
+### 10.3 The adversarial regressions added
+
+| # | Adversarial case | Refusal |
+|---|---|---|
+| A | alternate manifest, same `benchmark_version`, same 17 tasks | `FROZEN_ARTIFACT_MISMATCH`; 0 probes, 0 cells, no result directory |
+| B | alternate manifest, only the task **order** changed | same |
+| C | alternate manifest, one case **binding** changed | same |
+| D | alternate contract with a scoring clause changed | analyzer refuses before any plan is derived or row read |
+| E | alternate contract that would make qualification **easier** | same — and no `PASS_RC4_QUALIFIED_FOR_QA_OFF_USE` is emitted |
+| F | Phase-P-looking config, frozen seeds/treatment, changed runtime setting | `FROZEN_ARTIFACT_MISMATCH` before any probe |
+| G | alternate `--output-root` on the production CLI | `PROTOCOL_DEVIATION`; refused as a noncanonical Phase-P execution |
+| H | the canonical paths | continue to pass every offline check |
+
+Two further separations are tested in isolation so neither half of the binding
+can silently stop working: a **byte-identical copy** placed elsewhere is refused
+by the path proof, and **edited bytes at the canonical relative path** are
+refused by the digest proof. E carries an explicit anti-vacuity test proving the
+"easier" contract would in fact have flipped the clean synthetic matrix's `HOLD`
+— it reclassifies exactly the tasks that hold it — so the refusal is not merely a
+rejection of a malformed file.
+
+### 10.4 Non-blocking rereview findings, also closed
+
+**Causal-effect key forms.** `FORBIDDEN_REPORT_TERMS` matches token runs, so
+`qa_effect` did not cover `qa_full_effect` and nothing covered
+`confirmatory_result`. Added: `qa_full_effect`, `qa_full_effectiveness`,
+`qa_full_vs_off`, `full_vs_off`, `causal_effect`, `treatment_estimate`,
+`confirmatory_result`, `confirmatory_effect`, `confirmatory_finding` and
+`confirmatory_verdict`. Each is a multi-token run on purpose: the bare tokens
+`confirmatory` and `causal` appear in keys this phase **must** emit
+(`authorizes_confirmatory_execution`, the contract's causal-prerequisite
+vocabulary), and the declaration-of-absence exemption
+(`reports_no_qa_treatment_effect`, `no_qa_effect_claim`) is asserted to survive.
+
+**Seed-scan docstring scope.** `scripts/phaseP_derive_seeds.py` claimed
+`scan_committed_seeds` reports "every seed the repository has ever recorded". The
+mechanism is `git ls-files` at the current commit, so the accurate claim is the
+current committed tree. The docstring now says so, and a test asserts the old
+wording is gone.
+
+The residual gap was closed **independently** rather than by weakening the claim.
+A full-history scan read every blob ever committed under the scan roots —
+`configs/`, `results/`, `docs/`, `benchmark/`, `schemas/` — via
+`git rev-list --objects --all` and `git cat-file`, applying the same extraction
+the module uses:
+
+| Full-history seed scan | Figure |
+|---|---|
+| historical blobs examined | **686** |
+| distinct seed values found | **11** |
+| values outside `FORBIDDEN_SEEDS` ∪ the Phase-P triple | **0** |
+
+The eight forbidden seeds and the three Phase-P seeds account for all eleven. The
+scan reads git object bytes only; it ran no model and contacted nothing.
+
+### 10.5 P-R1 validation
+
+Strictly offline. Zero model inference, zero Ollama contact, zero provider
+contact.
+
+| Check | Result |
+|---|---|
+| Phase-P focused suite | **228 passed** (200 before P-R1; +28 binding regressions) |
+| Full `pytest` | **1613 passed** (1585 before P-R1) |
+| `mypy src` | clean (48 files) |
+| `MYPYPATH=src mypy --strict` over all five Phase-P scripts | clean |
+| every validator listed in §5 | PASS |
+| `run_phaseP_rc4_qualification.py --verify-frozen-inputs` | PASS |
+| `analyze_phaseP_rc4_qualification.py --verify-scoring-plan` | PASS |
+| `phaseP_write_frozen_inputs.py --check` | PASS |
+| Fresh detached worktree at the P-R1 commit, full battery | see §10.6 |
+
+### 10.6 Fresh detached-worktree battery at the P-R1 commit
+
+The complete battery is run in a fresh detached worktree at the P-R1 repair
+commit, and its figures are recorded in the immediately following commit —
+exactly as the §9 battery was, and for the same reason: a report cannot contain
+the results of a run performed at a commit that already contains those results.
+The freeze report is not itself a frozen input, so recording the figures changes
+no hash the driver asserts.
+
+### 10.7 Status
+
+P-R1 authorizes another independent adversarial rereview and nothing else.
+`pilot-v7-rc4` remains **UNQUALIFIED**, **release-candidate**,
+**OFFLINE-DESIGNED** and **NOT FINAL**. No cell has been executed, the human gate
+has never been set, and `results/phaseP-rc4-qualification/` does not exist.

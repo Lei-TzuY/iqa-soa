@@ -329,10 +329,11 @@ Real-model execution requires **both**:
    that case.
 
 Neither condition alone is sufficient. The gate is evaluated **first**, before the
-offline preflight, before any configuration is loaded, before any provider object
-exists, before any metadata probe and before any directory is created. Without
-both: no metadata probe, no Ollama contact, no provider, no inference, no output
-cell and no results-namespace creation.
+frozen scientific input binding (§24b), before the offline preflight, before any
+configuration is loaded, before any provider object exists, before any metadata
+probe and before any directory is created. Without both: no metadata probe, no
+Ollama contact, no provider, no inference, no output cell and no
+results-namespace creation.
 
 The gate is set **nowhere** in this repository — not in a test, not in a config,
 not in CI. Opening it is a deliberate human act performed once, by a person, after
@@ -624,6 +625,91 @@ plus tree digests for `src/iqa_soa` and `benchmark/pilot-v7-rc4`.
 `scripts/phaseP_write_frozen_inputs.py` is a byte-for-byte reproducible
 writer/checker: `--check` recomputes the record and requires the committed
 artifact to match exactly.
+
+## 24b. Frozen scientific input binding (Phase P-R1)
+
+Pinning a file by SHA-256 proves the *canonical tree* is intact. It does not
+prove that a given invocation was pointed at that tree. The original freeze left
+that second question open, and the answer was: it was not.
+
+**The blocker.** The driver accepted `--config`, `--manifest` and
+`--output-root`, and the analyzer accepted `--manifest` and `--contract`. After
+the canonical `offline_preflight()` succeeded, `protocol.load_benchmark(path)`
+checked only that what arrived was **structurally plausible** —
+`benchmark_version == pilot-v7-rc4` and exactly 17 cases — and
+`check_experiment_configuration` checked only that a config declared the frozen
+seeds, treatment and repetitions. Those are properties, not identity. A copied
+manifest with the task order changed, a copied manifest with one case binding
+changed, a copied config with `max_agent_steps` doubled, or an arbitrary output
+namespace all satisfied every check while describing a **different experiment** —
+and the persisted provenance still described the canonical one:
+`_write_run_manifest` recorded `protocol.protocol_summary()`, and the analyzer
+payload recorded the SHA-256 of the **canonical** qualification contract
+regardless of which contract was actually scored.
+
+**The repair.** Every scientific input a caller can name is now proven twice,
+and both proofs are required:
+
+1. **Canonical path.** The resolved path must *be* the frozen path. This refuses
+   a byte-identical copy placed elsewhere: a copy is not the artifact the freeze
+   record, the rc4 AUDIT, the provenance record and the Phase-O supersession
+   audit all name, and an official run that read a copy could not be reproduced
+   from the commit.
+2. **Frozen digest.** The bytes at that path must hash to the SHA-256
+   `docs/phaseP_frozen_execution_inputs.json` accepted. This refuses an *edited*
+   canonical file even before anything else has looked at it.
+
+The bound inputs are exactly:
+
+| Input | Canonical path |
+|---|---|
+| execution config | `configs/phaseP-qualification.yaml` |
+| model config | `configs/phaseP-models.yaml` |
+| benchmark manifest | `benchmark/pilot-v7-rc4/manifest.json` |
+| qualification contract | `benchmark/pilot-v7-rc4/qualification-contract.json` |
+| results namespace | `results/phaseP-rc4-qualification/` |
+
+`--config`, `--manifest`, `--output-root` and `--contract` therefore remain, but
+they are **assertions, not choices**: they exist so a reproduction command can be
+written out in full, and supplying anything other than the frozen artifact is an
+`IMMEDIATE_STOP`. There is no noncanonical Phase-P execution mode and no
+noncanonical Phase-P analysis mode.
+
+**Where the binding runs.** Defence in depth, three layers, none of which relies
+on a caller remembering:
+
+* `run_phaseP_rc4_qualification.main` binds all three of its options
+  **immediately after the human gate** — before the offline preflight, before the
+  config is parsed, before the namespace is inspected, before any metadata probe
+  and before any directory exists. A refusal therefore means 0 metadata probes,
+  0 cells and no results directory.
+* `phaseP_protocol.load_benchmark` binds **its own argument**, so no path into
+  the Phase-P schedule can reach a noncanonical manifest even if an upstream
+  caller forgot. It additionally requires the loader's own hash of the bytes it
+  parsed to equal the accepted digest.
+* `analyze_phaseP_rc4_qualification.main`, `build_scoring_plans` and `analyze`
+  each bind the manifest and the contract, so no analyzer entry point can be
+  reached with an unbound input.
+
+**Provenance truth.** Every digest a Phase-P artifact emits describes the bytes
+actually read:
+
+* the run manifest carries `execution_inputs`, hashing the config, the model
+  config and the manifest **as read**, with a per-input `is_canonical` verdict, an
+  `output_root_is_canonical_namespace` flag and a single
+  `official_phase_p_execution` boolean;
+* before any cell runs, the driver requires `protocol_summary()` — derived from
+  the canonical manifest — to agree with the schedule actually built, on the
+  manifest digest, the task order, the cell count and the schedule digest;
+* the analyzer computes `qualification_contract_sha256` from the contract file it
+  bound rather than from a hard-coded canonical path.
+
+**Test-only seam.** `run_phaseP_rc4_qualification.execute_bound_run` accepts
+already-bound paths and is what the offline suite drives with a temporary output
+root, so the machinery beyond the binding stays testable without writing into the
+repository. It binds nothing itself, is reached in production only from `main()`
+after `main()` has proved the inputs, and any run manifest it writes reports
+`official_phase_p_execution: false`.
 
 ## 25. What Phase P is not
 

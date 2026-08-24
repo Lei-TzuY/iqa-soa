@@ -83,6 +83,30 @@ cannot be bound to its frozen cell, an invalidated cell silently counted as
 valid, a run that stopped, a lost evidence trace, or a driver/analyzer
 classification disagreement each make a complete qualification impossible and
 force ``HOLD``.
+
+THE SCIENTIFIC INPUTS ARE BOUND, NOT SELECTED (PHASE P-R1)
+==========================================================
+
+An official Phase-P qualification analysis reads exactly two scientific inputs:
+
+    benchmark/pilot-v7-rc4/manifest.json
+    benchmark/pilot-v7-rc4/qualification-contract.json
+
+``--manifest`` and ``--contract`` are ASSERTIONS that the caller means those two
+files, and each is proven by resolved canonical PATH equality AND by the SHA-256
+that ``docs/phaseP_frozen_execution_inputs.json`` accepted -- in :func:`main`,
+again in :func:`build_scoring_plans`, and again in :func:`analyze`, so no entry
+point can be reached with an unbound input.
+
+The original freeze checked neither.  A caller could pass the canonical offline
+preflight and then score a completed Phase-P run under a contract whose scoring
+clauses had been loosened -- or under one that simply made qualification easier
+-- while the emitted payload reported the SHA-256 of the CANONICAL contract.
+That is a provenance lie, and it is now structurally impossible: an alternate
+manifest or contract raises before a single row is read, so there is no verdict
+at all -- and in particular no ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`` -- to
+attach canonical digests to.  Every digest the payload emits is computed from
+the bytes this analysis actually read.
 """
 
 from __future__ import annotations
@@ -90,6 +114,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -200,8 +225,15 @@ VERDICT_HOLD = "HOLD"
 #: treatment-effect field makes the analyzer fail rather than quietly publish one.
 FORBIDDEN_REPORT_TERMS: tuple[str, ...] = (
     "treatment_effect",
+    "treatment_estimate",
     "qa_effectiveness",
     "qa_effect",
+    # The QA-FULL arm Phase P does not run, named in the obvious forms a later
+    # phase's key would take.  ``qa_effect`` above does not cover them: the
+    # matcher is token-based, so ``qa_full_effect`` is a different token run.
+    "qa_full_effect",
+    "qa_full_effectiveness",
+    "qa_full_vs_off",
     "effect_size",
     "p_value",
     "pvalue",
@@ -210,7 +242,18 @@ FORBIDDEN_REPORT_TERMS: tuple[str, ...] = (
     "model_ranking",
     "model_rank",
     "off_vs_full",
+    "full_vs_off",
     "causal_estimate",
+    # A causal effect, and the confirmatory result Phase P is not.  Both are
+    # spelled as multi-token runs on purpose: the bare tokens ``confirmatory``
+    # and ``causal`` appear in keys this phase MUST emit --
+    # ``authorizes_confirmatory_execution``, the contract's causal-prerequisite
+    # vocabulary -- and refusing those would break the disclaimers.
+    "causal_effect",
+    "confirmatory_result",
+    "confirmatory_effect",
+    "confirmatory_finding",
+    "confirmatory_verdict",
 )
 
 
@@ -467,18 +510,25 @@ def _rc4_interpretation() -> Iterator[None]:
 def build_scoring_plans(
     contract_path: Path | None = None, manifest_path: Path | None = None
 ) -> tuple[dict[str, Any], Mapping[str, Any]]:
-    """Derive every task's plan from the frozen rc4 contract and frozen cases."""
+    """Derive every task's plan from the frozen rc4 contract and frozen cases.
 
-    contract_file = contract_path or (
-        PROJECT_ROOT
-        / "benchmark"
-        / protocol.BENCHMARK_VERSION
-        / "qualification-contract.json"
+    DEFENCE IN DEPTH (Phase P-R1).  Both arguments are ASSERTIONS that the caller
+    means the frozen rc4 artifacts, and both are proven here -- canonical path
+    AND the SHA-256 the frozen-input record accepted -- rather than trusted.  A
+    contract with one scoring clause loosened, or one that would make
+    qualification easier, is a different scoring interpretation; scoring a
+    Phase-P result under it and then reporting the canonical contract digest is
+    precisely the provenance lie this binding exists to prevent.
+    """
+
+    contract_file = protocol.require_canonical_input(
+        protocol.CANONICAL_CONTRACT_RELATIVE, contract_path
     )
     contract: Mapping[str, Any] = json.loads(contract_file.read_text(encoding="utf-8"))
     frozen_pilot = load_frozen_pilot(
-        manifest_path
-        or (PROJECT_ROOT / "benchmark" / protocol.BENCHMARK_VERSION / "manifest.json")
+        protocol.require_canonical_input(
+            protocol.CANONICAL_MANIFEST_RELATIVE, manifest_path
+        )
     )
     cases = {case.id: case for case in frozen_pilot.cases}
     tasks = contract.get("tasks")
@@ -1052,18 +1102,32 @@ def analyze(
     manifest_path: Path | None = None,
     contract_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Score a completed Phase-P run.  Contacts nothing and runs no model."""
+    """Score a completed Phase-P run.  Contacts nothing and runs no model.
+
+    An OFFICIAL Phase-P qualification analysis reads exactly two scientific
+    inputs -- ``benchmark/pilot-v7-rc4/manifest.json`` and
+    ``benchmark/pilot-v7-rc4/qualification-contract.json`` -- and this function
+    proves both before it reads a single row (Phase P-R1).  There is no
+    noncanonical analysis mode: an alternate manifest or contract raises
+    :class:`phaseP_protocol.NoncanonicalInput`, so no verdict at all is produced
+    and :data:`VERDICT_QUALIFIED` can never be claimed over inputs the freeze did
+    not accept.
+    """
+
+    bound_manifest = protocol.require_canonical_input(
+        protocol.CANONICAL_MANIFEST_RELATIVE, manifest_path
+    )
+    bound_contract = protocol.require_canonical_input(
+        protocol.CANONICAL_CONTRACT_RELATIVE, contract_path
+    )
 
     frozen_failures = protocol.offline_preflight()
 
-    benchmark = protocol.load_benchmark(manifest_path)
+    benchmark = protocol.load_benchmark(bound_manifest)
     schedule = protocol.build_phase_p_schedule(benchmark)
-    frozen_pilot = load_frozen_pilot(
-        manifest_path
-        or (PROJECT_ROOT / "benchmark" / protocol.BENCHMARK_VERSION / "manifest.json")
-    )
+    frozen_pilot = load_frozen_pilot(bound_manifest)
 
-    plans, contract = build_scoring_plans(contract_path, manifest_path)
+    plans, contract = build_scoring_plans(bound_contract, bound_manifest)
     plan_failures = check_scoring_plan_is_contract_bound(
         plans, contract, list(frozen_pilot.cases)
     )
@@ -1184,9 +1248,25 @@ def analyze(
         "harness_version": harness.HARNESS_VERSION,
         "scoring_vocabulary_version": rc4v.VOCABULARY_VERSION,
         "benchmark_version": protocol.BENCHMARK_VERSION,
+        # PROVENANCE TRUTH (Phase P-R1).  Both digests describe the bytes this
+        # analysis ACTUALLY read: the manifest digest is the loader's own hash of
+        # the manifest it parsed, and the contract digest is computed from the
+        # bound contract file rather than from a hard-coded canonical path.  The
+        # binding above already refuses anything noncanonical; hashing what was
+        # read means the payload could not lie even if it did not.
         "benchmark_manifest_sha256": benchmark.manifest_sha256,
-        "qualification_contract_sha256": protocol.sha256_file(
-            "benchmark/pilot-v7-rc4/qualification-contract.json"
+        "benchmark_manifest_path": protocol.CANONICAL_MANIFEST_RELATIVE,
+        "qualification_contract_sha256": hashlib.sha256(
+            bound_contract.read_bytes()
+        ).hexdigest(),
+        "qualification_contract_path": protocol.CANONICAL_CONTRACT_RELATIVE,
+        "scientific_inputs_are_canonical": True,
+        # The evidence root is not a scientific input -- it is the run being
+        # read -- but a reader still needs to know whether this payload scored
+        # the official Phase-P namespace or a synthetic one, so it is stated
+        # rather than left to be assumed from the digests above.
+        "analyzed_canonical_results_namespace": protocol.is_canonical_results_root(
+            root
         ),
         "instrument_version": protocol.EXPECTED_INSTRUMENT_VERSION,
         "raw_schema_version": protocol.EXPECTED_RAW_SCHEMA_VERSION,
@@ -1244,19 +1324,30 @@ def _payload_counts(results: Sequence[Rc4CellResult]) -> dict[str, int]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE))
+    # BOUND, NOT SELECTABLE (Phase P-R1).  An official Phase-P qualification
+    # analysis reads exactly the frozen rc4 manifest and the frozen rc4
+    # qualification contract.  These options remain so that the reproduction
+    # command can be written out in full, but each is proven by canonical path
+    # AND by the frozen SHA-256 before anything is scored; there is no
+    # noncanonical analysis mode and therefore no way to obtain a verdict -- let
+    # alone PASS_RC4_QUALIFIED_FOR_QA_OFF_USE -- under an alternate contract.
     parser.add_argument(
         "--manifest",
-        default=str(
-            PROJECT_ROOT / "benchmark" / protocol.BENCHMARK_VERSION / "manifest.json"
+        default=str(PROJECT_ROOT / protocol.CANONICAL_MANIFEST_RELATIVE),
+        help=(
+            "Must be the frozen "
+            f"{protocol.CANONICAL_MANIFEST_RELATIVE}. An alternate manifest is "
+            "refused and produces no qualification verdict."
         ),
     )
     parser.add_argument(
         "--contract",
-        default=str(
-            PROJECT_ROOT
-            / "benchmark"
-            / protocol.BENCHMARK_VERSION
-            / "qualification-contract.json"
+        default=str(PROJECT_ROOT / protocol.CANONICAL_CONTRACT_RELATIVE),
+        help=(
+            "Must be the frozen "
+            f"{protocol.CANONICAL_CONTRACT_RELATIVE}. An alternate contract -- "
+            "including one that would make qualification easier -- is refused "
+            "and produces no qualification verdict."
         ),
     )
     parser.add_argument("--out", default=None)
@@ -1275,9 +1366,35 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(list(argv) if argv is not None else None)
 
+    # ---- FROZEN SCIENTIFIC INPUT BINDING (Phase P-R1). ----------------------
+    #
+    # Refused here, first, so that neither branch below can begin: no scoring
+    # plan is derived, no row is read, no payload is built and no verdict --
+    # qualified or held -- is emitted over inputs the Phase-P freeze never
+    # accepted.  ``build_scoring_plans`` and ``analyze`` each bind their own
+    # arguments again; this is the outermost of the three layers, not the only
+    # one.
+    try:
+        manifest_path = protocol.require_canonical_input(
+            protocol.CANONICAL_MANIFEST_RELATIVE, args.manifest
+        )
+        contract_path = protocol.require_canonical_input(
+            protocol.CANONICAL_CONTRACT_RELATIVE, args.contract
+        )
+    except protocol.ProtocolError as exc:
+        print(f"HOLD: {exc}", file=sys.stderr)
+        print(
+            "NONCANONICAL_SCIENTIFIC_INPUT: this analysis is refused. An official "
+            "Phase-P qualification is defined against the frozen rc4 manifest and "
+            f"the frozen rc4 qualification contract only; no verdict and no "
+            f"{VERDICT_QUALIFIED} claim is produced.",
+            file=sys.stderr,
+        )
+        return protocol.EXIT_PREFLIGHT_STOP
+
     if args.verify_scoring_plan:
-        plans, contract = build_scoring_plans(Path(args.contract), Path(args.manifest))
-        frozen_pilot = load_frozen_pilot(Path(args.manifest))
+        plans, contract = build_scoring_plans(contract_path, manifest_path)
+        frozen_pilot = load_frozen_pilot(manifest_path)
         failures = check_scoring_plan_is_contract_bound(
             plans, contract, list(frozen_pilot.cases)
         )
@@ -1301,8 +1418,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         payload = analyze(
             Path(args.root),
-            manifest_path=Path(args.manifest),
-            contract_path=Path(args.contract),
+            manifest_path=manifest_path,
+            contract_path=contract_path,
         )
     except (AnalysisError, protocol.ProtocolError) as exc:
         print(f"HOLD: {exc}", file=sys.stderr)

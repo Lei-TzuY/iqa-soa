@@ -17,6 +17,7 @@ The suite is organised as the phase brief is:
 4.  cell identity and run_key
 5.  the dual human execution gate
 6.  frozen inputs and the offline preflight
+6b. frozen scientific input binding (Phase P-R1)
 7.  model / provider / runtime pins from committed evidence
 8.  instrument, schema, adapter and argument-contract pins, and per-row drift
 9.  the future live metadata preflight
@@ -30,6 +31,7 @@ The suite is organised as the phase brief is:
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import socket
 import subprocess
@@ -63,6 +65,9 @@ CANONICAL_BASE_COMMIT = "f65ee4980813b465431c5f7d75a0d00db87785b6"
 PHASE_O_PARENT_COMMIT = "0cc3b05ab79559acdd4f50675ed7937199dc4dbe"
 PHASE_L_B_ARCHIVE_COMMIT = "693f81be666ec138def100dc7e920bd020080cd9"
 RC4_MANIFEST = PROJECT_ROOT / "benchmark" / "pilot-v7-rc4" / "manifest.json"
+RC4_CONTRACT = (
+    PROJECT_ROOT / "benchmark" / "pilot-v7-rc4" / "qualification-contract.json"
+)
 PHASE_P_CONFIG = PROJECT_ROOT / "configs" / "phaseP-qualification.yaml"
 PHASE_P_MODELS = PROJECT_ROOT / "configs" / "phaseP-models.yaml"
 
@@ -124,6 +129,66 @@ def schedule(benchmark: protocol.LoadedBenchmark) -> list[Any]:
 def plans() -> dict[str, Any]:
     built, _ = analyzer.build_scoring_plans()
     return built
+
+
+def _sha256(path: Path) -> str:
+    """RAW bytes, per docs/hash_basis_policy.md.  Never normalized."""
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.fixture(scope="module")
+def clean_phase_p_run(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A completed, clean, SYNTHETIC 102-cell run in a temporary directory.
+
+    Every cell is an injected executor returning a valid traced row; no model
+    runs, no provider is contacted and no runtime is probed.  It exists so the
+    P-R1 analyzer refusals can be proved against a run that would otherwise
+    score, rather than against an empty directory.
+    """
+
+    out = tmp_path_factory.mktemp("phase-p-r1-clean-run") / "out"
+    code = drive_bound(out, probe=_stub_probe, execute_cell=clean_executor(out))
+    assert code == protocol.EXIT_OK
+    return out
+
+
+def drive_bound(
+    output_root: Path,
+    *,
+    probe: driver.MetadataProbe | None = None,
+    execute_cell: driver.CellExecutor | None = None,
+    env: Mapping[str, str] | None = None,
+    config_path: Path = PHASE_P_CONFIG,
+    manifest_path: Path = RC4_MANIFEST,
+) -> int:
+    """Drive the frozen Phase-P machinery into a TEMPORARY output root.
+
+    This is the test-only seam the P-R1 frozen-input binding leaves open, and it
+    is deliberately NOT ``driver.main``.  The production CLI binds
+    ``--config``, ``--manifest`` and ``--output-root`` to the frozen artifacts
+    and the frozen ``results/phaseP-rc4-qualification`` namespace, so it cannot
+    be pointed at ``tmp_path`` -- which is exactly the property
+    ``test_an_alternate_output_root_is_refused_by_the_production_cli`` asserts.
+    The tests below still need to exercise everything BEYOND that binding
+    (metadata preflight, the stop controller, the raw record, the run manifest)
+    without writing into the repository, so they call the internal
+    ``driver.execute_bound_run`` with a temporary root and the CANONICAL config
+    and manifest.
+
+    Nothing here weakens the binding: the config and the manifest are the frozen
+    ones, ``protocol.load_benchmark`` re-binds the manifest independently, and a
+    temporary root produces no official Phase-P namespace.
+    """
+
+    return driver.execute_bound_run(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_root=output_root,
+        env=OPEN_GATE if env is None else env,
+        probe=probe,
+        execute_cell=execute_cell,
+    )
 
 
 def _stub_probe(model: str) -> driver.RuntimeMetadata:
@@ -721,9 +786,8 @@ def test_a_poisoned_seed_triple_refuses_execution(
     assert failures, f"{label} was accepted by the seed provenance check"
 
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
+    code = drive_bound(
+        tmp_path / "out",
         probe=_stub_probe,
         execute_cell=executed.append,
     )
@@ -1255,9 +1319,8 @@ def test_a_moved_frozen_input_refuses_execution(
     assert any(target in item and "FROZEN_ARTIFACT_MISMATCH" in item for item in failures)
 
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
+    code = drive_bound(
+        tmp_path / "out",
         probe=_stub_probe,
         execute_cell=executed.append,
     )
@@ -1281,9 +1344,8 @@ def test_a_changed_rc4_task_byte_refuses_execution(
     assert any("PI-020" in item for item in failures), failures
 
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
+    code = drive_bound(
+        tmp_path / "out",
         probe=_stub_probe,
         execute_cell=executed.append,
     )
@@ -1299,9 +1361,8 @@ def test_a_changed_src_iqa_soa_tree_refuses_execution(
     assert any("src/iqa_soa" in item for item in failures)
 
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
+    code = drive_bound(
+        tmp_path / "out",
         probe=_stub_probe,
         execute_cell=executed.append,
     )
@@ -1318,9 +1379,8 @@ def test_a_historical_bound_input_failure_refuses_execution(
         lambda: ["FROZEN_ARTIFACT_MISMATCH: a Phase-L bound input moved"],
     )
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
+    code = drive_bound(
+        tmp_path / "out",
         probe=_stub_probe,
         execute_cell=executed.append,
     )
@@ -1372,6 +1432,689 @@ def test_a_historical_config_supplied_on_the_command_line_refuses_execution(
     assert code == protocol.EXIT_PREFLIGHT_STOP
     assert executed == []
     assert not (tmp_path / "out").exists()
+
+
+# ==========================================================================
+# 6b. Frozen scientific input binding (Phase P-R1)
+# ==========================================================================
+#
+# THE BLOCKER THIS SECTION EXISTS FOR.  The original Phase-P freeze let the
+# driver accept ``--config``, ``--manifest`` and ``--output-root`` and let the
+# analyzer accept ``--manifest`` and ``--contract``, and checked only that what
+# arrived was STRUCTURALLY plausible: ``benchmark_version == pilot-v7-rc4`` with
+# seventeen cases, a config declaring the frozen seeds.  Those are properties,
+# not identity.  A caller could therefore pass the canonical
+# ``offline_preflight()`` -- which proves the canonical TREE is intact and says
+# nothing about which files this invocation was pointed at -- and then execute or
+# score a DIFFERENT experiment, while ``_write_run_manifest`` recorded
+# ``protocol.protocol_summary()`` and the analyzer payload recorded the SHA-256
+# of the CANONICAL contract.
+#
+# Every test below drives a REFUSAL.  None runs a model, contacts a provider or
+# probes a runtime: the refusals happen before the metadata probe exists.
+
+
+def _write_json(path: Path, payload: Any) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return path
+
+
+def alternate_manifest(tmp_path: Path, name: str, mutate: Any) -> Path:
+    """A manifest that is NOT the frozen one but still passes the old gate."""
+
+    payload = json.loads(RC4_MANIFEST.read_text(encoding="utf-8"))
+    mutate(payload)
+    path = _write_json(tmp_path / f"{name}.json", payload)
+    # THE POINT OF THE FIXTURE.  Everything the pre-P-R1 code checked still
+    # holds, so a test that passes below is testing the new binding and not some
+    # incidental malformation.
+    assert payload["benchmark_version"] == protocol.BENCHMARK_VERSION
+    assert len(payload["cases"]) == protocol.TASK_COUNT
+    assert path.read_bytes() != RC4_MANIFEST.read_bytes()
+    return path
+
+
+def alternate_contract(tmp_path: Path, name: str, mutate: Any) -> Path:
+    payload = json.loads(RC4_CONTRACT.read_text(encoding="utf-8"))
+    mutate(payload)
+    path = _write_json(tmp_path / f"{name}.json", payload)
+    assert payload["benchmark_version"] == protocol.BENCHMARK_VERSION
+    assert path.read_bytes() != RC4_CONTRACT.read_bytes()
+    return path
+
+
+def _reorder_cases(payload: dict[str, Any]) -> None:
+    payload["cases"] = list(reversed(payload["cases"]))
+
+
+def _rebind_one_case(payload: dict[str, Any]) -> None:
+    """Point ONE task id at another task's case file.  Same 17 ids, same count."""
+
+    cases = payload["cases"]
+    cases[0]["path"] = cases[1]["path"]
+
+
+def _repin_one_case_digest(payload: dict[str, Any]) -> None:
+    """Claim a different byte binding for one case.  Same 17 ids, same paths.
+
+    This is the plainest form of the blocker: a manifest that IS pilot-v7-rc4
+    with seventeen tasks, and that binds one of them to bytes the rc4 freeze
+    never accepted.
+    """
+
+    payload["cases"][0]["sha256"] = "0" * 64
+    payload["created_at"] = "2026-08-24T00:00:00Z"
+
+
+MANIFEST_MUTATIONS: tuple[tuple[str, Any, str], ...] = (
+    (
+        "alternate-manifest",
+        _repin_one_case_digest,
+        "an alternate 17-case pilot-v7-rc4 manifest",
+    ),
+    ("reordered-manifest", _reorder_cases, "only the task ORDER changed"),
+    ("rebound-manifest", _rebind_one_case, "one case BINDING changed"),
+)
+
+
+def test_every_canonical_scientific_input_is_frozen_by_digest() -> None:
+    """The binding has something to bind to: each input is a hashed frozen input."""
+
+    for relative in protocol.CANONICAL_SCIENTIFIC_INPUTS:
+        assert relative in protocol.FROZEN_INPUT_PATHS, relative
+        digest = protocol.accepted_frozen_digest(relative)
+        assert digest == protocol.sha256_file(relative), relative
+        assert protocol.canonical_input_path(relative).is_file(), relative
+
+
+def test_a_byte_identical_copy_elsewhere_is_not_a_frozen_input(tmp_path: Path) -> None:
+    """The PATH half of the binding, isolated: identical bytes, different file.
+
+    A copy is not the artifact the freeze record, the rc4 AUDIT, the provenance
+    record and the Phase-O supersession audit all name, and an official run that
+    read a copy could not be reproduced from the commit.
+    """
+
+    copy = tmp_path / "manifest.json"
+    copy.write_bytes(RC4_MANIFEST.read_bytes())
+    assert copy.read_bytes() == RC4_MANIFEST.read_bytes()
+
+    with pytest.raises(protocol.NoncanonicalInput) as excinfo:
+        protocol.require_canonical_input(protocol.CANONICAL_MANIFEST_RELATIVE, copy)
+    assert "FROZEN_ARTIFACT_MISMATCH" in str(excinfo.value)
+
+
+def test_edited_bytes_at_the_canonical_path_are_refused(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The DIGEST half of the binding, isolated: canonical path, edited bytes.
+
+    The whole tree is relocated so the manifest sits at its canonical relative
+    path and only its CONTENT differs.  Path equality therefore holds and the
+    frozen SHA-256 is the only thing left to refuse it.
+    """
+
+    fake_root = tmp_path / "tree"
+    target = fake_root / protocol.CANONICAL_MANIFEST_RELATIVE
+    payload = json.loads(RC4_MANIFEST.read_text(encoding="utf-8"))
+    _reorder_cases(payload)
+    _write_json(target, payload)
+    record = fake_root / protocol.FROZEN_INPUTS_RELATIVE
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(
+        (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    monkeypatch.setattr(protocol, "PROJECT_ROOT", fake_root)
+
+    assert protocol.canonical_input_path(protocol.CANONICAL_MANIFEST_RELATIVE) == (
+        target.resolve()
+    ), "the relocated file must sit at the canonical relative path"
+    with pytest.raises(protocol.NoncanonicalInput) as excinfo:
+        protocol.require_canonical_input(protocol.CANONICAL_MANIFEST_RELATIVE, target)
+    message = str(excinfo.value)
+    assert "FROZEN_ARTIFACT_MISMATCH" in message
+    assert "recorded=" in message and "actual=" in message
+
+
+@pytest.mark.parametrize(
+    "name, mutate, label",
+    MANIFEST_MUTATIONS,
+    ids=[item[0] for item in MANIFEST_MUTATIONS],
+)
+def test_a_noncanonical_manifest_is_refused_by_load_benchmark(
+    tmp_path: Path, name: str, mutate: Any, label: str
+) -> None:
+    """DEFENCE IN DEPTH: the loader refuses even if its caller forgot to check.
+
+    This is the layer that matters most, because it is the one an upstream
+    refactor cannot accidentally remove: no path into the Phase-P schedule
+    exists that does not go through ``load_benchmark``.
+    """
+
+    path = alternate_manifest(tmp_path, name, mutate)
+    with pytest.raises(protocol.NoncanonicalInput) as excinfo:
+        protocol.load_benchmark(path)
+    assert "FROZEN_ARTIFACT_MISMATCH" in str(excinfo.value), label
+
+
+@pytest.mark.parametrize(
+    "name, mutate, label",
+    MANIFEST_MUTATIONS,
+    ids=[item[0] for item in MANIFEST_MUTATIONS],
+)
+def test_a_noncanonical_manifest_refuses_the_production_cli(
+    tmp_path: Path, name: str, mutate: Any, label: str
+) -> None:
+    """P-R1 A / B / C: 0 metadata probes, 0 cells, no result directory."""
+
+    path = alternate_manifest(tmp_path, name, mutate)
+    out = tmp_path / "out"
+    spy = _Spy()
+    with no_network() as attempts:
+        code = driver.main(
+            [
+                "--execute-real-model",
+                "--manifest",
+                str(path),
+                "--output-root",
+                str(out),
+            ],
+            env=OPEN_GATE,
+            probe=spy.probe,
+            execute_cell=spy.execute,
+        )
+    assert code == protocol.EXIT_PREFLIGHT_STOP, label
+    assert spy.calls == [], f"{label}: a probe or a cell ran"
+    assert attempts == [], label
+    assert not out.exists(), f"{label}: a result directory was created"
+    assert not protocol.canonical_results_root().exists(), label
+
+
+def test_the_production_cli_delegates_exactly_the_bound_canonical_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The CLI wiring is proved without executing, probing or creating anything.
+
+    The offline suite drives the machinery beyond the binding through
+    ``execute_bound_run`` with a temporary root, so this is the test that keeps
+    ``main()``'s own wiring honest: with the gate open and no arguments at all,
+    it must hand the bound run the CANONICAL config, the CANONICAL manifest and
+    the CANONICAL results namespace -- and nothing on disk may change.
+    """
+
+    captured: dict[str, Any] = {}
+
+    def capture(**kwargs: Any) -> int:
+        captured.update(kwargs)
+        return protocol.EXIT_OK
+
+    monkeypatch.setattr(driver, "execute_bound_run", capture)
+    with no_network() as attempts:
+        code = driver.main(["--execute-real-model"], env=OPEN_GATE)
+    assert code == protocol.EXIT_OK
+    assert attempts == []
+    assert captured["config_path"] == PHASE_P_CONFIG.resolve()
+    assert captured["manifest_path"] == RC4_MANIFEST.resolve()
+    assert captured["output_root"] == protocol.canonical_results_root()
+    assert captured["env"] is OPEN_GATE
+    assert not protocol.canonical_results_root().exists()
+
+
+def test_the_production_cli_refuses_a_noncanonical_input_before_the_preflight(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The binding is the first thing after the gate, not a late safety net.
+
+    ``offline_preflight`` is the expensive, git-backed proof that the canonical
+    tree is intact.  It is irrelevant to an invocation that was pointed at a
+    different file, and running it first would report a PASS immediately before
+    executing something else -- which is precisely how the P-R1 blocker read.
+    """
+
+    called: list[str] = []
+    monkeypatch.setattr(
+        protocol, "offline_preflight", lambda: called.append("preflight") or []
+    )
+    spy = _Spy()
+    code = driver.main(
+        [
+            "--execute-real-model",
+            "--manifest",
+            str(alternate_manifest(tmp_path, "late", _reorder_cases)),
+        ],
+        env=OPEN_GATE,
+        probe=spy.probe,
+        execute_cell=spy.execute,
+    )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert called == [], "the preflight ran before the input binding"
+    assert spy.calls == []
+
+
+def test_a_phase_p_looking_config_with_a_changed_setting_is_refused(
+    tmp_path: Path,
+) -> None:
+    """P-R1 F: right seeds, right treatment, right repetitions -- still refused.
+
+    The alternate is a COPY of the frozen Phase-P config with one runtime
+    setting changed, so every property ``check_experiment_configuration``
+    examines still holds.  Only identity separates it from the frozen input,
+    which is the whole point.
+    """
+
+    text = PHASE_P_CONFIG.read_text(encoding="utf-8")
+    # max_agent_steps is a RUNTIME setting with scientific consequences: rc4's
+    # budget tasks require it to exceed every task's max_tool_calls so a genuine
+    # over-budget proposal stays observable under QA OFF.  Doubling it changes
+    # what the instrument can see without changing anything the pre-P-R1 config
+    # assertion looked at.
+    altered = text.replace("max_agent_steps: 20", "max_agent_steps: 40", 1)
+    assert altered != text, "the frozen config no longer declares max_agent_steps"
+    path = tmp_path / "phaseP-qualification.yaml"
+    path.write_text(altered, encoding="utf-8", newline="\n")
+    assert str(protocol.SEEDS[0]) in altered, "the copy must keep the frozen seeds"
+    assert 'treatments: ["off"]' in altered, "the copy must keep the frozen treatment"
+    assert "models_path: configs/phaseP-models.yaml" in altered
+
+    out = tmp_path / "out"
+    spy = _Spy()
+    with no_network() as attempts:
+        code = driver.main(
+            ["--execute-real-model", "--config", str(path), "--output-root", str(out)],
+            env=OPEN_GATE,
+            probe=spy.probe,
+            execute_cell=spy.execute,
+        )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert spy.calls == []
+    assert attempts == []
+    assert not out.exists()
+    assert not protocol.canonical_results_root().exists()
+
+
+def test_a_byte_identical_config_copy_is_also_refused(tmp_path: Path) -> None:
+    """Not even an EXACT copy of the frozen config is a frozen Phase-P input."""
+
+    path = tmp_path / "phaseP-qualification.yaml"
+    path.write_bytes(PHASE_P_CONFIG.read_bytes())
+    spy = _Spy()
+    code = driver.main(
+        ["--execute-real-model", "--config", str(path)],
+        env=OPEN_GATE,
+        probe=spy.probe,
+        execute_cell=spy.execute,
+    )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert spy.calls == []
+    assert not protocol.canonical_results_root().exists()
+
+
+def test_a_historical_models_config_is_refused_by_the_binding() -> None:
+    """The config's OWN ``models`` pointer is bound too, by path and by digest."""
+
+    from iqa_soa.experiment.runner import load_experiment_config
+
+    historical = load_experiment_config(
+        PROJECT_ROOT / "configs" / "phaseL-qualification.yaml"
+    )
+    failures = driver.check_experiment_configuration(historical)
+    assert any(protocol.CANONICAL_MODELS_RELATIVE in item for item in failures)
+    assert any("FROZEN_ARTIFACT_MISMATCH" in item for item in failures)
+
+
+def test_an_alternate_output_root_is_refused_by_the_production_cli(
+    tmp_path: Path,
+) -> None:
+    """P-R1 G: an official Phase-P run is never written to another namespace.
+
+    The temporary root is a perfectly ordinary directory and the run would have
+    "worked".  That is the problem: it would have been an official Phase-P run
+    that no downstream reader -- the analyzer's default root, the freeze report,
+    the plan -- knows how to find, whose append-only precondition was checked
+    against the wrong directory.
+    """
+
+    out = tmp_path / "somewhere-else"
+    spy = _Spy()
+    with no_network() as attempts:
+        code = driver.main(
+            ["--execute-real-model", "--output-root", str(out)],
+            env=OPEN_GATE,
+            probe=spy.probe,
+            execute_cell=spy.execute,
+        )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert spy.calls == [], "a probe or a cell ran under an alternate namespace"
+    assert attempts == []
+    assert not out.exists()
+    assert not protocol.canonical_results_root().exists()
+
+
+def test_the_results_namespace_binding_names_the_frozen_namespace(
+    tmp_path: Path,
+) -> None:
+    assert protocol.require_canonical_results_root() == (
+        PROJECT_ROOT / protocol.RESULTS_NAMESPACE
+    ).resolve()
+    assert protocol.require_canonical_results_root(
+        PROJECT_ROOT / protocol.RESULTS_NAMESPACE
+    ) == (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).resolve()
+    assert protocol.is_canonical_results_root(
+        PROJECT_ROOT / protocol.RESULTS_NAMESPACE
+    )
+    assert not protocol.is_canonical_results_root(tmp_path)
+    with pytest.raises(protocol.NoncanonicalInput) as excinfo:
+        protocol.require_canonical_results_root(tmp_path)
+    assert "PROTOCOL_DEVIATION" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# The analyzer side
+# --------------------------------------------------------------------------
+
+
+def _loosen_a_scoring_clause(payload: dict[str, Any]) -> None:
+    """Change one task's scoring rule.  A different interpretation, silently."""
+
+    for task_id, entry in sorted(payload["tasks"].items()):
+        if entry.get("scoring_rule"):
+            entry["scoring_rule"] = "exact_action"
+            entry["rc4_audit_reason"] = (
+                f"P-R1 adversarial fixture: the scoring clause for {task_id} was "
+                "changed"
+            )
+            return
+    raise AssertionError("the rc4 contract declares no scoring rule to change")
+
+
+def _make_qualification_easier(payload: dict[str, Any]) -> None:
+    """Reclassify every CHALLENGE as a benign control.
+
+    On the clean synthetic matrix the challenge tasks are exactly what holds the
+    verdict: no model proposed anything risky, so they cannot qualify.  A benign
+    control qualifies on zero exposure.  This contract would therefore turn a
+    HOLD into a PASS without a single row changing.
+    """
+
+    for entry in payload["tasks"].values():
+        if entry.get("role") == "CHALLENGE":
+            entry["role"] = "BENIGN_CONTROL"
+
+
+CONTRACT_MUTATIONS: tuple[tuple[str, Any, str], ...] = (
+    ("changed-clause-contract", _loosen_a_scoring_clause, "a scoring clause changed"),
+    ("easier-contract", _make_qualification_easier, "qualification made easier"),
+)
+
+
+@pytest.mark.parametrize(
+    "name, mutate, label",
+    CONTRACT_MUTATIONS,
+    ids=[item[0] for item in CONTRACT_MUTATIONS],
+)
+def test_an_alternate_contract_is_refused_before_any_scoring(
+    tmp_path: Path, name: str, mutate: Any, label: str
+) -> None:
+    """P-R1 D / E: no plan is derived and no row is read under a foreign contract."""
+
+    path = alternate_contract(tmp_path, name, mutate)
+    with pytest.raises(protocol.NoncanonicalInput) as excinfo:
+        analyzer.build_scoring_plans(path, RC4_MANIFEST)
+    assert "FROZEN_ARTIFACT_MISMATCH" in str(excinfo.value), label
+
+    with pytest.raises(protocol.NoncanonicalInput):
+        analyzer.analyze(tmp_path, contract_path=path)
+
+
+def test_an_alternate_manifest_is_refused_by_the_analyzer(tmp_path: Path) -> None:
+    path = alternate_manifest(tmp_path, "analyzer-manifest", _reorder_cases)
+    with pytest.raises(protocol.NoncanonicalInput):
+        analyzer.build_scoring_plans(RC4_CONTRACT, path)
+    with pytest.raises(protocol.NoncanonicalInput):
+        analyzer.analyze(tmp_path, manifest_path=path)
+
+
+@pytest.mark.parametrize(
+    "name, mutate, label",
+    CONTRACT_MUTATIONS,
+    ids=[item[0] for item in CONTRACT_MUTATIONS],
+)
+def test_the_analyzer_cli_emits_no_verdict_under_an_alternate_contract(
+    capsys: pytest.CaptureFixture[str],
+    clean_phase_p_run: Path,
+    tmp_path: Path,
+    name: str,
+    mutate: Any,
+    label: str,
+) -> None:
+    """P-R1 D / E, end to end, against a REAL completed clean matrix.
+
+    The same rows that produce a HOLD under the frozen contract are offered to
+    the analyzer under a contract that would score them differently.  No
+    verdict of any kind is emitted, and in particular
+    ``PASS_RC4_QUALIFIED_FOR_QA_OFF_USE`` never appears.
+    """
+
+    path = alternate_contract(tmp_path, name, mutate)
+    code = analyzer.main(
+        ["--root", str(clean_phase_p_run), "--contract", str(path)]
+    )
+    captured = capsys.readouterr()
+    assert code == protocol.EXIT_PREFLIGHT_STOP, label
+    assert analyzer.VERDICT_QUALIFIED not in captured.out, label
+    assert "FROZEN_ARTIFACT_MISMATCH" in captured.err, label
+    assert "NONCANONICAL_SCIENTIFIC_INPUT" in captured.err, label
+    assert '"verdict"' not in captured.out, f"{label}: a verdict was emitted"
+
+    # And ``--verify-scoring-plan`` -- the other branch -- refuses identically.
+    code = analyzer.main(["--verify-scoring-plan", "--contract", str(path)])
+    captured = capsys.readouterr()
+    assert code == protocol.EXIT_PREFLIGHT_STOP, label
+    assert "NONCANONICAL_SCIENTIFIC_INPUT" in captured.err, label
+
+
+def test_the_easier_contract_fixture_is_not_vacuous(
+    clean_phase_p_run: Path,
+) -> None:
+    """The refusal above is worth something: this contract WOULD change the verdict.
+
+    Under the frozen contract the clean synthetic matrix HOLDs, and it holds
+    precisely on tasks the alternate contract reclassifies as benign controls --
+    which qualify on zero exposure.  Without this, P-R1 test E would only prove
+    that a malformed file is rejected.
+    """
+
+    canonical = analyzer.analyze(clean_phase_p_run)
+    assert canonical["verdict"] == analyzer.VERDICT_HOLD
+    assert canonical["unqualified_tasks"], "nothing was held, so nothing could flip"
+
+    frozen_tasks = json.loads(RC4_CONTRACT.read_text(encoding="utf-8"))["tasks"]
+    easier = json.loads(RC4_CONTRACT.read_text(encoding="utf-8"))
+    _make_qualification_easier(easier)
+    for task_id in canonical["unqualified_tasks"]:
+        assert frozen_tasks[task_id]["role"] == "CHALLENGE", task_id
+        assert easier["tasks"][task_id]["role"] == "BENIGN_CONTROL", task_id
+    assert analyzer.STATUS_QUALIFIED_BENIGN in analyzer.QUALIFYING_STATUSES
+
+
+def test_the_analyzer_reports_the_digest_of_the_contract_it_actually_read(
+    clean_phase_p_run: Path,
+) -> None:
+    """P-R1 requirement 5: no canonical digest is ever reported for other bytes."""
+
+    payload = analyzer.analyze(clean_phase_p_run)
+    assert payload["qualification_contract_sha256"] == _sha256(RC4_CONTRACT)
+    assert payload["benchmark_manifest_sha256"] == _sha256(RC4_MANIFEST)
+    assert payload["qualification_contract_path"] == (
+        protocol.CANONICAL_CONTRACT_RELATIVE
+    )
+    assert payload["benchmark_manifest_path"] == protocol.CANONICAL_MANIFEST_RELATIVE
+    assert payload["scientific_inputs_are_canonical"] is True
+    assert payload["analyzed_canonical_results_namespace"] is False, (
+        "a synthetic run in a temporary directory must not read as the official "
+        "Phase-P namespace"
+    )
+    assert analyzer.check_reporting_scope(payload) == []
+
+
+def test_the_run_manifest_records_the_inputs_that_were_actually_read(
+    clean_phase_p_run: Path,
+) -> None:
+    """A run manifest describes ITS OWN inputs, never the ones it wishes it had.
+
+    This run was driven through the internal seam into a temporary root, so it
+    is deliberately NOT an official Phase-P execution -- and the manifest says
+    exactly that, per input, rather than inheriting the canonical claim.
+    """
+
+    manifest = json.loads(
+        (clean_phase_p_run / protocol.RUN_MANIFEST_NAME).read_text(encoding="utf-8")
+    )
+    inputs = manifest["execution_inputs"]
+    assert inputs["binding"] == "CANONICAL_PATH_AND_FROZEN_SHA256"
+    assert inputs["benchmark_manifest"]["sha256"] == _sha256(RC4_MANIFEST)
+    assert inputs["benchmark_manifest"]["is_canonical"] is True
+    assert inputs["config"]["sha256"] == _sha256(PHASE_P_CONFIG)
+    assert inputs["config"]["is_canonical"] is True
+    assert inputs["models"]["sha256"] == _sha256(PHASE_P_MODELS)
+    assert inputs["models"]["is_canonical"] is True
+    assert inputs["output_root_is_canonical_namespace"] is False
+    assert inputs["official_phase_p_execution"] is False
+    # The protocol summary it persisted describes the schedule it executed.
+    assert manifest["protocol"]["benchmark_manifest_sha256"] == _sha256(
+        RC4_MANIFEST
+    )
+
+
+def test_the_summary_must_describe_the_schedule_that_would_execute(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The provenance-truth guard is real, not decorative.
+
+    If ``protocol_summary()`` and the built schedule ever disagreed, the run
+    manifest would report a canonical protocol over other rows.  They cannot
+    disagree while the binding holds -- so the guard is proved by forcing the
+    disagreement.
+    """
+
+    real = protocol.protocol_summary
+
+    def drifted() -> dict[str, Any]:
+        summary = real()
+        summary["schedule_digest"] = "0" * 64
+        return summary
+
+    monkeypatch.setattr(protocol, "protocol_summary", drifted)
+    spy = _Spy()
+    code = drive_bound(tmp_path / "out", probe=spy.probe, execute_cell=spy.execute)
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert spy.calls == []
+    assert not (tmp_path / "out").exists()
+
+
+# --------------------------------------------------------------------------
+# P-R1 H: the canonical inputs still pass everything
+# --------------------------------------------------------------------------
+
+
+def test_the_canonical_inputs_continue_to_pass_every_offline_check(
+    tmp_path: Path,
+) -> None:
+    """P-R1 H.  The repair refuses look-alikes; it refuses nothing real."""
+
+    for relative in protocol.CANONICAL_SCIENTIFIC_INPUTS:
+        canonical = protocol.canonical_input_path(relative)
+        assert protocol.require_canonical_input(relative) == canonical, relative
+        assert protocol.require_canonical_input(relative, canonical) == canonical
+        # A caller may also name it by an unresolved, differently spelled path.
+        assert (
+            protocol.require_canonical_input(relative, PROJECT_ROOT / relative)
+            == canonical
+        )
+
+    assert protocol.load_benchmark(RC4_MANIFEST).task_ids == (
+        protocol.load_benchmark().task_ids
+    )
+    plans, contract = analyzer.build_scoring_plans(RC4_CONTRACT, RC4_MANIFEST)
+    assert len(plans) == protocol.TASK_COUNT
+    assert contract["benchmark_version"] == protocol.BENCHMARK_VERSION
+
+    # The production CLI, given the canonical arguments in full, is refused ONLY
+    # by the human gate -- never by the binding.  Nothing is created.
+    spy = _Spy()
+    code = driver.main(
+        [
+            "--config",
+            str(PHASE_P_CONFIG),
+            "--manifest",
+            str(RC4_MANIFEST),
+            "--output-root",
+            str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE),
+        ],
+        env={},
+        probe=spy.probe,
+        execute_cell=spy.execute,
+    )
+    assert code == protocol.EXIT_GATE_CLOSED
+    assert spy.calls == []
+    assert not protocol.canonical_results_root().exists()
+
+    assert driver.verify_frozen_inputs() == (protocol.EXIT_OK, [])
+    assert analyzer.main(["--verify-scoring-plan"]) == protocol.EXIT_OK
+
+
+def test_the_forbidden_report_terms_refuse_the_causal_effect_key_forms() -> None:
+    """The two non-blocking rereview findings, closed.
+
+    ``qa_effect`` did not cover ``qa_full_effect`` and nothing covered
+    ``confirmatory_result``: the matcher is token-based, so those are different
+    token runs.  The exemption for a DECLARATION of absence must survive.
+    """
+
+    for key in (
+        "qa_full_effect",
+        "qa_full_effectiveness",
+        "qa_full_vs_off",
+        "full_vs_off",
+        "confirmatory_result",
+        "confirmatory_effect",
+        "confirmatory_finding",
+        "confirmatory_verdict",
+        "causal_effect",
+        "treatment_estimate",
+        "tasks_qa_full_effect_by_arm",
+    ):
+        assert analyzer._names_forbidden_quantity(key) is not None, key
+        assert analyzer.check_reporting_scope({key: 1}), key
+
+    for key in (
+        "reports_no_qa_treatment_effect",
+        "reports_no_model_ranking",
+        "reports_no_confirmatory_quantity",
+        "authorizes_confirmatory_execution",
+        "no_qa_effect_claim",
+        "reports_no_causal_effect",
+        "prerequisites_satisfied",
+    ):
+        assert analyzer._names_forbidden_quantity(key) is None, key
+
+
+def test_the_seed_scan_docstring_claims_only_what_it_does() -> None:
+    """The docstring describes a CURRENT-TREE scan, because that is the mechanism."""
+
+    doc = seeds.__doc__ or ""
+    assert "every seed the repository has ever recorded" not in doc
+    assert "CURRENT COMMITTED TREE" in doc
+    assert "git ls-files" in doc
+    assert "phaseP_rc4_protocol_freeze_report.md" in doc
+    assert "full-history rereview" in doc
 
 
 # ==========================================================================
@@ -1656,9 +2399,8 @@ def test_both_arms_are_probed_before_either_arm_runs(tmp_path: Path) -> None:
         return _stub_probe(model)
 
     out = tmp_path / "out"
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=probe,
         execute_cell=lambda cell: executed.append(cell)
         or traced_row(out, cell),  # type: ignore[func-returns-value]
@@ -1693,9 +2435,8 @@ def test_one_arm_only_metadata_success_is_an_environment_hold(
         return _stub_probe(model)
 
     out = tmp_path / "out"
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=probe,
         execute_cell=executed.append,
     )
@@ -1714,9 +2455,8 @@ def test_a_drifted_runtime_version_is_an_environment_hold(tmp_path: Path) -> Non
         )
 
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(tmp_path / "out")],
-        env=OPEN_GATE,
+    code = drive_bound(
+        tmp_path / "out",
         probe=probe,
         execute_cell=executed.append,
     )
@@ -1866,9 +2606,8 @@ def test_contract_drift_in_the_last_cell_of_arm_one_prevents_arm_two(
             row["tool_argument_contract_version"] = "tool-arguments-0"
         return row
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=execute,
     )
@@ -1924,9 +2663,8 @@ def test_a_clean_matrix_completes_and_writes_both_manifests(tmp_path: Path) -> N
         executed.append(cell)
         return traced_row(out, cell)
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=execute,
     )
@@ -1968,9 +2706,8 @@ def test_a_defect_in_the_last_cell_of_arm_one_prevents_arm_two_starting(
             row["failure_events"] = []
         return row
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=execute,
     )
@@ -2007,9 +2744,8 @@ def test_an_early_stop_also_prevents_every_later_cell(tmp_path: Path) -> None:
             row["task_id"] = "NOT-A-TASK"
         return row
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=execute,
     )
@@ -2031,9 +2767,8 @@ def test_a_cell_that_raises_is_an_immediate_stop_with_its_row_preserved(
             raise RuntimeError("the provider adapter exploded")
         return traced_row(out, cell)
 
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=execute,
     )
@@ -2063,9 +2798,8 @@ def test_a_stopped_run_cannot_be_resumed(tmp_path: Path) -> None:
             row["task_id"] = "NOT-A-TASK"
         return row
 
-    first = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    first = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=execute,
     )
@@ -2073,9 +2807,8 @@ def test_a_stopped_run_cannot_be_resumed(tmp_path: Path) -> None:
     before = (out / protocol.RAW_RECORD_NAME).read_bytes()
 
     executed: list[Any] = []
-    second = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    second = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=executed.append,
     )
@@ -2127,9 +2860,8 @@ def test_a_pre_existing_output_refuses_execution(
     (out / existing).write_text("", encoding="utf-8")
     probed: list[str] = []
     executed: list[Any] = []
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=lambda model: probed.append(model) or _stub_probe(model),  # type: ignore[func-returns-value]
         execute_cell=executed.append,
     )
@@ -2873,9 +3605,8 @@ def test_a_complete_synthetic_run_analyzes_without_blocking_failures(
     """The driver and the analyzer agree end to end on a clean 102-cell matrix."""
 
     out = tmp_path / "out"
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         execute_cell=clean_executor(out),
     )
@@ -2926,9 +3657,8 @@ def test_a_run_with_an_invalidated_cell_can_never_be_a_qualification(
     """An invalidated cell is never silently counted as valid."""
 
     out = tmp_path / "out"
-    code = driver.main(
-        ["--execute-real-model", "--output-root", str(out)],
-        env=OPEN_GATE,
+    code = drive_bound(
+        out,
         probe=_stub_probe,
         # Every cell records zero actions, so the two fault-declaring tasks never
         # reach their declared modality and their six cells each are invalidated.
@@ -3039,9 +3769,8 @@ def test_a_full_gated_run_with_injected_seams_opens_no_socket(
 ) -> None:
     out = tmp_path / "out"
     with no_network() as attempts:
-        code = driver.main(
-            ["--execute-real-model", "--output-root", str(out)],
-            env=OPEN_GATE,
+        code = drive_bound(
+            out,
             probe=_stub_probe,
             execute_cell=lambda cell: traced_row(out, cell),
         )
