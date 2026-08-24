@@ -1739,6 +1739,46 @@ def test_a_phase_p_looking_config_with_a_changed_setting_is_refused(
     assert not protocol.canonical_results_root().exists()
 
 
+def test_the_internal_seam_binds_every_scientific_input_it_is_given(
+    tmp_path: Path,
+) -> None:
+    """``output_root`` is the ONLY thing ``execute_bound_run`` leaves unbound.
+
+    The seam exists so the offline suite can drive the machinery into a
+    temporary directory.  A seam that also accepted a noncanonical config,
+    manifest or model config would be the P-R1 defect one level down, so each of
+    those is bound inside it -- by the config check immediately on entry, by
+    ``protocol.load_benchmark``, and by ``check_experiment_configuration`` --
+    and none of the three depends on ``main()`` having checked first.
+    """
+
+    config_copy = tmp_path / "phaseP-qualification.yaml"
+    config_copy.write_bytes(PHASE_P_CONFIG.read_bytes())
+    spy = _Spy()
+    code = drive_bound(
+        tmp_path / "out",
+        probe=spy.probe,
+        execute_cell=spy.execute,
+        config_path=config_copy,
+    )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert spy.calls == []
+    assert not (tmp_path / "out").exists()
+
+    manifest_copy = tmp_path / "manifest.json"
+    manifest_copy.write_bytes(RC4_MANIFEST.read_bytes())
+    spy = _Spy()
+    code = drive_bound(
+        tmp_path / "out2",
+        probe=spy.probe,
+        execute_cell=spy.execute,
+        manifest_path=manifest_copy,
+    )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert spy.calls == []
+    assert not (tmp_path / "out2").exists()
+
+
 def test_a_byte_identical_config_copy_is_also_refused(tmp_path: Path) -> None:
     """Not even an EXACT copy of the frozen config is a frozen Phase-P input."""
 

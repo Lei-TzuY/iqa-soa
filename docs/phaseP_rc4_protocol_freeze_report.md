@@ -315,6 +315,13 @@ the analyzer hashes the contract it bound rather than a hard-coded path.
 | G | alternate `--output-root` on the production CLI | `PROTOCOL_DEVIATION`; refused as a noncanonical Phase-P execution |
 | H | the canonical paths | continue to pass every offline check |
 
+The internal seam the offline suite drives, `execute_bound_run`, leaves
+**`output_root` alone** unbound: it binds the execution config on entry, the
+manifest through `load_benchmark` and the model config through
+`check_experiment_configuration`, none of which depends on `main()` having
+checked first. A test hands it a byte-identical copy of the frozen config and of
+the frozen manifest and requires both to be refused.
+
 Two further separations are tested in isolation so neither half of the binding
 can silently stop working: a **byte-identical copy** placed elsewhere is refused
 by the path proof, and **edited bytes at the canonical relative path** are
@@ -364,8 +371,8 @@ contact.
 
 | Check | Result |
 |---|---|
-| Phase-P focused suite | **228 passed** (200 before P-R1; +28 binding regressions) |
-| Full `pytest` | **1613 passed** (1585 before P-R1) |
+| Phase-P focused suite | **229 passed** (200 before P-R1; +29 binding regressions) |
+| Full `pytest` | **1614 passed** (1585 before P-R1) |
 | `mypy src` | clean (48 files) |
 | `MYPYPATH=src mypy --strict` over all five Phase-P scripts | clean |
 | every validator listed in §5 | PASS |

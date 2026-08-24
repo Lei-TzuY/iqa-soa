@@ -916,10 +916,28 @@ def execute_bound_run(
     temporary root produces no ``results/phaseP-rc4-qualification``, so nothing
     it writes is or can be mistaken for an official Phase-P run, and the run
     manifest it writes says so in ``execution_inputs`` (see
-    :func:`describe_execution_inputs`).  ``manifest_path`` is still bound a
-    second time inside ``protocol.load_benchmark``, which refuses a noncanonical
-    manifest no matter who calls it.
+    :func:`describe_execution_inputs`).
+
+    ``output_root`` IS THE ONLY THING THIS SEAM LEAVES UNBOUND.  Every scientific
+    input is still bound here, by a layer that does not depend on the caller:
+    the execution config immediately below, the benchmark manifest inside
+    ``protocol.load_benchmark``, and the model config inside
+    :func:`check_experiment_configuration`.  A function that accepted a
+    noncanonical config would be the same defect one level down, so it does not.
     """
+
+    # ---- 1c. The execution config, bound here as well as in main(). ----
+    #
+    # Not redundant: this is the layer that holds when the caller is NOT main().
+    # It runs before the preflight and before anything is read from the config,
+    # so a noncanonical config costs zero metadata probes and zero cells.
+    try:
+        config_path = protocol.require_canonical_input(
+            protocol.CANONICAL_CONFIG_RELATIVE, config_path
+        )
+    except protocol.ProtocolError as exc:
+        print(f"IMMEDIATE_STOP: {exc}", file=sys.stderr)
+        return protocol.EXIT_PREFLIGHT_STOP
 
     # ---- 2. Offline preflight, still before any provider contact. ----
     failures = protocol.offline_preflight()

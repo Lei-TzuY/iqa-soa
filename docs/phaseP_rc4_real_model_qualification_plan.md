@@ -704,12 +704,15 @@ actually read:
 * the analyzer computes `qualification_contract_sha256` from the contract file it
   bound rather than from a hard-coded canonical path.
 
-**Test-only seam.** `run_phaseP_rc4_qualification.execute_bound_run` accepts
-already-bound paths and is what the offline suite drives with a temporary output
-root, so the machinery beyond the binding stays testable without writing into the
-repository. It binds nothing itself, is reached in production only from `main()`
-after `main()` has proved the inputs, and any run manifest it writes reports
-`official_phase_p_execution: false`.
+**Test-only seam.** `run_phaseP_rc4_qualification.execute_bound_run` is what the
+offline suite drives with a temporary output root, so the machinery beyond the
+binding stays testable without writing into the repository. **`output_root` is
+the only thing it leaves unbound**: it binds the execution config on entry, the
+benchmark manifest through `load_benchmark`, and the model config through
+`check_experiment_configuration` — none of which depends on `main()` having
+checked first, because a seam that accepted a noncanonical scientific input would
+be the same defect one level down. Any run manifest it writes to a temporary root
+reports `official_phase_p_execution: false`.
 
 ## 25. What Phase P is not
 
