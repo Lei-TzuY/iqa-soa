@@ -7,7 +7,8 @@ implementation may undergo an independent adversarial rereview.
 
 Audit history: first rereview **PASS** -> P-R1 frozen-input bypass found ->
 P-R1 repair -> P-R2 residual authorization / evidence-root blockers found ->
-P-R2 repair (§11).
+P-R2 repair (§11) -> **P-R2's authorization repair found NOT closed at
+`d2679f9`** -> P-R2 completion (§12).
 
 | | |
 |---|---|
@@ -741,7 +742,268 @@ behind. Zero model inference, zero Ollama contact, zero provider contact.
 
 ### 11.9 Status
 
+**SUPERSEDED IN PART BY §12.** The evidence-root repair above (§11.3, §11.4) was
+independently inspected at `d2679f9` and accepted, and stands unchanged. The
+authorization repair (§11.1, §11.2) was inspected at the same head and found NOT
+to have closed its blocker; §12 records what survived and what closed it. The
+figures in §11.7 and §11.8 are the figures of that commit and are left as they
+were recorded.
+
 P-R2 authorizes another independent adversarial rereview and nothing else.
 `pilot-v7-rc4` remains **UNQUALIFIED**, **release-candidate**,
 **OFFLINE-DESIGNED** and **NOT FINAL**. No cell has been executed, the human gate
 has never been set, and `results/phaseP-rc4-qualification/` does not exist.
+
+---
+
+## 12. P-R2 completion — Blocker 1 was not closed, and now is
+
+The P-R2 repair in §11 was pushed as `d2679f9` and independently inspected at
+that head. **Blocker 2 was accepted. Blocker 1 was not closed.** The phase was
+reopened a third time rather than merged. The audit history now reads:
+
+```
+Phase P
+  -> first independent rereview: PASS
+  -> P-R1 frozen-input bypass found (the PASS had missed it)
+  -> P-R1 repair
+  -> P-R2 residual authorization / evidence-root blockers found
+  -> P-R2 repair                    (evidence root: accepted; authorization: NOT closed)
+  -> P-R2 residual authorization bypass found at d2679f9
+  -> P-R2 completion                                            <- this section
+```
+
+This section is scoped to Blocker 1. **The §11.3/§11.4 evidence-root repair is
+accepted and is not redesigned here**; the only analyzer-side change in this
+commit is none at all.
+
+### 12.1 What §11 actually achieved, and what it did not
+
+§11 put the gate on the two ENTRY POINTS. It left the PRIMITIVES open, and three
+bypasses survived — none of which needed `main()` or
+`execute_authorized_real_run()`.
+
+**1. The run loop was callable with no authorization, and took the seams from its
+caller.**
+
+```python
+d._drive_bound_run(
+    config_path=CANONICAL, manifest_path=CANONICAL, output_root=ANYWHERE,
+    env={"OLLAMA_API_KEY": "x"},
+    probe=d.probe_ollama_metadata,          # the live runtime
+    make_executor=lambda *a: d.make_cell_executor(...),   # 102 cells of inference
+)
+```
+
+The four guards that would have refused this lived in
+`execute_offline_bound_run`, which such a caller simply did not call. §11's own
+report called `_drive_bound_run` "PRIVATE. IT AUTHORIZES NOTHING AND IT SELECTS
+NOTHING" — which was true, and was the defect: a function that selects nothing
+and checks nothing will use whatever it is handed.
+
+**2. `make_cell_executor` built the real providers itself.** With
+`providers=None` — its default — it called `load_provider` for both arms and
+returned an executor that calls `ExperimentRunner.run`. No authorization
+parameter existed on it at all.
+
+**3. The capability was manufacturable by passing a boolean.**
+
+```python
+d.grant_real_execution_authorization(
+    execute_flag=True, env={"IQA_SOA_PHASE_P_HUMAN_GATE": "AUTHORIZED"}
+)   # -> a valid RealExecutionAuthorization
+```
+
+Both halves of the "dual gate" were **caller-supplied arguments**. §11 asserted
+that the capability "cannot be forged by passing `True`", and that was true only
+of the *token*; the *gate* it re-evaluated was a dict the caller wrote. The
+requirement was that a test must not be able to manufacture it trivially by
+passing a boolean, and a test could.
+
+An underscore, an `__all__` list and a docstring are not controls. The P-R2 brief
+said so explicitly, and §11 relied on all three.
+
+### 12.2 The repair — the gate is a property of every real primitive
+
+```
+NO VALID DUAL HUMAN AUTHORIZATION
+  -> NO OLLAMA METADATA CONTACT
+  -> NO REAL PROVIDER CONSTRUCTION
+  -> NO REAL CELL EXECUTOR
+  -> NO MODEL EXECUTION
+```
+
+**The mint takes no arguments.** `grant_real_execution_authorization()` reads
+both halves from the process through `_process_gate_refusal()`: the flag from
+`sys.argv`, the environment variable from `os.environ`. There is nothing to pass,
+so nothing a caller passes can change the outcome. `RealExecutionAuthorization`
+stores **no state at all** (`__slots__ == ()`) — no environment, no flag, nothing
+copied in that could go stale into something permissive — and `verify()` re-reads
+process state at every single use, so a grant that was valid one line ago stops
+validating the moment either half closes. The private-token check remains, as the
+second of two independent conditions rather than the only one.
+
+Satisfying this means genuinely putting `--execute-real-model` on the process
+command line and genuinely exporting `IQA_SOA_PHASE_P_HUMAN_GATE=AUTHORIZED`
+into the process environment. Those two acts **are** the dual human gate;
+performing them is not a bypass of it.
+
+**Every real primitive validates the capability itself:**
+
+| Primitive | What it can do | Gate |
+|---|---|---|
+| `_ollama_get` | the only socket to the runtime in this module | validates on entry |
+| `probe_ollama_metadata` | `/api/version`, `/api/tags` | keyword-only `authorization`, required |
+| `make_cell_executor` | constructs the real providers | keyword-only `authorization`, required |
+| the executor it returns | one `ExperimentRunner.run` per cell | re-validated **before every cell** |
+
+`_ollama_get` is gated despite its underscore, precisely because the brief
+forbids treating a name as a control. Because `authorization` is keyword-only and
+required, `probe_ollama_metadata` is **not** a `MetadataProbe`: handing it
+anywhere one is expected raises `TypeError` on the first call, having contacted
+nothing. Producing something of the right shape means binding a capability into
+it — which costs both human gates in this process. Only
+`execute_authorized_real_run` does that binding.
+
+**The run loop enforces its own mode.** `_drive_bound_run` now takes an explicit
+keyword-only `authorization` with no default. Given one it validates it; given
+`None` it applies `_refuse_unauthorized_real_seams`, which refuses a missing
+injection, a real primitive supplied bare **or behind `functools.partial` or
+`functools.wraps`** (`_names_a_real_seam` unwraps both), and any attempt to write
+`results/phaseP-rc4-qualification`. Those refusals now live in the function that
+drives the schedule, so there is no path around them.
+
+**`make_cell_executor` has no provider seam.** The `providers=None` parameter is
+removed, not gated. Nothing in the suite used it, and its absent-means-real
+default was the second finding verbatim. The function now has one behaviour and
+that behaviour requires the capability.
+
+**`main()` has no injection seam of any kind.** `probe` and `execute_cell` went
+in §11; `env` goes now. The gate is read from the process, so `argv` can change
+which arguments are *bound* but cannot open anything.
+
+### 12.3 The adversarial regressions added
+
+28 new regressions (290 total, from 262). Every one imports the module and calls
+the lower-level function **directly**, the way the reviewer did, and asserts **0
+metadata contact, 0 provider creation, 0 cells, no official namespace** — with
+`load_provider` and `ExperimentRunner` themselves monkeypatched to raise if
+reached, so the claim is about four named objects rather than about a stand-in
+nobody called.
+
+| Finding | Regression | Asserts |
+|---|---|---|
+| 1 | `test_the_run_loop_refuses_the_real_probe_however_it_is_supplied` | bare, `functools.partial`, `functools.wraps` — all refused |
+| 1 | `test_the_run_loop_refuses_the_real_executor_factory_however_it_is_supplied` | the same three shapes |
+| 1 | `test_the_run_loop_refuses_a_forged_authorization` | `True`, `1`, `object()`, a duck-typed stand-in |
+| 1 | signature guard on `_drive_bound_run.authorization` | keyword-only, no default, so no permissive fallback |
+| 2 | `test_every_real_primitive_refuses_an_unauthorized_call` (3 primitives × 5 forgeries) | each primitive gates itself |
+| 2 | `test_the_real_executor_factory_has_no_provider_seam` | `providers` is gone; `authorization` is required |
+| 2 | `test_a_captured_executor_refuses_every_cell_once_the_gate_closes` | the grant is re-proved per cell, so a captured executor carries nothing forward |
+| 3 | `test_the_mint_takes_no_arguments_at_all` | `signature(...).parameters == {}`; `execute_flag=`/`env=` are `TypeError`; `__slots__ == ()` |
+| 3 | `test_the_gate_is_read_from_the_process_and_cannot_be_supplied` | moving each half on the process moves the mint |
+| 3 | `test_the_capability_is_reverified_at_use_and_not_merely_at_mint` | closing either half invalidates a live grant |
+| — | `test_the_real_probe_cannot_be_used_where_a_metadata_probe_is_expected` | the shape mismatch is real, and refuses before contacting |
+| — | `test_the_capability_cannot_be_constructed_without_the_private_token` | six token shapes refused **with the process gate open**, so the refusal is the token's doing and not the gate's |
+| §12.5 | `test_the_offline_preflight_constructs_no_provider_at_all` | 0 `load_provider` calls, 0 `OpenAICompatibleProvider` constructions, 0 sockets, nothing created |
+| §12.5 | `test_the_static_arm_check_reads_the_frozen_bytes_and_still_refuses_drift` | every pin is still load-bearing, and the three instrument fields really are absent from the config |
+| §12.5 | `test_a_noncanonical_models_config_is_refused_by_the_static_reader` | the static reader binds its own path |
+| §12.5 | `test_the_advertised_instrument_contract_refuses_a_drifted_constant` | the instrument half is a real comparison, not a constant against itself |
+
+The closed-gate parametrisation is now expressed as **process** state — eight
+partial gates over `sys.argv` × `os.environ`, each with the credential
+deliberately present — because that is the only thing the capability reads.
+
+### 12.4 The gate scan, tightened
+
+Requirement F asks the suite to prove the capability IS minted when both gates
+open, which means opening them in-process. `test_the_gate_variable_is_set_nowhere_in_the_repository`
+therefore now scans for `setenv` / `environ[...] =` forms as well as shell
+exports, and requires:
+
+- **zero** exported settings anywhere in the tracked tree;
+- every in-process setting confined to the offline regression suite;
+- every one of them made through `monkeypatch`, so it is undone at test exit; and
+- the ambient environment to not carry the gate while the suite runs.
+
+Each such test substitutes an offline seam before anything real can act, and
+asserts the real primitives were never reached.
+
+### 12.5 The offline preflight constructs no provider
+
+A first draft of this repair left `check_arm_configuration` calling
+`load_provider(models_path, provider_name=slot).descriptor()` once per arm,
+during the **offline** preflight, with no authorization — and disclosed it as an
+accepted boundary on the grounds that constructing an `OpenAICompatibleProvider`
+stores an endpoint string and opens no socket.
+
+**That was wrong, and the review was right to refuse it.** The invariant says
+`NO REAL PROVIDER CONSTRUCTION`. It does not say "no provider construction that
+reaches inference", and a boundary disclosed in a report is not a boundary the
+invariant grants. The check is now **purely static**.
+
+`check_arm_configuration` reads `configs/phaseP-models.yaml` — bound by canonical
+path **and** by the SHA-256 the frozen-input record accepted — with
+`yaml.safe_load`, and asserts, per arm, from those bytes:
+
+| Assertion | Source |
+|---|---|
+| top-level schema is exactly `{schema_version, default_provider, providers}` | the frozen bytes |
+| the arm's slot exists, is `type: openai_compatible`, is explicitly `enabled` | the frozen bytes |
+| no unknown field, no missing required field | the frozen bytes |
+| `model`, `protocol`, `tool_contract_policy`, `api_key_env` equal the frozen pins | the frozen bytes |
+
+Nothing is lost, because the descriptor's fields came from two places and each is
+now checked at its own source. The three the config does **not** carry —
+`native_tool_adapter_version`, `tool_argument_contract_version` and
+`tool_argument_contract_digest`, which the provider schema rejects as fields and
+which the config's own header says are instrument properties — are read by
+`check_advertised_instrument_contract` from the **live instrument constants** and
+compared against the values `docs/phaseP_frozen_execution_inputs.json` recorded.
+
+That comparison is **stronger** than the descriptor read it replaces: the
+descriptor advertised the same module constants this protocol pins, so comparing
+the two proved little, whereas comparing the live constants against the committed
+record proves the instrument is still the one a reviewer signed off on.
+
+`load_provider` therefore now has **exactly one caller in the module**,
+`make_cell_executor`, which requires the capability — asserted on the AST, so a
+future edit that adds a second caller fails. `test_the_offline_preflight_constructs_no_provider_at_all`
+drives `offline_preflight()`, `check_arm_configuration()`,
+`check_advertised_instrument_contract()`, `verify_frozen_inputs()` and
+`--verify-frozen-inputs` under three independent guards — `load_provider` itself,
+the `OpenAICompatibleProvider` constructor patched at its own class, and the
+socket layer — and asserts **0 `load_provider` calls, 0 provider constructions, 0
+sockets, 0 cells, nothing created, no official namespace**.
+
+### 12.6 P-R2 completion validation
+
+Strictly offline. Zero model inference, zero Ollama contact, zero provider
+contact.
+
+| Check | Result |
+|---|---|
+| Phase-P focused suite | **290 passed** (262 after §11; +28 completion regressions) |
+| Full `pytest` | **1675 passed** (1647 after §11, 19m33s) |
+| `mypy src` | clean (48 files) |
+| `MYPYPATH=src mypy --strict` over all five Phase-P scripts | clean (5 files) |
+| every validator listed in §5 | PASS |
+| the reviewer's three findings, re-run verbatim | all refused; namespace absent |
+| `load_provider` callers in the driver | **1** (`make_cell_executor`, capability-gated) |
+| provider constructions during the whole offline preflight | **0** |
+| Fresh detached worktree at the completion commit, full battery | see §12.7 |
+
+### 12.7 Fresh detached-worktree battery at the completion commit
+
+To be run in a worktree checked out clean at the completion commit and recorded
+in the immediately following commit — exactly as the §9, §10.6 and §11.8
+batteries were, and for the same reason: a report cannot contain the results of a
+run performed at a commit that already contains those results.
+
+### 12.8 Status
+
+The P-R2 completion authorizes another independent adversarial rereview and
+nothing else. `pilot-v7-rc4` remains **UNQUALIFIED**, **release-candidate**,
+**OFFLINE-DESIGNED** and **NOT FINAL**. No cell has been executed, the human gate
+has never been set outside a monkeypatched test, and
+`results/phaseP-rc4-qualification/` does not exist.

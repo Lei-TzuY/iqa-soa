@@ -17,6 +17,7 @@ The suite is organised as the phase brief is:
 4.  cell identity and run_key
 5.  the dual human execution gate
 5b. the real-execution authorization capability (Phase P-R2)
+5c. the lower-level bypasses, attempted directly (Phase P-R2 completion)
 6.  frozen inputs and the offline preflight
 6b. frozen scientific input binding (Phase P-R1)
 6c. the evidence root is bound too (Phase P-R2)
@@ -33,9 +34,11 @@ The suite is organised as the phase brief is:
 from __future__ import annotations
 
 import ast
+import functools
 import hashlib
 import inspect
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -45,6 +48,7 @@ from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
 
 import pytest
+import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -75,14 +79,39 @@ RC4_CONTRACT = (
 PHASE_P_CONFIG = PROJECT_ROOT / "configs" / "phaseP-qualification.yaml"
 PHASE_P_MODELS = PROJECT_ROOT / "configs" / "phaseP-models.yaml"
 
-#: The gate this suite opens ONLY to exercise the machinery beyond it.  Every
-#: such test injects a mock probe and a mock executor, so opening it reaches no
-#: provider and no runtime.  The real environment variable is never set: this is
-#: a dict handed to ``driver.main(env=...)``.
-OPEN_GATE: dict[str, str] = {
+#: The environment the OFFLINE seam is driven with.  It is NOT a gate and it
+#: opens nothing: ``execute_offline_bound_run`` reads exactly one key from it,
+#: the provider credential, and the credential is not authorization.  Since the
+#: P-R2 completion the dual gate is read from the PROCESS -- ``sys.argv`` and
+#: ``os.environ`` -- and cannot be supplied by any caller, so there is no longer
+#: any mapping anywhere in this suite that could open it.
+OFFLINE_SEAM_ENV: dict[str, str] = {
     protocol.HUMAN_GATE_ENV: protocol.HUMAN_GATE_VALUE,
     protocol.CREDENTIAL_ENV: "offline-test-placeholder",
 }
+
+
+def open_the_process_gate(
+    monkeypatch: pytest.MonkeyPatch, *, flag: bool = True
+) -> None:
+    """Set BOTH halves of the dual gate on THIS PROCESS, for one test only.
+
+    Since the P-R2 completion the capability is minted from ``sys.argv`` and
+    ``os.environ`` and from nothing a caller can pass, so a test that needs to
+    exercise the machinery BEYOND the gate has to genuinely open it here.  That
+    is the sanctioned form the phase brief asks for: open it, then substitute an
+    offline seam before anything real can act.
+
+    ``monkeypatch`` undoes both at test exit, so the gate is open only inside the
+    one test that asked for it, and never in the repository, a config or CI.
+    Every caller of this helper monkeypatches the real probe and the real
+    executor to raise if touched, and asserts they never were.
+    """
+
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    argv = [sys.argv[0], protocol.HUMAN_GATE_FLAG] if flag else [sys.argv[0]]
+    monkeypatch.setattr(sys, "argv", argv)
 
 
 # --------------------------------------------------------------------------
@@ -196,7 +225,7 @@ def drive_bound(
         config_path=config_path,
         manifest_path=manifest_path,
         output_root=output_root,
-        env=OPEN_GATE if env is None else env,
+        env=OFFLINE_SEAM_ENV if env is None else env,
         probe=probe,  # type: ignore[arg-type]
         execute_cell=execute_cell,  # type: ignore[arg-type]
     )
@@ -1364,54 +1393,65 @@ class _RealSeam:
         return self
 
 
+#: Every partial gate, expressed as PROCESS state, because that is the only
+#: thing the capability reads since the P-R2 completion.  ``flag`` is whether
+#: ``--execute-real-model`` is on ``sys.argv``; ``value`` is what
+#: ``IQA_SOA_PHASE_P_HUMAN_GATE`` holds in ``os.environ``, or ``None`` for unset.
+PARTIAL_GATES: tuple[tuple[str, bool, str | None], ...] = (
+    ("no gate at all", False, None),
+    ("flag only", True, None),
+    ("env only", False, "AUTHORIZED"),
+    ("wrong case", True, "authorized"),
+    ("trailing space", True, "AUTHORIZED "),
+    ("mixed case", True, "Authorized"),
+    ("wrong value", True, "YES"),
+    ("empty", True, ""),
+)
+
+
 @pytest.mark.parametrize(
-    "argv, env, label",
-    [
-        ([], {}, "no gate at all"),
-        (["--execute-real-model"], {}, "flag only"),
-        ([], {protocol.HUMAN_GATE_ENV: "AUTHORIZED"}, "env only"),
-        (
-            ["--execute-real-model"],
-            {protocol.HUMAN_GATE_ENV: "authorized"},
-            "wrong case",
-        ),
-        (
-            ["--execute-real-model"],
-            {protocol.HUMAN_GATE_ENV: "AUTHORIZED "},
-            "trailing space",
-        ),
-        (
-            ["--execute-real-model"],
-            {protocol.HUMAN_GATE_ENV: "Authorized"},
-            "mixed case",
-        ),
-        (
-            ["--execute-real-model"],
-            {protocol.HUMAN_GATE_ENV: "YES"},
-            "wrong value",
-        ),
-    ],
+    "label, flag, value", PARTIAL_GATES, ids=[item[0] for item in PARTIAL_GATES]
 )
 def test_the_gate_refuses_and_touches_nothing(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    argv: list[str],
-    env: dict[str, str],
     label: str,
+    flag: bool,
+    value: str | None,
 ) -> None:
+    """No partial gate opens anything, and none of them is a mapping we passed in.
+
+    The gate is set on the PROCESS here, because that is what the capability
+    reads. The credential is deliberately present in every case: it is not
+    authorization and must never be mistaken for it.
+    """
+
     seam = _RealSeam().install(monkeypatch)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
+    if value is not None:
+        monkeypatch.setenv(protocol.HUMAN_GATE_ENV, value)
     out = tmp_path / "out"
+    argv = [sys.argv[0], "--output-root", str(out)]
+    if flag:
+        argv.insert(1, protocol.HUMAN_GATE_FLAG)
+    monkeypatch.setattr(sys, "argv", argv)
+
     with no_network() as attempts:
-        code = driver.main([*argv, "--output-root", str(out)], env=env)
+        code = driver.main(argv[1:])
     assert code == protocol.EXIT_GATE_CLOSED, label
     assert seam.touched == [], label
     assert attempts == [], label
     assert not out.exists(), f"{label} created a results namespace"
     assert not protocol.canonical_results_root().exists(), label
 
+    # And the capability itself refuses to be minted under the same process state.
+    with pytest.raises(driver.UnauthorizedRealExecution):
+        driver.grant_real_execution_authorization()
+
 
 def test_both_gates_are_required_and_neither_alone_suffices() -> None:
-    assert driver.human_gate_refusal(execute_flag=True, env=OPEN_GATE) is None
+    assert driver.human_gate_refusal(execute_flag=True, env=OFFLINE_SEAM_ENV) is None
     only_flag = driver.human_gate_refusal(execute_flag=True, env={})
     only_env = driver.human_gate_refusal(
         execute_flag=False, env={protocol.HUMAN_GATE_ENV: "AUTHORIZED"}
@@ -1433,17 +1473,38 @@ def test_the_gate_is_evaluated_before_the_offline_preflight(
         protocol, "offline_preflight", lambda: called.append("preflight") or []
     )
     seam = _RealSeam().install(monkeypatch)
-    code = driver.main(["--output-root", str(tmp_path / "out")], env={})
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
+    code = driver.main(["--output-root", str(tmp_path / "out")])
     assert code == protocol.EXIT_GATE_CLOSED
     assert called == []
     assert seam.touched == []
 
 
+#: The ONE file allowed to open the gate in-process, and why.
+#:
+#: Since the P-R2 completion the capability is minted from ``os.environ`` and
+#: ``sys.argv``, so a test that needs to exercise anything BEYOND the gate has to
+#: genuinely open it on the process -- the phase brief's requirement F asks for
+#: exactly that, and then requires an offline seam to be injected immediately
+#: after. Every such test does so through ``open_the_process_gate``, which uses
+#: ``monkeypatch`` and is therefore undone at test exit, and every one of them
+#: monkeypatches the real probe and the real executor to raise if touched.
+GATE_OPENING_IS_PERMITTED_IN = "tests/integration/test_phaseP_execution_protocol.py"
+
+
 def test_the_gate_variable_is_set_nowhere_in_the_repository() -> None:
-    """Not in a test, not in a config, not in CI.  Opening it is a human act."""
+    """Not in a config, not in CI, not in a shell script.  Opening it is a human act.
+
+    PHASE P-R2 COMPLETION.  The scan now covers IN-PROCESS settings as well as
+    shell exports, because the gate is read from ``os.environ`` and a
+    ``setenv``/``environ[...] =`` would open it just as effectively as an
+    ``export``. Both forms are collected, and the in-process ones are required to
+    be confined to the offline regression suite.
+    """
 
     needle = f"{protocol.HUMAN_GATE_ENV}={protocol.HUMAN_GATE_VALUE}"
-    offenders: list[str] = []
+    shell_offenders: list[str] = []
+    in_process: list[str] = []
     tracked = _git("ls-files", "-z").split("\0")
     for name in tracked:
         if not name.strip():
@@ -1456,16 +1517,44 @@ def test_the_gate_variable_is_set_nowhere_in_the_repository() -> None:
         except (UnicodeDecodeError, OSError):
             continue
         for number, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            # An in-process assignment of the gate to its authorized value.
+            if (
+                protocol.HUMAN_GATE_ENV in line
+                and protocol.HUMAN_GATE_VALUE in line
+                and ("setenv" in line or "environ[" in line or "environ.setdefault" in line)
+            ):
+                in_process.append(f"{name}:{number}: {stripped}")
+                continue
             if needle not in line:
                 continue
             # Documentation and help text may NAME the gate; what is forbidden is
             # an assignment that would actually open it.
-            stripped = line.strip()
             if stripped.startswith(("#", "*", "-", "|", '"', "'")) or "must be" in line:
                 continue
             if "export " in line or line.startswith(needle) or "setx" in line.lower():
-                offenders.append(f"{name}:{number}: {stripped}")
-    assert offenders == [], f"the Phase-P human gate is set in the repository: {offenders}"
+                shell_offenders.append(f"{name}:{number}: {stripped}")
+
+    assert shell_offenders == [], (
+        f"the Phase-P human gate is exported in the repository: {shell_offenders}"
+    )
+    stray = [
+        item
+        for item in in_process
+        if not item.startswith(GATE_OPENING_IS_PERMITTED_IN)
+    ]
+    assert stray == [], (
+        "the Phase-P human gate is set in-process outside the offline regression "
+        f"suite: {stray}"
+    )
+    # And inside the suite it is set only through monkeypatch, so it is undone at
+    # test exit and can never leak into another test or out of the process.
+    for item in in_process:
+        assert "monkeypatch.setenv" in item or "gated.setenv" in item, item
+
+    # It is not set in the ambient environment either -- so the whole suite runs
+    # with the gate closed unless a test deliberately, temporarily opens it.
+    assert os.environ.get(protocol.HUMAN_GATE_ENV) != protocol.HUMAN_GATE_VALUE
 
 
 def test_no_phase_p_artifact_authorizes_execution() -> None:
@@ -1484,7 +1573,7 @@ def test_verify_frozen_inputs_needs_no_gate_and_creates_nothing(
     seam = _RealSeam().install(monkeypatch)
     before = sorted(p.name for p in tmp_path.iterdir())
     with no_network() as attempts:
-        code = driver.main(["--verify-frozen-inputs"], env={})
+        code = driver.main(["--verify-frozen-inputs"])
     assert code == protocol.EXIT_OK
     assert seam.touched == []
     assert attempts == []
@@ -1517,7 +1606,7 @@ class _NotAnAuthorization:
     """A duck-typed stand-in.  It has the method and none of the authority."""
 
     def verify(self) -> Mapping[str, str]:  # pragma: no cover - never reached
-        return dict(OPEN_GATE)
+        return dict(OFFLINE_SEAM_ENV)
 
 
 #: Every shape a caller might reasonably hope would open the real-model path.
@@ -1528,7 +1617,7 @@ FORGED_AUTHORIZATIONS: tuple[tuple[str, Any], ...] = (
     ("none", None),
     ("one", 1),
     ("gate-string", protocol.HUMAN_GATE_VALUE),
-    ("open-gate-env", dict(OPEN_GATE)),
+    ("open-gate-env", dict(OFFLINE_SEAM_ENV)),
     ("bare-object", object()),
     ("duck-typed", _NotAnAuthorization()),
 )
@@ -1564,29 +1653,40 @@ def test_the_real_model_path_refuses_everything_that_is_not_the_capability(
     assert not protocol.canonical_results_root().exists(), label
 
 
-def test_the_capability_cannot_be_constructed_without_the_private_token() -> None:
-    """P-R2 A: ``RealExecutionAuthorization(True)`` is not an authorization.
+def test_the_capability_cannot_be_constructed_without_the_private_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P-R2 A: no value a caller can name is the token.
 
     The constructor demands a module-private sentinel BY IDENTITY.  A caller can
     reach the class -- it is exported, because the real path's signature names it
     -- and can still not build one, which is the whole point of a capability.
+
+    The gate is deliberately OPEN on the process for this test.  Both halves
+    hold, so the only thing standing between the caller and a capability is the
+    token, which is exactly what is being asserted.
     """
 
-    for token in (True, None, object(), protocol.HUMAN_GATE_VALUE):
+    open_the_process_gate(monkeypatch)
+    for token in (True, None, object(), protocol.HUMAN_GATE_VALUE, 1, ()):
         with pytest.raises(driver.UnauthorizedRealExecution):
-            driver.RealExecutionAuthorization(
-                token, execute_flag=True, env=dict(OPEN_GATE)
-            )
+            driver.RealExecutionAuthorization(token)
+    # ...and with the token, in that same open-gated process, it works -- so the
+    # refusals above are the token's doing and not the gate's.
+    driver.grant_real_execution_authorization().verify()
 
 
-def test_a_forged_subclass_is_still_refused() -> None:
+def test_a_forged_subclass_is_still_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Subclassing reaches the type check and stops at the token."""
 
     class Forged(driver.RealExecutionAuthorization):
         pass
 
+    open_the_process_gate(monkeypatch)
     with pytest.raises(driver.UnauthorizedRealExecution):
-        Forged(object(), execute_flag=True, env=dict(OPEN_GATE))
+        Forged(object())
 
 
 def test_the_credential_is_not_authorization(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1600,14 +1700,17 @@ def test_the_credential_is_not_authorization(monkeypatch: pytest.MonkeyPatch) ->
     credential_only = {protocol.CREDENTIAL_ENV: "offline-test-placeholder"}
     assert driver.human_gate_refusal(execute_flag=True, env=credential_only) is not None
     assert driver.human_gate_refusal(execute_flag=False, env=credential_only) is not None
-    with pytest.raises(driver.UnauthorizedRealExecution):
-        driver.grant_real_execution_authorization(
-            execute_flag=True, env=credential_only
-        )
 
     seam = _RealSeam().install(monkeypatch)
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    monkeypatch.setattr(sys, "argv", [sys.argv[0], protocol.HUMAN_GATE_FLAG])
+    # The credential is set on the process and the flag is on the command line.
+    # That is still not authorization, and the mint says so.
+    with pytest.raises(driver.UnauthorizedRealExecution):
+        driver.grant_real_execution_authorization()
     with no_network() as attempts:
-        code = driver.main(["--execute-real-model"], env=credential_only)
+        code = driver.main(["--execute-real-model"])
     assert code == protocol.EXIT_GATE_CLOSED
     assert seam.touched == []
     assert attempts == []
@@ -1619,15 +1722,13 @@ def test_the_human_environment_alone_is_not_authorization(
 ) -> None:
     """P-R2 D: the env half without the flag half mints nothing."""
 
-    with pytest.raises(driver.UnauthorizedRealExecution) as excinfo:
-        driver.grant_real_execution_authorization(
-            execute_flag=False, env=dict(OPEN_GATE)
-        )
-    assert protocol.HUMAN_GATE_FLAG in str(excinfo.value)
-
     seam = _RealSeam().install(monkeypatch)
+    open_the_process_gate(monkeypatch, flag=False)
+    with pytest.raises(driver.UnauthorizedRealExecution) as excinfo:
+        driver.grant_real_execution_authorization()
+    assert protocol.HUMAN_GATE_FLAG in str(excinfo.value)
     with no_network() as attempts:
-        code = driver.main([], env=OPEN_GATE)
+        code = driver.main([])
     assert code == protocol.EXIT_GATE_CLOSED
     assert seam.touched == []
     assert attempts == []
@@ -1639,13 +1740,14 @@ def test_the_cli_flag_alone_is_not_authorization(
 ) -> None:
     """P-R2 E: the flag half without the env half mints nothing."""
 
-    with pytest.raises(driver.UnauthorizedRealExecution) as excinfo:
-        driver.grant_real_execution_authorization(execute_flag=True, env={})
-    assert protocol.HUMAN_GATE_ENV in str(excinfo.value)
-
     seam = _RealSeam().install(monkeypatch)
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
+    monkeypatch.setattr(sys, "argv", [sys.argv[0], protocol.HUMAN_GATE_FLAG])
+    with pytest.raises(driver.UnauthorizedRealExecution) as excinfo:
+        driver.grant_real_execution_authorization()
+    assert protocol.HUMAN_GATE_ENV in str(excinfo.value)
     with no_network() as attempts:
-        code = driver.main(["--execute-real-model"], env={})
+        code = driver.main(["--execute-real-model"])
     assert code == protocol.EXIT_GATE_CLOSED
     assert seam.touched == []
     assert attempts == []
@@ -1678,32 +1780,58 @@ def test_both_gates_mint_the_capability_and_nothing_else_happens(
 
     seam = _RealSeam().install(monkeypatch)
     monkeypatch.setattr(driver, "execute_authorized_real_run", capture)
+    open_the_process_gate(monkeypatch)
     with no_network() as attempts:
-        code = driver.main(["--execute-real-model"], env=OPEN_GATE)
+        code = driver.main(["--execute-real-model"])
 
     assert code == protocol.EXIT_OK
     assert attempts == []
     assert seam.touched == []
     granted = captured["authorization"]
     assert isinstance(granted, driver.RealExecutionAuthorization)
-    assert granted.verify() == dict(OPEN_GATE)
-    assert driver.require_real_execution_authorization(granted) == dict(OPEN_GATE)
+    # A real capability: it verifies, and it verifies against PROCESS state --
+    # nothing was passed to mint it and nothing is passed to re-prove it.
+    granted.verify()
+    driver.require_real_execution_authorization(granted)
     # The credential value must never be rendered by the capability itself.
-    assert OPEN_GATE[protocol.CREDENTIAL_ENV] not in repr(granted)
+    assert "offline-test-placeholder" not in repr(granted)
     assert not protocol.canonical_results_root().exists()
 
+    # THE GRANT IS NOT A KEEPSAKE.  Close either half of the process gate and the
+    # capability that was valid a line ago stops validating -- so a captured
+    # grant cannot be carried into a context that no longer authorizes anything.
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV)
+    with pytest.raises(driver.UnauthorizedRealExecution):
+        granted.verify()
+    with pytest.raises(driver.UnauthorizedRealExecution):
+        driver.require_real_execution_authorization(granted)
 
-def test_the_capability_is_reverified_at_use_and_not_merely_at_mint() -> None:
-    """A grant carries its proof, and the proof is re-checked where it is used."""
 
-    granted = driver.grant_real_execution_authorization(
-        execute_flag=True, env=dict(OPEN_GATE)
-    )
-    # Mutating the caller's dict afterwards cannot weaken the grant, because the
-    # environment was copied; and re-verification is a real re-evaluation of the
-    # same dual-gate function the CLI used.
-    assert granted.verify()[protocol.HUMAN_GATE_ENV] == protocol.HUMAN_GATE_VALUE
-    assert driver.human_gate_refusal(execute_flag=True, env=granted.verify()) is None
+def test_the_capability_is_reverified_at_use_and_not_merely_at_mint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A grant proves nothing on its own; it re-reads the process at every use.
+
+    It carries no state at all -- no environment, no flag, nothing a caller set
+    -- so there is no stored value that could go stale into something
+    permissive. Closing either half of the gate invalidates it immediately.
+    """
+
+    open_the_process_gate(monkeypatch)
+    granted = driver.grant_real_execution_authorization()
+    granted.verify()
+
+    monkeypatch.setattr(sys, "argv", [sys.argv[0]])
+    with pytest.raises(driver.UnauthorizedRealExecution) as excinfo:
+        granted.verify()
+    assert protocol.HUMAN_GATE_FLAG in str(excinfo.value)
+
+    open_the_process_gate(monkeypatch)
+    granted.verify()
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, "authorized")
+    with pytest.raises(driver.UnauthorizedRealExecution) as excinfo:
+        granted.verify()
+    assert protocol.HUMAN_GATE_ENV in str(excinfo.value)
 
 
 def test_the_offline_seam_works_without_authorization_and_cannot_fall_back(
@@ -1741,7 +1869,7 @@ def test_the_offline_seam_works_without_authorization_and_cannot_fall_back(
                 config_path=PHASE_P_CONFIG,
                 manifest_path=RC4_MANIFEST,
                 output_root=tmp_path / f"no-{missing}",
-                env=OPEN_GATE,
+                env=OFFLINE_SEAM_ENV,
                 **kwargs,
             )
         assert "OFFLINE_SEAM_MISUSE" in str(excinfo.value), missing
@@ -1753,7 +1881,7 @@ def test_the_offline_seam_works_without_authorization_and_cannot_fall_back(
             config_path=PHASE_P_CONFIG,
             manifest_path=RC4_MANIFEST,
             output_root=tmp_path / "real-probe",
-            env=OPEN_GATE,
+            env=OFFLINE_SEAM_ENV,
             probe=driver.probe_ollama_metadata,
             execute_cell=clean_executor(tmp_path / "unused"),
         )
@@ -1762,21 +1890,26 @@ def test_the_offline_seam_works_without_authorization_and_cannot_fall_back(
 
     # The REAL executor, handed in deliberately, is refused by its marker -- and
     # the marker is proved to be something make_cell_executor actually sets,
-    # rather than an attribute this test invented.
-    with no_network() as attempts:
-        real_executor = driver.make_cell_executor(
-            config_path=PHASE_P_CONFIG,
-            manifest_path=RC4_MANIFEST,
-            output_root=tmp_path / "real-executor",
-        )
-    assert attempts == [], "building the executor contacted something"
+    # rather than an attribute this test invented.  Building one now costs a
+    # capability, so the gate is opened on this process for exactly that call and
+    # closed again before the offline seam is offered the result.
+    with pytest.MonkeyPatch.context() as gated:
+        open_the_process_gate(gated)
+        with no_network() as attempts:
+            real_executor = driver.make_cell_executor(
+                authorization=driver.grant_real_execution_authorization(),
+                config_path=PHASE_P_CONFIG,
+                manifest_path=RC4_MANIFEST,
+                output_root=tmp_path / "real-executor",
+            )
+        assert attempts == [], "building the executor contacted something"
     assert getattr(real_executor, driver.REAL_EXECUTOR_MARKER, False) is True
     with pytest.raises(protocol.ProtocolError) as excinfo:
         driver.execute_offline_bound_run(
             config_path=PHASE_P_CONFIG,
             manifest_path=RC4_MANIFEST,
             output_root=tmp_path / "real-executor",
-            env=OPEN_GATE,
+            env=OFFLINE_SEAM_ENV,
             probe=_stub_probe,
             execute_cell=real_executor,
         )
@@ -1800,7 +1933,7 @@ def test_the_offline_seam_never_writes_the_official_namespace(
             config_path=PHASE_P_CONFIG,
             manifest_path=RC4_MANIFEST,
             output_root=protocol.canonical_results_root(),
-            env=OPEN_GATE,
+            env=OFFLINE_SEAM_ENV,
             probe=_stub_probe,
             execute_cell=clean_executor(tmp_path / "unused"),
         )
@@ -1829,9 +1962,18 @@ def test_no_offline_test_path_can_select_a_real_seam_by_default() -> None:
     real = inspect.signature(driver.execute_authorized_real_run)
     assert list(real.parameters) == ["authorization"]
     assert real.parameters["authorization"].default is inspect.Parameter.empty
-    # The production CLI no longer carries an injection seam of its own.
+
+    # The run loop itself demands the mode explicitly, with no default, so a
+    # caller cannot omit it and land in whichever mode is more permissive.
+    core = inspect.signature(driver._drive_bound_run)
+    assert core.parameters["authorization"].default is inspect.Parameter.empty
+    assert core.parameters["authorization"].kind is inspect.Parameter.KEYWORD_ONLY
+
+    # The production CLI no longer carries an injection seam of ANY kind: not a
+    # probe, not an executor, and since the P-R2 completion not an environment
+    # either -- the gate is read from the process (Phase P-R2 completion).
     cli = inspect.signature(driver.main)
-    assert list(cli.parameters) == ["argv", "env"]
+    assert list(cli.parameters) == ["argv"]
 
 
 def test_the_grant_token_is_not_exported() -> None:
@@ -1841,6 +1983,554 @@ def test_the_grant_token_is_not_exported() -> None:
     assert "grant_real_execution_authorization" in driver.__all__
     assert not any(name.startswith("_") for name in driver.__all__)
     assert "_GRANT_TOKEN" not in driver.__all__
+
+# ==========================================================================
+# 5c. The LOWER-LEVEL bypasses, attempted directly (Phase P-R2 completion)
+# ==========================================================================
+#
+# THE FINDING THIS SECTION EXISTS FOR.  The first P-R2 repair put the human gate
+# on the two ENTRY POINTS and left the primitives open.  An independent review of
+# the pushed head found three residual bypasses, and none of them needed
+# ``main()`` or ``execute_authorized_real_run()``:
+#
+#   1. ``_drive_bound_run`` was callable with no authorization and accepted an
+#      arbitrary probe and executor factory, so a caller could hand it the real
+#      ones and reach metadata contact and model execution.
+#   2. ``make_cell_executor`` built the real providers itself whenever
+#      ``providers`` was ``None``, with no authorization requirement at all.
+#   3. ``grant_real_execution_authorization`` took ``execute_flag`` and ``env``
+#      FROM ITS CALLER, so the capability was manufacturable by passing ``True``
+#      and a two-key dict -- which is exactly what a capability must not be.
+#
+# The underscore in ``_drive_bound_run``, the ``__all__`` list and the docstrings
+# were not controls, and the brief said so explicitly. Every test below therefore
+# imports the module and calls the lower-level function DIRECTLY, the way the
+# reviewer did.
+
+
+@contextmanager
+def no_provider_construction() -> Iterator[list[str]]:
+    """Fail, and record, any attempt to construct a production provider.
+
+    PHASE P-R2 COMPLETION.  ``no_network`` proves no socket was opened, which is
+    a weaker claim than the invariant makes: the invariant forbids unauthorized
+    real provider CONSTRUCTION, and constructing an ``OpenAICompatibleProvider``
+    opens no socket. This watches the constructor itself, so "it only built the
+    object to read a dictionary off it" is caught rather than argued about.
+
+    ``OpenAICompatibleProvider.__init__`` is patched at its own class, not at a
+    name the driver imported, so it holds however the class is reached --
+    through ``load_provider``, through a direct import, or through any module
+    the preflight touches.
+    """
+
+    from iqa_soa.agent.providers import OpenAICompatibleProvider
+
+    attempts: list[str] = []
+    real_init = OpenAICompatibleProvider.__init__
+
+    def refuse_init(self: Any, *args: Any, **kwargs: Any) -> None:
+        attempts.append(f"OpenAICompatibleProvider({kwargs.get('model')!r})")
+        raise AssertionError(
+            "a production provider was constructed without authorization"
+        )
+
+    patch = pytest.MonkeyPatch()
+    patch.setattr(OpenAICompatibleProvider, "__init__", refuse_init)
+    try:
+        yield attempts
+    finally:
+        patch.undo()
+        assert OpenAICompatibleProvider.__init__ is real_init
+
+
+class _DeepSeam(_RealSeam):
+    """``_RealSeam``, plus the provider constructor and the experiment runner.
+
+    ``_RealSeam`` proves the two Phase-P seams are not reached.  This proves the
+    two things BENEATH them are not reached either: ``load_provider``, which is
+    the only way a real provider object comes into existence in this module, and
+    ``ExperimentRunner``, which is the only thing that spends inference.
+
+    "0 metadata contact, 0 provider creation, 0 cells" is then a claim about
+    four named objects rather than about a stand-in nobody called.
+    """
+
+    def load_provider(self, *args: Any, **kwargs: Any) -> Any:
+        self.touched.append("load_provider")
+        raise AssertionError("a real provider was constructed during an offline test")
+
+    def runner(self, *args: Any, **kwargs: Any) -> Any:
+        self.touched.append("ExperimentRunner")
+        raise AssertionError("a cell was executed during an offline test")
+
+    def install(self, monkeypatch: pytest.MonkeyPatch) -> "_DeepSeam":
+        super().install(monkeypatch)
+        return self.install_beneath(monkeypatch)
+
+    def install_beneath(self, monkeypatch: pytest.MonkeyPatch) -> "_DeepSeam":
+        """Patch ONLY what lies beneath the two Phase-P seams.
+
+        A test that calls ``make_cell_executor`` or ``probe_ollama_metadata`` to
+        prove THEY refuse cannot also have them replaced by a spy, so it patches
+        the layer below instead: no provider is constructed and no cell runs, and
+        the primitive under test is the real one.
+        """
+
+        monkeypatch.setattr(driver, "load_provider", self.load_provider)
+        monkeypatch.setattr(driver, "ExperimentRunner", self.runner)
+        return self
+
+
+def _assert_nothing_happened(seam: _RealSeam, attempts: list[str], out: Path) -> None:
+    """0 metadata contact, 0 provider creation, 0 cells, no official namespace."""
+
+    assert seam.touched == [], f"a real primitive was reached: {seam.touched}"
+    assert attempts == [], f"a socket was opened: {attempts}"
+    assert not out.exists(), "an evidence directory was created"
+    assert not protocol.canonical_results_root().exists()
+
+
+#: Every way of handing the run loop a real primitive that the reviewer named:
+#: bare, behind ``functools.partial``, and behind ``functools.wraps``.
+def _wrapped(target: Any) -> Any:
+    @functools.wraps(target)
+    def forwarder(*args: Any, **kwargs: Any) -> Any:  # pragma: no cover - refused first
+        return target(*args, **kwargs)
+
+    return forwarder
+
+
+def test_the_run_loop_refuses_the_real_probe_however_it_is_supplied(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The exact bypass: call the run loop directly and hand it the real probe.
+
+    No authorization is offered, the canonical config and manifest are used, the
+    provider credential is present, and the probe is the real one -- bare, then
+    wrapped two different ways so "your identity check only caught the bare
+    object" is not an answer.
+    """
+
+    # The REAL objects, taken from the import-time anchors, because the seam
+    # below rebinds the module globals of the same name -- and it is the real
+    # ones this test is about.
+    real_probe = driver._REAL_METADATA_PROBE
+    seam = _DeepSeam().install(monkeypatch)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    for index, probe in enumerate(
+        (
+            real_probe,
+            functools.partial(real_probe, authorization=None),
+            _wrapped(real_probe),
+        )
+    ):
+        out = tmp_path / f"probe-{index}"
+        with no_network() as attempts:
+            with pytest.raises(protocol.ProtocolError) as excinfo:
+                driver._drive_bound_run(
+                    authorization=None,
+                    config_path=PHASE_P_CONFIG,
+                    manifest_path=RC4_MANIFEST,
+                    output_root=out,
+                    env=OFFLINE_SEAM_ENV,
+                    probe=probe,
+                    make_executor=lambda *_: (lambda cell: {}),
+                )
+        assert "probe_ollama_metadata" in str(excinfo.value), index
+        _assert_nothing_happened(seam, attempts, out)
+
+
+def test_the_run_loop_refuses_the_real_executor_factory_however_it_is_supplied(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The same bypass through the executor factory rather than the probe."""
+
+    real_factory = driver._REAL_CELL_EXECUTOR_FACTORY
+    seam = _DeepSeam().install(monkeypatch)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    for index, factory in enumerate(
+        (
+            real_factory,
+            functools.partial(real_factory, authorization=None),
+            _wrapped(real_factory),
+        )
+    ):
+        out = tmp_path / f"factory-{index}"
+        with no_network() as attempts:
+            with pytest.raises(protocol.ProtocolError) as excinfo:
+                driver._drive_bound_run(
+                    authorization=None,
+                    config_path=PHASE_P_CONFIG,
+                    manifest_path=RC4_MANIFEST,
+                    output_root=out,
+                    env=OFFLINE_SEAM_ENV,
+                    probe=_stub_probe,
+                    make_executor=factory,
+                )
+        assert "make_cell_executor" in str(excinfo.value), index
+        _assert_nothing_happened(seam, attempts, out)
+
+
+def test_the_run_loop_refuses_a_forged_authorization(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Claiming REAL mode at the run loop needs a real capability, not a truthy value."""
+
+    seam = _DeepSeam().install(monkeypatch)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    for index, forged in enumerate((True, 1, object(), _NotAnAuthorization())):
+        out = tmp_path / f"forged-{index}"
+        with no_network() as attempts:
+            with pytest.raises(driver.UnauthorizedRealExecution):
+                driver._drive_bound_run(
+                    authorization=forged,  # type: ignore[arg-type]
+                    config_path=PHASE_P_CONFIG,
+                    manifest_path=RC4_MANIFEST,
+                    output_root=out,
+                    env=OFFLINE_SEAM_ENV,
+                    probe=_stub_probe,
+                    make_executor=lambda *_: (lambda cell: {}),
+                )
+        _assert_nothing_happened(seam, attempts, out)
+
+
+#: Every primitive in the driver that can reach the live runtime or build the
+#: real provider, with a call that would do exactly that if it were not gated.
+REAL_PRIMITIVES: tuple[tuple[str, Any], ...] = (
+    ("_ollama_get", lambda auth: driver._ollama_get("/api/tags", authorization=auth)),
+    (
+        "probe_ollama_metadata",
+        lambda auth: driver.probe_ollama_metadata("qwen2.5:7b", authorization=auth),
+    ),
+    (
+        "make_cell_executor",
+        lambda auth: driver.make_cell_executor(
+            authorization=auth,
+            config_path=PHASE_P_CONFIG,
+            manifest_path=RC4_MANIFEST,
+            output_root=Path("unused"),
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "name, call", REAL_PRIMITIVES, ids=[item[0] for item in REAL_PRIMITIVES]
+)
+@pytest.mark.parametrize(
+    "forged", (None, True, 1, "AUTHORIZED", object()), ids=str
+)
+def test_every_real_primitive_refuses_an_unauthorized_call(
+    monkeypatch: pytest.MonkeyPatch, name: str, call: Any, forged: Any
+) -> None:
+    """Each real primitive gates ITSELF, so gating its caller was never the control.
+
+    ``_ollama_get`` is included deliberately even though its name starts with an
+    underscore: the brief forbids treating that as a control, and it is the only
+    function in the module that opens a socket to the runtime.
+    """
+
+    seam = _DeepSeam().install_beneath(monkeypatch)
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+    with no_network() as attempts:
+        with pytest.raises(driver.UnauthorizedRealExecution):
+            call(forged)
+    assert seam.touched == [], f"{name} built a provider or ran a cell before refusing"
+    assert attempts == [], f"{name} opened a socket before refusing"
+    assert not protocol.canonical_results_root().exists()
+
+
+def test_the_offline_preflight_constructs_no_provider_at_all(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """P-R2 completion: `--verify-frozen-inputs` builds nothing, and proves it.
+
+    THE FINDING THIS TEST EXISTS FOR.  ``check_arm_configuration`` used to call
+    ``load_provider(models_path, provider_name=slot).descriptor()`` once per arm,
+    during the OFFLINE preflight, with no authorization -- and the first version
+    of this repair DISCLOSED that as an accepted boundary on the grounds that it
+    opened no socket. It is not an accepted boundary: the invariant says NO REAL
+    PROVIDER CONSTRUCTION, and that is what it says.
+
+    All three offline entry points are exercised, and each is watched by three
+    independent guards: ``load_provider`` itself, the
+    ``OpenAICompatibleProvider`` constructor, and the socket layer.
+    """
+
+    calls: list[str] = []
+
+    def watched_load_provider(*args: Any, **kwargs: Any) -> Any:
+        calls.append(f"load_provider({kwargs.get('provider_name')!r})")
+        raise AssertionError(
+            "the offline preflight called load_provider; the P-R2 completion "
+            "invariant forbids unauthorized real provider construction"
+        )
+
+    monkeypatch.setattr(driver, "load_provider", watched_load_provider)
+
+    with no_provider_construction() as built:
+        with no_network() as attempts:
+            assert protocol.offline_preflight() == []
+            assert driver.check_arm_configuration() == []
+            assert driver.check_advertised_instrument_contract() == []
+            code, failures = driver.verify_frozen_inputs()
+            assert (code, failures) == (protocol.EXIT_OK, [])
+            assert driver.main(["--verify-frozen-inputs"]) == protocol.EXIT_OK
+
+    assert calls == [], f"load_provider was called: {calls}"
+    assert built == [], f"a production provider was constructed: {built}"
+    assert attempts == [], f"a socket was opened: {attempts}"
+    assert list(tmp_path.iterdir()) == [], "the preflight created something"
+    assert not protocol.canonical_results_root().exists()
+
+
+def test_the_static_arm_check_reads_the_frozen_bytes_and_still_refuses_drift(
+    tmp_path: Path,
+) -> None:
+    """Purely static does not mean weaker: every pin is still refused on drift.
+
+    The check now reads ``configs/phaseP-models.yaml`` instead of a descriptor,
+    so this drives it against mutated COPIES of those bytes to prove each pin is
+    still load-bearing. The copies are written to ``tmp_path`` and the reader is
+    pointed at them through the canonical-path binding, which refuses them -- so
+    the mutations are applied to the parsed mapping instead, which is what
+    ``check_arm_configuration`` consumes.
+    """
+
+    declarations = driver.read_frozen_model_declarations()
+    slots = declarations["providers"]
+    assert set(slots) == set(protocol.ARM_PROVIDER_SLOT.values())
+
+    # The frozen bytes really do declare every pin the check asserts.
+    for arm in protocol.ARM_ORDER:
+        slot = slots[protocol.ARM_PROVIDER_SLOT[arm]]
+        assert slot["type"] == driver.EXPECTED_PROVIDER_TYPE
+        assert slot["enabled"] is True
+        assert slot["model"] == protocol.EXPECTED_MODEL[arm]
+        assert slot["protocol"] == protocol.EXPECTED_PROTOCOL
+        assert slot["api_key_env"] == protocol.CREDENTIAL_ENV
+        assert (
+            slot["tool_contract_policy"] == protocol.EXPECTED_TOOL_CONTRACT_POLICY[arm]
+        )
+        assert set(slot) <= driver.FROZEN_PROVIDER_SLOT_FIELDS
+        for name in driver.REQUIRED_PROVIDER_SLOT_FIELDS:
+            assert name in slot, name
+
+    # The three instrument-derived descriptor fields are NOT in that file...
+    for arm in protocol.ARM_ORDER:
+        slot = slots[protocol.ARM_PROVIDER_SLOT[arm]]
+        for name in (
+            "native_tool_adapter_version",
+            "tool_argument_contract_version",
+            "tool_argument_contract_digest",
+        ):
+            assert name not in slot, (
+                f"{name} is an INSTRUMENT property; the provider schema rejects it "
+                "and the frozen config's own header says so"
+            )
+    # ...so they are proved against the committed frozen-input record instead.
+    record = json.loads(
+        (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8")
+    )
+    from iqa_soa.agent.providers import SANDBOX_TOOL_NAMES
+    from iqa_soa.instrument import NATIVE_TOOL_ADAPTER_VERSION
+    from iqa_soa.tools.argument_schema import (
+        TOOL_ARGUMENT_CONTRACT_VERSION,
+        contract_digest,
+    )
+
+    assert record["native_tool_adapter_version"] == NATIVE_TOOL_ADAPTER_VERSION
+    assert record["tool_argument_contract_version"] == TOOL_ARGUMENT_CONTRACT_VERSION
+    assert record["tool_argument_contract_digest"] == contract_digest(
+        SANDBOX_TOOL_NAMES
+    )
+
+
+def test_a_noncanonical_models_config_is_refused_by_the_static_reader(
+    tmp_path: Path,
+) -> None:
+    """The static reader binds its path, so it cannot be pointed at other YAML."""
+
+    copy = tmp_path / "phaseP-models.yaml"
+    copy.write_bytes(PHASE_P_MODELS.read_bytes())
+    with pytest.raises(protocol.NoncanonicalInput):
+        driver.read_frozen_model_declarations(copy)
+    failures = driver.check_arm_configuration(copy)
+    assert failures and any("FROZEN_ARTIFACT_MISMATCH" in item for item in failures)
+
+
+def test_the_advertised_instrument_contract_refuses_a_drifted_constant(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The instrument half is a real comparison, not a constant against itself.
+
+    It reads the LIVE instrument and compares against what the committed record
+    accepted, so drifting either side is caught.  Before the completion this was
+    read off a provider descriptor that carried the same module constants the
+    protocol pins, which compared little.
+    """
+
+    real = protocol.load_frozen_inputs
+
+    def drifted() -> Mapping[str, Any]:
+        record = dict(real())
+        record["tool_argument_contract_digest"] = "0" * 64
+        return record
+
+    monkeypatch.setattr(protocol, "load_frozen_inputs", drifted)
+    failures = driver.check_advertised_instrument_contract()
+    assert any("tool_argument_contract_digest" in item for item in failures), failures
+    assert any("FROZEN_ARTIFACT_MISMATCH" in item for item in failures)
+    # And it is reported through the arm check, which is what the preflight runs.
+    assert any(
+        "tool_argument_contract_digest" in item
+        for item in driver.check_arm_configuration()
+    )
+
+
+def test_the_real_probe_cannot_be_used_where_a_metadata_probe_is_expected() -> None:
+    """It is not a ``MetadataProbe``, and a bare call proves it before contacting.
+
+    The keyword-only ``authorization`` is what makes the type mismatch real
+    rather than documentary: handing the function somewhere a ``(model) ->
+    RuntimeMetadata`` is expected raises ``TypeError`` on the first call.
+    """
+
+    signature = inspect.signature(driver.probe_ollama_metadata)
+    parameter = signature.parameters["authorization"]
+    assert parameter.default is inspect.Parameter.empty
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+
+    with no_network() as attempts:
+        with pytest.raises(TypeError):
+            driver.probe_ollama_metadata("qwen2.5:7b")  # type: ignore[call-arg]
+    assert attempts == []
+
+
+def test_the_mint_takes_no_arguments_at_all() -> None:
+    """The capability cannot be talked into existing (Phase P-R2 completion).
+
+    The previous mint's effective interface was ``execute_flag=True`` plus a
+    two-key mapping. Both are gone: there is nothing to pass, so there is nothing
+    a caller can pass that changes the outcome.
+    """
+
+    assert inspect.signature(driver.grant_real_execution_authorization).parameters == {}
+    for kwargs in (
+        {"execute_flag": True},
+        {"env": dict(OFFLINE_SEAM_ENV)},
+        {"execute_flag": True, "env": dict(OFFLINE_SEAM_ENV)},
+    ):
+        with pytest.raises(TypeError):
+            driver.grant_real_execution_authorization(**kwargs)
+
+    # And the constructor takes only the token -- no environment, no flag.
+    assert list(
+        inspect.signature(driver.RealExecutionAuthorization.__init__).parameters
+    ) == ["self", "token"]
+    # The capability stores nothing a caller could have set.
+    assert driver.RealExecutionAuthorization.__slots__ == ()
+
+
+def test_the_gate_is_read_from_the_process_and_cannot_be_supplied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Both halves come from ``sys.argv`` and ``os.environ``, and from nowhere else.
+
+    This is the property that makes the capability a capability. It is asserted
+    by moving each half on the process and watching the mint follow.
+    """
+
+    monkeypatch.setenv(protocol.CREDENTIAL_ENV, "offline-test-placeholder")
+
+    monkeypatch.setattr(sys, "argv", [sys.argv[0], protocol.HUMAN_GATE_FLAG])
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
+    assert driver._process_gate_refusal() is not None
+
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+    assert driver._process_gate_refusal() is None
+    driver.grant_real_execution_authorization().verify()
+
+    monkeypatch.setattr(sys, "argv", [sys.argv[0]])
+    assert driver._process_gate_refusal() is not None
+    with pytest.raises(driver.UnauthorizedRealExecution):
+        driver.grant_real_execution_authorization()
+
+
+def test_a_captured_executor_refuses_every_cell_once_the_gate_closes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """102 cells is a long time, so the grant is re-proved at each one.
+
+    The executor is built while both gates are open -- which requires really
+    opening them on this process -- and then the gate closes. Every subsequent
+    cell must refuse, so a captured executor is not a way to carry authorization
+    forward past the human's consent.
+
+    ``load_provider`` is left real here because constructing an
+    ``OpenAICompatibleProvider`` stores an endpoint string and opens no socket,
+    which ``no_network`` asserts. ``ExperimentRunner`` is patched to raise,
+    because reaching it would be the thing this test exists to forbid.
+    """
+
+    seam = _RealSeam()
+    monkeypatch.setattr(driver, "ExperimentRunner", seam.probe)
+    open_the_process_gate(monkeypatch)
+
+    with no_network() as attempts:
+        authorization = driver.grant_real_execution_authorization()
+        executor = driver.make_cell_executor(
+            authorization=authorization,
+            config_path=PHASE_P_CONFIG,
+            manifest_path=RC4_MANIFEST,
+            output_root=tmp_path / "captured",
+        )
+    assert attempts == [], "building the executor contacted something"
+    assert getattr(executor, driver.REAL_EXECUTOR_MARKER, False) is True
+
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV)
+    with no_network() as attempts:
+        with pytest.raises(driver.UnauthorizedRealExecution):
+            executor(object())
+    assert seam.touched == [], "a cell was executed after the gate closed"
+    assert attempts == []
+    assert not (tmp_path / "captured").exists()
+
+
+def test_the_real_executor_factory_has_no_provider_seam(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The ``providers=None`` default that silently built the real one is gone.
+
+    That parameter was the second finding: absent, it constructed the real
+    providers; present, it accepted an arbitrary mapping. Nothing in the suite
+    used it, so it is removed rather than gated, which leaves this function with
+    exactly one behaviour -- and that behaviour requires the capability.
+    """
+
+    parameters = inspect.signature(driver.make_cell_executor).parameters
+    assert "providers" not in parameters
+    assert list(parameters) == [
+        "authorization",
+        "config_path",
+        "manifest_path",
+        "output_root",
+    ]
+    assert parameters["authorization"].default is inspect.Parameter.empty
+    assert parameters["authorization"].kind is inspect.Parameter.KEYWORD_ONLY
+
+    seam = _DeepSeam().install_beneath(monkeypatch)
+    with no_network() as attempts:
+        with pytest.raises(driver.UnauthorizedRealExecution):
+            driver.make_cell_executor(
+                config_path=PHASE_P_CONFIG,
+                manifest_path=RC4_MANIFEST,
+                output_root=Path("unused"),
+                authorization=None,  # type: ignore[arg-type]
+            )
+    assert seam.touched == []
+    assert attempts == []
 
 # ==========================================================================
 # 6. Frozen inputs and the offline preflight
@@ -2032,13 +2722,44 @@ def test_a_historical_bound_input_failure_refuses_execution(
 
 
 def test_a_config_from_a_historical_phase_is_refused() -> None:
-    """A Phase-L or Phase-I config must never satisfy a Phase-P precondition."""
+    """A Phase-L or Phase-I config must never satisfy a Phase-P precondition.
+
+    Refused TWICE over, and the test asserts both independently.
+
+    By IDENTITY: the static reader binds its path, so a historical models config
+    never gets as far as having its fields compared. That is the P-R1 binding
+    still doing its job through the P-R2-completion static reader.
+
+    By CONTENT: and if the binding were not there, each historical file would
+    still fail on the Phase-P credential pin. That is asserted directly against
+    the historical bytes, so the identity refusal above is not the only thing
+    standing between a Phase-L credential and a Phase-P precondition.
+    """
 
     assert driver.check_arm_configuration(PHASE_P_MODELS) == []
+    assert driver.check_arm_configuration() == []
+
     for historical in ("phaseL-models.yaml", "phaseI-models.yaml", "phaseF-models.yaml"):
-        failures = driver.check_arm_configuration(PROJECT_ROOT / "configs" / historical)
+        path = PROJECT_ROOT / "configs" / historical
+        failures = driver.check_arm_configuration(path)
         assert failures, f"{historical} satisfied the Phase-P arm configuration"
-        assert any("api_key_env" in item for item in failures)
+        assert any("FROZEN_ARTIFACT_MISMATCH" in item for item in failures), historical
+        assert any(
+            protocol.CANONICAL_MODELS_RELATIVE in item for item in failures
+        ), historical
+
+        # And on content: the credential env is Phase-P specific precisely so a
+        # historical credential cannot silently satisfy a Phase-P precondition.
+        declared = yaml.safe_load(path.read_text(encoding="utf-8"))["providers"]
+        credentials = {
+            slot.get("api_key_env")
+            for slot in declared.values()
+            if isinstance(slot, Mapping)
+        }
+        assert protocol.CREDENTIAL_ENV not in credentials, (
+            f"{historical} declares the Phase-P credential env, so the content "
+            "half of this refusal would be vacuous"
+        )
 
 
 def test_a_historical_experiment_config_is_refused() -> None:
@@ -2061,6 +2782,7 @@ def test_a_historical_config_supplied_on_the_command_line_refuses_execution(
     tmp_path: Path,
 ) -> None:
     seam = _RealSeam().install(monkeypatch)
+    open_the_process_gate(monkeypatch)
     code = driver.main(
         [
             "--execute-real-model",
@@ -2068,8 +2790,7 @@ def test_a_historical_config_supplied_on_the_command_line_refuses_execution(
             str(PROJECT_ROOT / "configs" / "phaseL-qualification.yaml"),
             "--output-root",
             str(tmp_path / "out"),
-        ],
-        env=OPEN_GATE,
+        ]
     )
     assert code == protocol.EXIT_PREFLIGHT_STOP
     assert seam.touched == []
@@ -2264,6 +2985,7 @@ def test_a_noncanonical_manifest_refuses_the_production_cli(
     path = alternate_manifest(tmp_path, name, mutate)
     out = tmp_path / "out"
     seam = _RealSeam().install(monkeypatch)
+    open_the_process_gate(monkeypatch)
     with no_network() as attempts:
         code = driver.main(
             [
@@ -2272,8 +2994,7 @@ def test_a_noncanonical_manifest_refuses_the_production_cli(
                 str(path),
                 "--output-root",
                 str(out),
-            ],
-            env=OPEN_GATE,
+            ]
         )
     assert code == protocol.EXIT_PREFLIGHT_STOP, label
     assert seam.touched == [], f"{label}: the real probe or the real executor ran"
@@ -2316,8 +3037,9 @@ def test_the_production_cli_binds_exactly_the_canonical_inputs_it_will_read(
     monkeypatch.setattr(
         driver, "execute_authorized_real_run", lambda **_: protocol.EXIT_OK
     )
+    open_the_process_gate(monkeypatch)
     with no_network() as attempts:
-        code = driver.main(["--execute-real-model"], env=OPEN_GATE)
+        code = driver.main(["--execute-real-model"])
     assert code == protocol.EXIT_OK
     assert attempts == []
     assert bound == [
@@ -2347,13 +3069,13 @@ def test_the_production_cli_refuses_a_noncanonical_input_before_the_preflight(
         protocol, "offline_preflight", lambda: called.append("preflight") or []
     )
     seam = _RealSeam().install(monkeypatch)
+    open_the_process_gate(monkeypatch)
     code = driver.main(
         [
             "--execute-real-model",
             "--manifest",
             str(alternate_manifest(tmp_path, "late", _reorder_cases)),
-        ],
-        env=OPEN_GATE,
+        ]
     )
     assert code == protocol.EXIT_PREFLIGHT_STOP
     assert called == [], "the preflight ran before the input binding"
@@ -2388,10 +3110,10 @@ def test_a_phase_p_looking_config_with_a_changed_setting_is_refused(
 
     out = tmp_path / "out"
     seam = _RealSeam().install(monkeypatch)
+    open_the_process_gate(monkeypatch)
     with no_network() as attempts:
         code = driver.main(
-            ["--execute-real-model", "--config", str(path), "--output-root", str(out)],
-            env=OPEN_GATE,
+            ["--execute-real-model", "--config", str(path), "--output-root", str(out)]
         )
     assert code == protocol.EXIT_PREFLIGHT_STOP
     assert seam.touched == []
@@ -2452,9 +3174,8 @@ def test_a_byte_identical_config_copy_is_also_refused(
     path = tmp_path / "phaseP-qualification.yaml"
     path.write_bytes(PHASE_P_CONFIG.read_bytes())
     seam = _RealSeam().install(monkeypatch)
-    code = driver.main(
-        ["--execute-real-model", "--config", str(path)], env=OPEN_GATE
-    )
+    open_the_process_gate(monkeypatch)
+    code = driver.main(["--execute-real-model", "--config", str(path)])
     assert code == protocol.EXIT_PREFLIGHT_STOP
     assert seam.touched == []
     assert not protocol.canonical_results_root().exists()
@@ -2488,10 +3209,9 @@ def test_an_alternate_output_root_is_refused_by_the_production_cli(
 
     out = tmp_path / "somewhere-else"
     seam = _RealSeam().install(monkeypatch)
+    open_the_process_gate(monkeypatch)
     with no_network() as attempts:
-        code = driver.main(
-            ["--execute-real-model", "--output-root", str(out)], env=OPEN_GATE
-        )
+        code = driver.main(["--execute-real-model", "--output-root", str(out)])
     assert code == protocol.EXIT_PREFLIGHT_STOP
     assert seam.touched == [], (
         "the real probe or the real executor ran under an alternate namespace"
@@ -2754,6 +3474,7 @@ def test_the_canonical_inputs_continue_to_pass_every_offline_check(
     # The production CLI, given the canonical arguments in full, is refused ONLY
     # by the human gate -- never by the binding.  Nothing is created.
     seam = _RealSeam().install(monkeypatch)
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
     code = driver.main(
         [
             "--config",
@@ -2762,8 +3483,7 @@ def test_the_canonical_inputs_continue_to_pass_every_offline_check(
             str(RC4_MANIFEST),
             "--output-root",
             str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE),
-        ],
-        env={},
+        ]
     )
     assert code == protocol.EXIT_GATE_CLOSED
     assert seam.touched == []
@@ -4778,26 +5498,39 @@ def test_only_the_authorized_path_can_name_the_real_seams() -> None:
             ):
                 selectors[inner.id].add(node.name)
 
-    assert selectors["probe_ollama_metadata"] == {"execute_authorized_real_run"}, (
-        "only the capability-gated path may select the real metadata probe; "
-        f"these functions name it: {sorted(selectors['probe_ollama_metadata'])}"
-    )
-    assert selectors["make_cell_executor"] == {"_real_cell_executor_factory"}, (
-        "only the factory the capability-gated path uses may construct the real "
-        f"executor; these functions name it: {sorted(selectors['make_cell_executor'])}"
-    )
+    for name in ("probe_ollama_metadata", "make_cell_executor"):
+        assert selectors[name] == {"execute_authorized_real_run"}, (
+            "only the capability-gated path may select a real primitive; these "
+            f"functions name {name}: {sorted(selectors[name])}"
+        )
 
-    # And that factory is reachable from exactly one place.
-    users = {
+    # THE SELECTION IS NOT THE CONTROL, and this test must not be read as
+    # claiming it is.  Since the P-R2 completion both primitives validate the
+    # capability themselves, so a future edit that adds a second selector fails
+    # HERE and would in any case be refused at run time.  What this asserts is
+    # that the module currently has exactly one place where the real seams are
+    # chosen, which keeps that surface reviewable.
+    assert driver._REAL_METADATA_PROBE is driver.probe_ollama_metadata
+    assert driver._REAL_CELL_EXECUTOR_FACTORY is driver.make_cell_executor
+
+    # PRODUCTION PROVIDER CONSTRUCTION HAS EXACTLY ONE CALLER, and it is the
+    # capability-gated one (P-R2 completion, requirement 6).  ``load_provider``
+    # is the only way a production provider comes into existence in this module,
+    # so any other function naming it would be unauthorized real provider
+    # construction -- which is what the offline preflight used to be.
+    builders = {
         node.name
         for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         for inner in ast.walk(node)
         if isinstance(inner, ast.Name)
         and isinstance(inner.ctx, ast.Load)
-        and inner.id == "_real_cell_executor_factory"
+        and inner.id == "load_provider"
     }
-    assert users == {"execute_authorized_real_run"}, sorted(users)
+    assert builders == {"make_cell_executor"}, (
+        "load_provider is reachable outside the authorization-gated real-provider "
+        f"construction path; these functions name it: {sorted(builders)}"
+    )
 
 
 def test_the_driver_names_only_the_two_metadata_endpoints() -> None:

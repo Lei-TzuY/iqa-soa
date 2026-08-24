@@ -20,7 +20,7 @@
     "docs/phaseO_instrument_revision.json": "c30712e700332103262ca8cc566e0362b6f35641045314c9efe3a27e6c565e1b",
     "docs/phaseO_rc4_revision_record.json": "1e6c0047f52d3ba0191a5ba7e11c4dfd08b5964a8951bf02538058ca73b83181",
     "docs/phaseP_rc4_prospective_seed_derivation.json": "7ed1995b1bdf8be26c1647f12ab1907ddaabd6e50808753630853ac76cfe74bb",
-    "docs/phaseP_rc4_real_model_qualification_plan.md": "b0a2df62e5f837fc204c0361d91a22130c4ce9b8980a6d289d7d467f5e5cafbc",
+    "docs/phaseP_rc4_real_model_qualification_plan.md": "0ed487d53986c2e7d8609eafc8f169a91a11c9064752ef4765ab6057039aed34",
     "scripts/analyze_phaseL_requalification.py": "26e378b37ee47f04cd4e291ffbd308fdb5e3de5b6968e00976dac5e03a6961d8",
     "scripts/analyze_phaseP_rc4_qualification.py": "94828cfc9d1e02d31920794550db51f121fa4c660d2418f7da1962d1f38b65ab",
     "scripts/phaseL_protocol.py": "a30f377edcb088aa816f2ae0b081e2b16c46423b7237f9c649b4a30a209d5cba",
@@ -29,7 +29,7 @@
     "scripts/qualification_harness.py": "3684987c46b8574bee7f7eefcff21a4db70f049531b99f900c79c06daf10a1df",
     "scripts/qualification_harness_v2.py": "bbd1682a23683075d1a3a8c19bbe67a16dfa38d2a2f80ffde88a2b43063b4149",
     "scripts/rc4_scoring_vocabulary.py": "a6edc0b661b3d7d2161d6473158b7b9dafe74feb5e8881fed922a92f86507b90",
-    "scripts/run_phaseP_rc4_qualification.py": "d1bab9cd2a0d8b5847e4f448a34efe12b5ba30958e06c616771e7577bbaa3922"
+    "scripts/run_phaseP_rc4_qualification.py": "bca903cddc3294a1d482481316b92f23e5c22c27e049d09b3e8244ec6b1abd71"
   },
   "harness_version": "rc4-harness-2",
   "hash_basis": "raw working-tree bytes, LF canonical checkout per docs/hash_basis_policy.md",

@@ -343,51 +343,83 @@ invokes real execution.**
 `--verify-frozen-inputs` runs the complete static/frozen protocol validation with
 zero provider contact, creates nothing, and needs no gate.
 
-### 14b. The gate is a property of the execution path (Phase P-R2)
+### 14b. The gate is a property of every real primitive (Phase P-R2)
 
-Stating the rule in `main()` was not enforcing it. Until P-R2 the lower-level
-entry point `execute_bound_run` defaulted `probe` to `probe_ollama_metadata` and
-`execute_cell` to `make_cell_executor(...)`, and checked no gate at all, on the
-documented assumption that `main()` was its only production caller. A Python
-caller that skipped `main()` could therefore contact the live runtime and execute
-the real frozen schedule having proved neither half of the gate.
-
-The authority is now an **object**, and the invariant is machine-enforced:
+Stating the rule in `main()` was not enforcing it, and — as the second P-R2
+review found — nor was enforcing it on the two entry points. The gate belongs on
+the **primitives**.
 
 ```
-NO DUAL GATE      -> NO CAPABILITY
-NO CAPABILITY     -> NO REAL METADATA PROBE
-                  -> NO REAL PROVIDER CREATION
-                  -> NO REAL MODEL EXECUTION
+NO VALID DUAL HUMAN AUTHORIZATION
+  -> NO OLLAMA METADATA CONTACT
+  -> NO REAL PROVIDER CONSTRUCTION
+  -> NO REAL CELL EXECUTOR
+  -> NO MODEL EXECUTION
 ```
 
-- `grant_real_execution_authorization(execute_flag=..., env=...)` is the **only**
-  thing that mints a `RealExecutionAuthorization`, and it mints one only after
-  both conditions are proved. The constructor demands a module-private sentinel
-  **by identity** and independently re-evaluates the dual gate, so no boolean,
-  no string, no duck-typed stand-in and no subclass built without the token is
-  one.
-- `execute_authorized_real_run(*, authorization)` is the **only** function that
-  may select `probe_ollama_metadata` or construct the real runner-backed
-  executor. It requires the capability and **re-verifies** it, and it takes
-  nothing else: it binds the frozen config, the frozen benchmark manifest and the
-  frozen `results/phaseP-rc4-qualification` namespace itself, from
-  `phaseP_protocol`, so it depends on nothing a caller passes. An unauthorized
-  call **raises** `UnauthorizedRealExecution`; it does not return an exit code,
-  because no run happened.
-- `execute_offline_bound_run(...)` is a **different function**, and it is the one
-  the offline suite drives. It **requires** an injected probe and an injected
-  executor — there is no default for a missing argument to resolve into — and it
-  refuses `probe_ollama_metadata` by identity, refuses any executor carrying the
-  marker `make_cell_executor` sets, and refuses to write
-  `results/phaseP-rc4-qualification` at all.
-- `main()` has **no injection seam**. `probe` and `execute_cell` are gone from
-  its signature; it proves both gates, mints the capability, and hands it on.
+**The capability is minted from process state and from nothing else.**
+`grant_real_execution_authorization()` **takes no arguments**. Both halves are
+read by `_process_gate_refusal()`: the flag from `sys.argv`, the environment
+variable from `os.environ`. There is nothing to pass, so there is nothing a
+caller can pass that changes the outcome — which is what makes it a capability
+rather than a parameter. `RealExecutionAuthorization` stores no state at all
+(`__slots__ == ()`); its constructor additionally demands a module-private
+sentinel **by identity**, and `verify()` re-reads process state at **every** use,
+so a grant stops validating the moment either half closes.
 
-The two paths are therefore disjoint by construction rather than by convention,
-and the suite proves it against the real names: every unauthorized-path
-regression monkeypatches `probe_ollama_metadata` and `make_cell_executor` to
-raise if touched, rather than handing in a stand-in and finding it unused.
+**Every real primitive validates it itself.** Not its caller — itself:
+
+| Primitive | What it can do | Gate |
+|---|---|---|
+| `_ollama_get` | the only socket to the runtime in this module | `require_real_execution_authorization` on entry |
+| `probe_ollama_metadata` | `/api/version`, `/api/tags` | keyword-only `authorization`, required |
+| `make_cell_executor` | constructs the real providers | keyword-only `authorization`, required |
+| the executor it returns | one `ExperimentRunner.run` per cell | re-validated **before every cell** |
+
+`probe_ollama_metadata` therefore is **not** a `MetadataProbe`: handing it
+anywhere one is expected raises `TypeError` on the first call, having contacted
+nothing. Producing something of the right shape means binding a capability into
+it, which costs both human gates in this process.
+
+**The run loop enforces its own mode.** `_drive_bound_run` takes an explicit
+`authorization` with no default. Given one it validates it; given `None` it
+refuses a missing injection, a real primitive supplied bare or behind
+`functools.partial`/`functools.wraps`, and any attempt to write
+`results/phaseP-rc4-qualification`. Those refusals live in the function that
+actually drives the schedule, so there is no path around them.
+
+**`make_cell_executor` has no provider seam.** The `providers=None` parameter
+that silently built the real providers when omitted is removed. The function has
+one behaviour, and it is gated.
+
+**`main()` has no injection seam of any kind** — not a probe, not an executor,
+and not an environment. `argv` can change which arguments are *bound*; it cannot
+open the gate.
+
+The suite attempts each of these bypasses by importing the module and calling the
+lower-level function directly, and asserts 0 metadata contact, 0 provider
+creation, 0 cells and no official results namespace — with `load_provider` and
+`ExperimentRunner` themselves patched to raise if reached, so the claim is about
+named objects rather than about a stand-in nobody called.
+
+**The offline preflight constructs no provider.** `check_arm_configuration` is
+purely static: it reads `configs/phaseP-models.yaml` — bound by canonical path
+and by the frozen SHA-256 — with `yaml.safe_load`, and asserts the top-level
+schema, each arm's slot, its `type`, that it is explicitly enabled, that it
+declares no unknown and omits no required field, and that `model`, `protocol`,
+`tool_contract_policy` and `api_key_env` equal the frozen pins.
+
+The three descriptor fields that are **not** in that file —
+`native_tool_adapter_version`, `tool_argument_contract_version` and
+`tool_argument_contract_digest`, which the provider schema rejects as fields —
+are validated by `check_advertised_instrument_contract` from the **live
+instrument constants** against the values `docs/phaseP_frozen_execution_inputs.json`
+recorded. No provider is manufactured to obtain them.
+
+`load_provider` therefore has exactly one caller, `make_cell_executor`, which
+requires the capability; an AST guard fails any second caller, and a regression
+proves the whole offline preflight makes **0 `load_provider` calls, 0
+`OpenAICompatibleProvider` constructions and 0 sockets**.
 
 ## 15. Future live metadata preflight
 
@@ -817,9 +849,11 @@ noncanonical scientific input would be the same defect one level down. Any run
 manifest it writes reports `official_phase_p_execution: false`.
 
 `output_root` is the only scientific input it does not bind to one value, and it
-is not unconstrained: since Phase P-R2 the seam refuses
+is not unconstrained: since Phase P-R2 it refuses
 `results/phaseP-rc4-qualification`, so it is bound to everything **except** the
-official namespace (§14b, §20b).
+official namespace (§14b, §20b). That refusal, and the refusal of a real probe or
+a real executor, are enforced in `_drive_bound_run` itself rather than in this
+wrapper, so a caller who goes straight to the run loop meets them too.
 
 ## 25. What Phase P is not
 
