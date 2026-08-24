@@ -1,0 +1,79 @@
+# Phase-P real-model benchmark-QUALIFICATION providers ONLY.
+#
+# THIS FILE AUTHORIZES NOTHING.  It is a prospectively frozen input to a future,
+# separately human-gated Phase-P execution.  Loading it contacts no endpoint,
+# probes no runtime and performs no inference.
+#
+# Not a scientific model configuration and not a model comparison.  These two
+# slots exist so that the pilot-v7-rc4 release candidate can be exercised under
+# QA OFF by the two local real-model providers that Phase C/D qualified, Phase F
+# used against rc1, Phase I used against rc2 and Phase L-B used against rc3.
+# They must never be used for a confirmatory measurement.
+#
+# Every model identity and sampling setting is carried forward verbatim from
+# configs/phaseL-models.yaml, which carried them from configs/phaseI-models.yaml,
+# which carried them from configs/phaseF-models.yaml, which carried them from the
+# already-qualified Phase-C/D slots.  Nothing here is newly chosen: the endpoint,
+# protocol, temperature, top_p, max_output_tokens, seed support, timeout and the
+# per-model tool_contract_policy are the qualified values.  The ONLY difference
+# from configs/phaseL-models.yaml is api_key_env, which is Phase-P specific so
+# that a Phase-F, Phase-I or Phase-L credential cannot silently satisfy a Phase-P
+# precondition.
+#
+# The tool_contract_policy difference between the two slots (`none` for Qwen,
+# `trailing_user` for Mistral) is already-qualified INSTRUMENT behaviour, not an
+# experimental factor.  Qwen-vs-Mistral differences must therefore never be
+# interpreted causally, and Phase P computes no model comparison and publishes no
+# model ranking.
+#
+# WHAT PHASE O CHANGED, AND WHY THIS FILE DOES NOT RECORD IT.  The Phase-O
+# instrument publishes one per-tool sandbox argument contract that the provider
+# advertises and the sandbox enforces (iqa_soa.tools.argument_schema,
+# tool-arguments-1), and the native tool adapter moves to native-tools-adapter-3
+# because its request payload genuinely changed.  Both are properties of the
+# INSTRUMENT, not of a provider slot, and the provider schema rejects unknown
+# fields, so neither is written here.  They are pinned in
+# scripts/phaseP_protocol.py, in docs/phaseP_frozen_execution_inputs.json and in
+# docs/phaseP_rc4_real_model_qualification_plan.md, and each row the future
+# execution produces carries the value its own run recorded, which the driver
+# compares against the pin.
+#
+# The expected Ollama model digests are likewise NOT recorded here.  They are
+# pinned in the three artifacts above and asserted against the LIVE runtime
+# immediately before any inference.  A difference is an ENVIRONMENT_HOLD: the
+# phase never pulls, updates, retags, repairs or replaces a model.
+#
+# timeout_seconds is 600 only so that a cold local model load is not misreported
+# as a provider timeout; no retry is permitted either way, and
+# infrastructure_retry_limit is fixed at 0 by the driver and by the runner.
+schema_version: 2
+default_provider: qwen_native_none
+providers:
+  qwen_native_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: qwen3.5:27b
+    api_key_env: PHASEP_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none
+  mistral_native_trailing_user:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: PHASEP_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: trailing_user
