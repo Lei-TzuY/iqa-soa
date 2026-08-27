@@ -11,7 +11,7 @@ from pathlib import Path
 import platform
 import random
 import time
-from typing import Any, Iterable, Mapping, Sequence, cast
+from typing import Any, Callable, Iterable, Mapping, Sequence, cast
 from uuid import uuid4
 
 import yaml  # type: ignore[import-untyped]
@@ -53,6 +53,14 @@ from iqa_soa.types import QAMode, RuntimeContext
 
 class ExperimentConfigError(ValueError):
     """Experiment configuration is invalid before any run begins."""
+
+
+class PositionExecutionError(RuntimeError):
+    """A generic one-position hook failed outside the legacy row path."""
+
+    def __init__(self, *, dispatch_may_have_occurred: bool) -> None:
+        super().__init__("single-position execution hook failed")
+        self.dispatch_may_have_occurred = dispatch_may_have_occurred
 
 
 @dataclass(frozen=True, slots=True)
@@ -433,6 +441,54 @@ class ExperimentRunner:
         _write_manifest(manifest_path, manifest, replace=True)
         return experiment_dir
 
+    def run_one_position(
+        self,
+        *,
+        experiment_id: str,
+        experiment_dir: Path,
+        evidence_root: Path,
+        case: BenchmarkCase,
+        treatment: Treatment,
+        repetition: int,
+        seed: int,
+        experiment_kind: str,
+    ) -> dict[str, Any]:
+        """Run one caller-selected position through the existing machinery.
+
+        This additive hook performs no scheduling, seed derivation, provider
+        construction, persistence, or confirmatory interpretation.  Its only
+        extra signal distinguishes failures before the provider-dispatch-capable
+        boundary from failures after that boundary may have been crossed.
+        """
+
+        dispatch_may_have_occurred = False
+
+        def mark_dispatch_boundary() -> None:
+            nonlocal dispatch_may_have_occurred
+            dispatch_may_have_occurred = True
+
+        try:
+            return self._run_one(
+                experiment_id=experiment_id,
+                experiment_dir=experiment_dir,
+                evidence_root=evidence_root,
+                case=case,
+                treatment=treatment,
+                repetition=repetition,
+                seed=seed,
+                treatment_order=(treatment.name,),
+                treatment_index=0,
+                benchmark_version=None,
+                benchmark_manifest_sha256=None,
+                experiment_kind=experiment_kind,
+                resource_budget_policy_id=None,
+                before_provider_dispatch=mark_dispatch_boundary,
+            )
+        except Exception as error:
+            raise PositionExecutionError(
+                dispatch_may_have_occurred=dispatch_may_have_occurred
+            ) from error
+
     def _run_one(
         self,
         *,
@@ -449,6 +505,7 @@ class ExperimentRunner:
         benchmark_manifest_sha256: str | None,
         experiment_kind: str,
         resource_budget_policy_id: str | None,
+        before_provider_dispatch: Callable[[], None] | None = None,
     ) -> dict[str, Any]:
         run_id = f"{case.id}-r{repetition:03d}-{treatment.name}-{uuid4().hex[:12]}"
         evidence_path = evidence_root / f"{run_id}.jsonl"
@@ -524,6 +581,8 @@ class ExperimentRunner:
             system_prompt=case.system_prompt,
             max_steps=max_steps,
         )
+        if before_provider_dispatch is not None:
+            before_provider_dispatch()
         try:
             agent_run = agent.run(
                 user_prompt=case.user_prompt,
@@ -532,6 +591,8 @@ class ExperimentRunner:
                 canonical_resources=case.canonical_resources,
             )
         except Exception as exc:  # preserve provider/extension failures as rows
+            if before_provider_dispatch is not None:
+                raise
             agent_run = AgentRun(
                 outcomes=(),
                 provider_responses=(),
@@ -922,6 +983,15 @@ def _path_digest(
     return digest.hexdigest()
 
 
+def package_source_sha256() -> str:
+    """Reuse the legacy package-tree digest algorithm for the live package."""
+
+    return _path_digest(
+        Path(__file__).resolve().parents[1],
+        include_suffixes=frozenset({".py"}),
+    )
+
+
 def controlled_input_digest(
     case: BenchmarkCase, provider: AgentProvider, seed: int
 ) -> str:
@@ -1099,11 +1169,13 @@ __all__ = [
     "ExperimentConfig",
     "ExperimentConfigError",
     "ExperimentRunner",
+    "PositionExecutionError",
     "append_raw_record",
     "create_experiment_directory",
     "controlled_input_digest",
     "load_experiment_config",
     "load_policy",
     "load_provider",
+    "package_source_sha256",
     "state_fingerprint",
 ]
