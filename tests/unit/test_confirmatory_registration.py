@@ -70,6 +70,10 @@ SYNTHETIC_CREATED_AT_TEXT = "2026-01-01T00:00:00Z"
 SYNTHETIC_DIGEST = "0" * 64
 SYNTHETIC_PROVIDER = "synthetic-provider"
 SYNTHETIC_MODEL = "synthetic-model"
+#: A second invented stratum.  ``(SYNTHETIC_PROVIDER, SYNTHETIC_MODEL)`` sorts
+#: strictly before it, so the two-stratum fixtures are already in RC-3 order.
+SYNTHETIC_PROVIDER_B = "synthetic-provider-b"
+SYNTHETIC_MODEL_B = "synthetic-model-b"
 SYNTHETIC_TASKS = ("synthetic-task-a", "synthetic-task-b")
 SYNTHETIC_REPETITION_COUNT = 2
 
@@ -125,22 +129,107 @@ def _synthetic_snapshot(**overrides: Any) -> RuntimeSnapshotV1:
     return RuntimeSnapshotV1(**arguments)
 
 
+def _synthetic_snapshot_b(**overrides: Any) -> RuntimeSnapshotV1:
+    """The second stratum's snapshot: a deliberately different runtime policy.
+
+    Its ``timeout_seconds`` and ``retry_policy`` differ from
+    :func:`_synthetic_snapshot`, which is what proves no accidental global
+    equality constraint survives the removal of the configuration-level pair.
+    """
+
+    arguments: dict[str, Any] = {
+        "provider_name": SYNTHETIC_PROVIDER_B,
+        "model": SYNTHETIC_MODEL_B,
+        "endpoint": "https://synthetic-b.invalid/v1",
+        "timeout_seconds": "12",
+        "retry_policy": RetryPolicyV1(
+            max_attempts=3,
+            backoff_kind="EXPONENTIAL",
+            initial_delay_seconds="0.5",
+            max_delay_seconds="8",
+            retryable_error_classes=("SYNTHETIC_C",),
+        ),
+    }
+    arguments.update(overrides)
+    return _synthetic_snapshot(**arguments)
+
+
 def _synthetic_runtime(
-    *,
-    snapshot: RuntimeSnapshotV1 | None = None,
-    timeout_seconds: str | None = None,
-    retry_policy: RetryPolicyV1 | None = None,
+    *, snapshots: tuple[RuntimeSnapshotV1, ...] | None = None
 ) -> ProposedRuntimeConfigurationV1:
-    expected = snapshot or _synthetic_snapshot()
+    """The one-key runtime collection: one snapshot per proposed stratum."""
+
     return ProposedRuntimeConfigurationV1(
-        timeout_seconds=timeout_seconds or expected.timeout_seconds,
-        retry_policy=retry_policy or expected.retry_policy,
-        registration_expected_runtime_snapshot=expected,
+        registration_expected_runtime_snapshots=(
+            (_synthetic_snapshot(),) if snapshots is None else snapshots
+        ),
     )
 
 
 def _synthetic_strata() -> tuple[ProposedStratumV1, ...]:
     return (ProposedStratumV1(provider=SYNTHETIC_PROVIDER, model=SYNTHETIC_MODEL),)
+
+
+def _multi_strata() -> tuple[ProposedStratumV1, ...]:
+    """Two proposed strata, sorted ascending by ``(provider, model)``."""
+
+    return (
+        ProposedStratumV1(provider=SYNTHETIC_PROVIDER, model=SYNTHETIC_MODEL),
+        ProposedStratumV1(provider=SYNTHETIC_PROVIDER_B, model=SYNTHETIC_MODEL_B),
+    )
+
+
+def _multi_snapshots() -> tuple[RuntimeSnapshotV1, ...]:
+    """The exact element-wise runtime cover of :func:`_multi_strata`."""
+
+    return (_synthetic_snapshot(), _synthetic_snapshot_b())
+
+
+def _repetitions_over(
+    strata: tuple[ProposedStratumV1, ...],
+    *,
+    tasks: tuple[str, ...] = SYNTHETIC_TASKS,
+    count: int = SYNTHETIC_REPETITION_COUNT,
+) -> tuple[ProposedRepetitionsEntryV1, ...]:
+    """The full task x stratum cross product, in registered order."""
+
+    return tuple(
+        ProposedRepetitionsEntryV1(
+            task_id=task_id,
+            provider=stratum.provider,
+            model=stratum.model,
+            repetition_count=count,
+        )
+        for task_id in tasks
+        for stratum in strata
+    )
+
+
+def _positions_over(
+    strata: tuple[ProposedStratumV1, ...],
+    *,
+    tasks: tuple[str, ...] = SYNTHETIC_TASKS,
+    count: int = SYNTHETIC_REPETITION_COUNT,
+) -> tuple[ProposedPositionV1, ...]:
+    """One OFF and one FULL per matched contrast, over every stratum."""
+
+    positions: list[ProposedPositionV1] = []
+    for task_id in tasks:
+        for stratum in strata:
+            for repetition in range(count):
+                for slot, label in ((1, BASELINE_LABEL_OFF), (2, BASELINE_LABEL_FULL)):
+                    positions.append(
+                        ProposedPositionV1(
+                            task_id=task_id,
+                            provider=stratum.provider,
+                            model=stratum.model,
+                            repetition=repetition,
+                            provider_seed=_seed_for(repetition),
+                            slot=slot,
+                            baseline_label=label,
+                        )
+                    )
+    return tuple(positions)
 
 
 def _synthetic_repetitions(
@@ -205,6 +294,27 @@ def _synthetic_draft(**overrides: Any) -> RegistrationDraft:
         "proposed_provider_seeds": _synthetic_provider_seeds(),
         "proposed_positions": _synthetic_positions(),
         "proposed_runtime_configuration": _synthetic_runtime(),
+        "proposed_randomization_mc_samples": None,
+    }
+    arguments.update(overrides)
+    return draft_registration(**arguments)
+
+
+def _multi_stratum_draft(**overrides: Any) -> RegistrationDraft:
+    """A synthetic two-stratum draft with an exact one-to-one runtime cover."""
+
+    strata = _multi_strata()
+    arguments: dict[str, Any] = {
+        "design_id": SYNTHETIC_DESIGN_ID,
+        "created_at": SYNTHETIC_CREATED_AT,
+        "proposed_tasks": SYNTHETIC_TASKS,
+        "proposed_strata": strata,
+        "proposed_repetitions": _repetitions_over(strata),
+        "proposed_provider_seeds": _synthetic_provider_seeds(),
+        "proposed_positions": _positions_over(strata),
+        "proposed_runtime_configuration": _synthetic_runtime(
+            snapshots=_multi_snapshots()
+        ),
         "proposed_randomization_mc_samples": None,
     }
     arguments.update(overrides)
@@ -563,14 +673,21 @@ def test_digest_valid_direct_membership_bypass_cannot_create_a_file(
 def test_digest_valid_direct_runtime_bypass_cannot_create_a_file(
     tmp_path: Path,
 ) -> None:
-    original = _synthetic_runtime()
-    invalid_runtime = _forge_like(original, timeout_seconds="31")
+    """A forged snapshot whose content contradicts its identity digest fails first."""
+
+    forged_snapshot = _forge_like(
+        _synthetic_snapshot(), endpoint="https://synthetic.invalid/forged"
+    )
+    invalid_runtime = _forge_like(
+        _synthetic_runtime(),
+        registration_expected_runtime_snapshots=(forged_snapshot,),
+    )
     invalid = _reseal_direct_draft(
         replace(_synthetic_draft(), proposed_runtime_configuration=invalid_runtime)
     )
     root = tmp_path / "direct-runtime-bypass"
     with pytest.raises(
-        ConfirmatoryRegistrationError, match="timeout_seconds must match"
+        ConfirmatoryRegistrationError, match="runtime_identity_digest"
     ):
         write_registration_draft(invalid, confirmatory_root=root)
     assert not root.exists()
@@ -1324,8 +1441,11 @@ def test_synthetic_draft_construction_succeeds() -> None:
         STATISTIC_SPEC_ID
     )
     assert draft.proposed_statistical_configuration.randomization_mc_samples is None
-    assert draft.proposed_runtime_configuration.timeout_seconds == "30.5"
-    assert draft.proposed_runtime_configuration.retry_policy.max_attempts == 1
+    snapshots = (
+        draft.proposed_runtime_configuration.registration_expected_runtime_snapshots
+    )
+    assert snapshots[0].timeout_seconds == "30.5"
+    assert snapshots[0].retry_policy.max_attempts == 1
     assert len(draft.proposed_positions) == 8
     verify_self_digest(draft.to_artifact())
 
@@ -1367,8 +1487,8 @@ def test_no_assignment_material_is_recorded_at_stage_a(tmp_path: Path) -> None:
 def test_registration_expected_runtime_snapshot_is_bound_in_full() -> None:
     draft = _synthetic_draft()
     runtime = draft.proposed_runtime_configuration
-    snapshot = runtime.registration_expected_runtime_snapshot
-    payload = runtime.to_dict()["registration_expected_runtime_snapshot"]
+    snapshot = runtime.registration_expected_runtime_snapshots[0]
+    payload = runtime.to_dict()["registration_expected_runtime_snapshots"][0]
     assert set(payload) == {
         "artifact_version",
         "captured_at",
@@ -1391,9 +1511,9 @@ def test_registration_expected_runtime_snapshot_is_bound_in_full() -> None:
         "timeout_seconds",
         "tool_contract_policy",
     }
-    assert runtime.registration_expected_runtime_identity_digest == (
-        snapshot.runtime_identity_digest
-    )
+    assert runtime.registration_expected_runtime_identity_digest(
+        SYNTHETIC_PROVIDER, SYNTHETIC_MODEL
+    ) == snapshot.runtime_identity_digest
 
 
 def test_load_rejects_snapshot_content_mismatched_to_its_identity_digest(
@@ -1401,8 +1521,8 @@ def test_load_rejects_snapshot_content_mismatched_to_its_identity_digest(
 ) -> None:
     artifact = _synthetic_draft().canonical_payload()
     snapshot = artifact["proposed_runtime_configuration"][
-        "registration_expected_runtime_snapshot"
-    ]
+        "registration_expected_runtime_snapshots"
+    ][0]
     snapshot["endpoint"] = "https://synthetic.invalid/v2"
     target = _persist_artifact(artifact, tmp_path / "runtime-mismatch.json")
     with pytest.raises(ConfirmatoryRegistrationError):
@@ -1440,12 +1560,13 @@ def test_integer_schema_fields_stay_json_integers(tmp_path: Path) -> None:
         for key in ("repetition", "provider_seed", "slot"):
             assert isinstance(position[key], int)
             assert not isinstance(position[key], bool)
-    retry = persisted["proposed_runtime_configuration"]["retry_policy"]
+    snapshot = persisted["proposed_runtime_configuration"][
+        "registration_expected_runtime_snapshots"
+    ][0]
+    retry = snapshot["retry_policy"]
     assert isinstance(retry["max_attempts"], int)
     assert isinstance(retry["initial_delay_seconds"], str)
-    assert isinstance(
-        persisted["proposed_runtime_configuration"]["timeout_seconds"], str
-    )
+    assert isinstance(snapshot["timeout_seconds"], str)
 
 
 # --- Construction-time fail-closed validation -------------------------------
@@ -1544,21 +1665,397 @@ def test_capture_metadata_alone_never_changes_runtime_identity() -> None:
     assert later.self_digest != baseline.self_digest
 
 
-def test_proposed_timeout_must_match_registration_expected_snapshot() -> None:
+#: Fragments of the RC-1..RC-5 rejection messages, each naming the runtime key
+#: so a test cannot pass on another array's cover, ordering, or emptiness error.
+RUNTIME_COVER_ERROR = "registration_expected_runtime_snapshots must cover"
+RUNTIME_EMPTY_ERROR = "registration_expected_runtime_snapshots must not be empty"
+RUNTIME_DUPLICATE_ERROR = (
+    "registration_expected_runtime_snapshots must not contain duplicates"
+)
+RUNTIME_UNSORTED_ERROR = (
+    "registration_expected_runtime_snapshots must be sorted ascending"
+)
+
+
+# --- Runtime cardinality: one snapshot per proposed stratum (§12.3 RC-1..RC-5)
+#
+# The two superseded tests here — a configuration-level ``timeout_seconds`` and
+# ``retry_policy`` having to agree with the one bound snapshot — are retired
+# because the scalars they varied no longer exist (§12.4).  Their coverage is
+# replaced below by per-snapshot presence/schema assertions plus the load-time
+# refusal of either outer key, which is where that invariant now lives.
+
+
+def test_timeout_seconds_is_present_and_canonical_in_every_runtime_snapshot() -> None:
+    """Replaces the retired configuration-level timeout equality check."""
+
+    runtime = _multi_stratum_draft().proposed_runtime_configuration
+    snapshots = runtime.registration_expected_runtime_snapshots
+    assert len(snapshots) == 2
+    for snapshot in snapshots:
+        # Present on every element, and persisted as a string, never a float.
+        assert isinstance(snapshot.to_dict()["timeout_seconds"], str)
+        assert snapshot.to_dict()["timeout_seconds"] == snapshot.timeout_seconds
+        assert snapshot.timeout_seconds
+    # Still validated as a canonical decimal on every element.
     with pytest.raises(ConfirmatoryRegistrationError, match="timeout_seconds"):
-        _synthetic_runtime(timeout_seconds="31")
+        _synthetic_snapshot(timeout_seconds="030.5")
+    with pytest.raises(ConfirmatoryRegistrationError, match="timeout_seconds"):
+        _synthetic_snapshot_b(timeout_seconds="")
+    # No global equality constraint: the strata carry different timeouts.
+    assert snapshots[0].timeout_seconds != snapshots[1].timeout_seconds
 
 
-def test_proposed_retry_policy_must_match_registration_expected_snapshot() -> None:
-    other = RetryPolicyV1(
+def test_retry_policy_is_present_and_schema_valid_in_every_runtime_snapshot() -> None:
+    """Replaces the retired configuration-level retry-policy equality check."""
+
+    runtime = _multi_stratum_draft().proposed_runtime_configuration
+    snapshots = runtime.registration_expected_runtime_snapshots
+    for snapshot in snapshots:
+        assert isinstance(snapshot.retry_policy, RetryPolicyV1)
+        assert set(snapshot.to_dict()["retry_policy"]) == {
+            "backoff_kind",
+            "initial_delay_seconds",
+            "max_attempts",
+            "max_delay_seconds",
+            "retryable_error_classes",
+        }
+    # Still validated as a five-key RetryPolicyV1 on every element.
+    with pytest.raises(ConfirmatoryRegistrationError, match="backoff_kind"):
+        _synthetic_snapshot_b(
+            retry_policy=RetryPolicyV1(
+                max_attempts=1,
+                backoff_kind="FOREIGN_BACKOFF",
+                initial_delay_seconds="0",
+                max_delay_seconds="0",
+                retryable_error_classes=(),
+            )
+        )
+    # No global equality constraint: the strata carry different retry policies.
+    assert snapshots[0].retry_policy != snapshots[1].retry_policy
+
+
+def test_timeout_and_retry_stay_inside_the_authenticated_runtime_identity() -> None:
+    """Both values remain in the ``runtime_identity_digest`` preimage (§5.I.1)."""
+
+    baseline = _synthetic_snapshot()
+    identity = baseline.identity_payload()
+    assert identity["timeout_seconds"] == baseline.timeout_seconds
+    assert identity["retry_policy"] == baseline.retry_policy.to_dict()
+    assert (
+        _synthetic_snapshot(timeout_seconds="31").runtime_identity_digest
+        != baseline.runtime_identity_digest
+    )
+    other_policy = RetryPolicyV1(
         max_attempts=3,
         backoff_kind="EXPONENTIAL",
         initial_delay_seconds="1",
         max_delay_seconds="8",
         retryable_error_classes=("SYNTHETIC_A",),
     )
-    with pytest.raises(ConfirmatoryRegistrationError, match="retry_policy"):
-        _synthetic_runtime(retry_policy=other)
+    assert (
+        _synthetic_snapshot(retry_policy=other_policy).runtime_identity_digest
+        != baseline.runtime_identity_digest
+    )
+
+
+def test_no_outer_timeout_or_retry_key_is_ever_written(tmp_path: Path) -> None:
+    _, path = _written_draft(tmp_path)
+    persisted = json.loads(path.read_bytes()[:-1].decode("utf-8"))
+    runtime = persisted["proposed_runtime_configuration"]
+    assert "timeout_seconds" not in runtime
+    assert "retry_policy" not in runtime
+    assert "registration_expected_runtime_snapshot" not in runtime
+
+
+def test_single_stratum_draft_binds_exactly_one_runtime_snapshot() -> None:
+    draft = _synthetic_draft()
+    snapshots = (
+        draft.proposed_runtime_configuration.registration_expected_runtime_snapshots
+    )
+    assert len(snapshots) == len(draft.proposed_strata) == 1
+    assert (snapshots[0].provider_name, snapshots[0].model) == (
+        draft.proposed_strata[0].provider,
+        draft.proposed_strata[0].model,
+    )
+    verify_self_digest(draft.to_artifact())
+
+
+def test_multi_stratum_draft_binds_one_runtime_snapshot_per_stratum() -> None:
+    draft = _multi_stratum_draft()
+    snapshots = (
+        draft.proposed_runtime_configuration.registration_expected_runtime_snapshots
+    )
+    assert len(draft.proposed_strata) == 2
+    assert [(item.provider_name, item.model) for item in snapshots] == [
+        stratum.identity for stratum in draft.proposed_strata
+    ]
+    # Distinct provider, model, and registered runtime identity per stratum.
+    assert snapshots[0].runtime_identity_digest != snapshots[1].runtime_identity_digest
+    verify_self_digest(draft.to_artifact())
+
+
+def test_proposed_runtime_configuration_key_set_is_exactly_one_key(
+    tmp_path: Path,
+) -> None:
+    _, path = _written_draft(tmp_path)
+    persisted = json.loads(path.read_bytes()[:-1].decode("utf-8"))
+    assert set(persisted["proposed_runtime_configuration"]) == {
+        "registration_expected_runtime_snapshots"
+    }
+    assert "schema_version" not in persisted["proposed_runtime_configuration"]
+
+
+def _runtime_payload_draft(runtime: dict[str, Any]) -> dict[str, Any]:
+    """A synthetic draft payload carrying a hand-built runtime object."""
+
+    artifact = _synthetic_draft().canonical_payload()
+    artifact["proposed_runtime_configuration"] = runtime
+    return artifact
+
+
+def test_legacy_three_key_runtime_shape_is_rejected(tmp_path: Path) -> None:
+    """The old ``registration_expected_runtime_snapshot`` shape fails closed."""
+
+    original = _synthetic_draft().canonical_payload()[
+        "proposed_runtime_configuration"
+    ]
+    snapshot = original["registration_expected_runtime_snapshots"][0]
+    artifact = _runtime_payload_draft(
+        {
+            "registration_expected_runtime_snapshot": snapshot,
+            "retry_policy": snapshot["retry_policy"],
+            "timeout_seconds": snapshot["timeout_seconds"],
+        }
+    )
+    target = _persist_artifact(artifact, tmp_path / "legacy-runtime-shape.json")
+    with pytest.raises(ConfirmatoryRegistrationError, match="unexpected keys"):
+        load_registration_draft(target)
+
+
+@pytest.mark.parametrize("legacy_key", ["timeout_seconds", "retry_policy"])
+def test_configuration_level_timeout_or_retry_key_is_rejected(
+    legacy_key: str, tmp_path: Path
+) -> None:
+    artifact = _synthetic_draft().canonical_payload()
+    runtime = artifact["proposed_runtime_configuration"]
+    snapshot = runtime["registration_expected_runtime_snapshots"][0]
+    runtime[legacy_key] = snapshot[legacy_key]
+    target = _persist_artifact(artifact, tmp_path / f"outer-{legacy_key}.json")
+    with pytest.raises(ConfirmatoryRegistrationError, match="unexpected keys"):
+        load_registration_draft(target)
+
+
+def test_empty_runtime_snapshot_collection_is_rejected() -> None:
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_EMPTY_ERROR):
+        _synthetic_runtime(snapshots=())
+
+
+def test_empty_persisted_runtime_snapshot_collection_is_rejected(
+    tmp_path: Path,
+) -> None:
+    artifact = _runtime_payload_draft({"registration_expected_runtime_snapshots": []})
+    target = _persist_artifact(artifact, tmp_path / "empty-runtime.json")
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_EMPTY_ERROR):
+        load_registration_draft(target)
+
+
+def test_proposed_stratum_without_a_runtime_snapshot_is_rejected() -> None:
+    """RC-5: a second proposed stratum with no bound snapshot is refused."""
+
+    strata = _multi_strata()
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_COVER_ERROR):
+        _multi_stratum_draft(
+            proposed_runtime_configuration=_synthetic_runtime(
+                snapshots=(_synthetic_snapshot(),)
+            ),
+            proposed_strata=strata,
+        )
+
+
+def test_foreign_runtime_snapshot_is_rejected() -> None:
+    """RC-5: a snapshot for a stratum that was never proposed is refused."""
+
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_COVER_ERROR):
+        _synthetic_draft(
+            proposed_runtime_configuration=_synthetic_runtime(
+                snapshots=(_synthetic_snapshot_b(),)
+            )
+        )
+
+
+def test_extra_runtime_snapshot_beyond_the_proposed_strata_is_rejected() -> None:
+    """RC-5: one stratum, two bound snapshots is refused."""
+
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_COVER_ERROR):
+        _synthetic_draft(
+            proposed_runtime_configuration=_synthetic_runtime(
+                snapshots=_multi_snapshots()
+            )
+        )
+
+
+def test_duplicate_provider_model_runtime_snapshot_is_rejected() -> None:
+    """RC-4: the same runtime binding may not appear twice."""
+
+    duplicate = _synthetic_snapshot(endpoint="https://synthetic.invalid/v2")
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_DUPLICATE_ERROR):
+        _synthetic_runtime(snapshots=(_synthetic_snapshot(), duplicate))
+
+
+def test_unsorted_runtime_snapshots_are_rejected_not_sorted() -> None:
+    """RC-3: an out-of-order collection is refused, never re-sorted."""
+
+    reversed_pair = (_synthetic_snapshot_b(), _synthetic_snapshot())
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_UNSORTED_ERROR):
+        _synthetic_runtime(snapshots=reversed_pair)
+
+
+def test_unsorted_persisted_runtime_snapshots_are_rejected(tmp_path: Path) -> None:
+    artifact = _multi_stratum_draft().canonical_payload()
+    snapshots = artifact["proposed_runtime_configuration"][
+        "registration_expected_runtime_snapshots"
+    ]
+    snapshots.reverse()
+    target = _persist_artifact(artifact, tmp_path / "unsorted-runtime.json")
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_UNSORTED_ERROR):
+        load_registration_draft(target)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "foreign_value"),
+    [("provider_name", SYNTHETIC_PROVIDER_B), ("model", SYNTHETIC_MODEL_B)],
+)
+def test_runtime_snapshot_must_match_its_stratum_element_wise(
+    field_name: str, foreign_value: str
+) -> None:
+    """RC-5: neither half of ``(provider, model)`` may disagree with the stratum."""
+
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_COVER_ERROR):
+        _synthetic_draft(
+            proposed_runtime_configuration=_synthetic_runtime(
+                snapshots=(_synthetic_snapshot(**{field_name: foreign_value}),)
+            )
+        )
+
+
+def test_runtime_identity_digest_lookup_returns_that_stratums_digest() -> None:
+    runtime = _multi_stratum_draft().proposed_runtime_configuration
+    first, second = runtime.registration_expected_runtime_snapshots
+    assert runtime.registration_expected_runtime_identity_digest(
+        SYNTHETIC_PROVIDER, SYNTHETIC_MODEL
+    ) == first.runtime_identity_digest
+    assert runtime.registration_expected_runtime_identity_digest(
+        SYNTHETIC_PROVIDER_B, SYNTHETIC_MODEL_B
+    ) == second.runtime_identity_digest
+    assert first.runtime_identity_digest != second.runtime_identity_digest
+
+
+@pytest.mark.parametrize(
+    ("provider", "model"),
+    [
+        (SYNTHETIC_PROVIDER_B, SYNTHETIC_MODEL_B),
+        (SYNTHETIC_PROVIDER, SYNTHETIC_MODEL_B),
+        (SYNTHETIC_PROVIDER_B, SYNTHETIC_MODEL),
+    ],
+)
+def test_runtime_identity_digest_lookup_for_an_unbound_stratum_raises(
+    provider: str, model: str
+) -> None:
+    """An unbound stratum raises rather than yielding another stratum's digest."""
+
+    runtime = _synthetic_draft().proposed_runtime_configuration
+    with pytest.raises(ConfirmatoryRegistrationError, match="binds no"):
+        runtime.registration_expected_runtime_identity_digest(provider, model)
+
+
+def test_every_bound_runtime_snapshot_reverifies_both_of_its_digests(
+    tmp_path: Path,
+) -> None:
+    """RC-2: each element's own identity and self digests still verify."""
+
+    draft = _multi_stratum_draft()
+    path = write_registration_draft(draft, confirmatory_root=tmp_path)
+    for snapshot in load_registration_draft(
+        path
+    ).proposed_runtime_configuration.registration_expected_runtime_snapshots:
+        payload = snapshot.to_dict()
+        assert payload["runtime_identity_digest"] == hashlib.sha256(
+            canonical_json_bytes(snapshot.identity_payload())
+        ).hexdigest()
+        assert payload[SELF_DIGEST_FIELD] == hashlib.sha256(
+            canonical_json_bytes(snapshot.canonical_payload())
+        ).hexdigest()
+        verify_self_digest(payload)
+
+
+def test_digest_valid_direct_runtime_cardinality_bypass_cannot_create_a_file(
+    tmp_path: Path,
+) -> None:
+    """RC-1..RC-5 hold even against a forged object with a valid ``self_digest``."""
+
+    forged = _forge_like(
+        _synthetic_runtime(), registration_expected_runtime_snapshots=()
+    )
+    invalid = _reseal_direct_draft(
+        replace(_synthetic_draft(), proposed_runtime_configuration=forged)
+    )
+    verify_self_digest(invalid.to_artifact())
+    root = tmp_path / "direct-cardinality-bypass"
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_EMPTY_ERROR):
+        write_registration_draft(invalid, confirmatory_root=root)
+    assert not root.exists()
+
+
+def test_digest_valid_direct_foreign_runtime_cover_cannot_create_a_file(
+    tmp_path: Path,
+) -> None:
+    """An RC-5 violation is refused before any directory or artifact exists."""
+
+    forged = _forge_like(
+        _synthetic_runtime(),
+        registration_expected_runtime_snapshots=(_synthetic_snapshot_b(),),
+    )
+    invalid = _reseal_direct_draft(
+        replace(_synthetic_draft(), proposed_runtime_configuration=forged)
+    )
+    root = tmp_path / "direct-foreign-cover-bypass"
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_COVER_ERROR):
+        write_registration_draft(invalid, confirmatory_root=root)
+    assert not root.exists()
+    assert not (root / SYNTHETIC_DESIGN_ID).exists()
+
+
+def test_load_rejects_digest_valid_artifact_with_an_invalid_runtime_cover(
+    tmp_path: Path,
+) -> None:
+    """A freshly resealed artifact still fails the RC-5 cross-check on load."""
+
+    artifact = _multi_stratum_draft().canonical_payload()
+    del artifact["proposed_runtime_configuration"][
+        "registration_expected_runtime_snapshots"
+    ][1]
+    target = _persist_artifact(artifact, tmp_path / "invalid-cover.json")
+    verify_self_digest(parse_artifact(target.read_bytes()))
+    with pytest.raises(ConfirmatoryRegistrationError, match=RUNTIME_COVER_ERROR):
+        load_registration_draft(target)
+
+
+def test_multi_stratum_runtime_binding_round_trips_with_a_stable_digest(
+    tmp_path: Path,
+) -> None:
+    """Canonical and digest behavior is unchanged by the cardinality repair."""
+
+    draft = _multi_stratum_draft()
+    path = write_registration_draft(draft, confirmatory_root=tmp_path)
+    reloaded = load_registration_draft(path)
+    assert reloaded == draft
+    assert reloaded.self_digest == draft.self_digest
+    assert serialize_artifact(reloaded.to_artifact()) == path.read_bytes()
+    assert (
+        reloaded.proposed_runtime_configuration.registration_expected_runtime_snapshots
+        == draft.proposed_runtime_configuration.registration_expected_runtime_snapshots
+    )
 
 
 def test_foreign_confirmatory_profile_is_rejected(tmp_path: Path) -> None:

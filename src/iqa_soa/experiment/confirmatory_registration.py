@@ -273,13 +273,13 @@ _RETRY_POLICY_KEYS: frozenset[str] = frozenset(
     }
 )
 
-_RUNTIME_KEYS: frozenset[str] = frozenset(
-    {
-        "registration_expected_runtime_snapshot",
-        "retry_policy",
-        "timeout_seconds",
-    }
-)
+#: The one nested key of ``proposed_runtime_configuration`` (eligibility
+#: clarification §12.3, §12.4).  The configuration-level ``timeout_seconds`` and
+#: ``retry_policy`` are retired as duplicates: both survive verbatim per stratum
+#: inside each ``RuntimeSnapshotV1``, already bound into its
+#: ``runtime_identity_digest`` preimage.  Their absence here is what makes the
+#: old three-key nested shape fail closed rather than load silently.
+_RUNTIME_KEYS: frozenset[str] = frozenset({"registration_expected_runtime_snapshots"})
 
 _RUNTIME_SNAPSHOT_KEYS: frozenset[str] = frozenset(
     {
@@ -837,57 +837,74 @@ class RuntimeSnapshotV1:
 
 @dataclass(frozen=True, slots=True)
 class ProposedRuntimeConfigurationV1:
-    """The proposed runtime configuration bound into the draft (§5.I.4, §5.I.5).
+    """One registration-expected ``RuntimeSnapshotV1`` per proposed stratum.
 
-    The complete registration-expected ``RuntimeSnapshotV1`` is embedded here,
-    so Stage A binds both the expected identity and the capture record before
-    eligibility/final registration.  The explicit timeout/retry values must
-    equal the snapshot fields; a caller cannot pair one proposed configuration
-    with an unrelated identity digest.
+    ``proposed_strata`` carries no upper bound, and every stratum names its own
+    provider, model, and endpoint — all of which live inside a snapshot's
+    ``runtime_identity_digest`` preimage.  One snapshot for a whole draft
+    therefore leaves every stratum but at most one without a well-defined
+    expected identity, so this object binds a **collection**: exactly one
+    complete snapshot per stratum (eligibility clarification §12.3).
+
+    ``__post_init__`` enforces RC-1 (non-empty), RC-3 (sorted ascending by
+    ``(provider_name, model)``), and RC-4 (unique on that key).  RC-2 — that
+    every element is a complete snapshot whose two digests verify — is enforced
+    by ``RuntimeSnapshotV1.__post_init__``, which is unchanged.  RC-5, the exact
+    element-wise cover of ``proposed_strata``, needs both objects and lives in
+    :func:`_validate_stratum_runtime_cover`.
+
+    There is no configuration-level ``timeout_seconds`` or ``retry_policy``
+    (§12.4).  Both remain mandatory and digest-authenticated inside **each**
+    snapshot, where they may legitimately differ between heterogeneous provider
+    runtimes; nothing here requires strata to share them.
     """
 
-    timeout_seconds: str
-    retry_policy: RetryPolicyV1
-    registration_expected_runtime_snapshot: RuntimeSnapshotV1
+    registration_expected_runtime_snapshots: tuple[RuntimeSnapshotV1, ...]
 
     def __post_init__(self) -> None:
-        _require_canonical_decimal(
-            self.timeout_seconds, "proposed_runtime_configuration.timeout_seconds"
+        context = (
+            "proposed_runtime_configuration.registration_expected_runtime_snapshots"
         )
-        if not isinstance(self.retry_policy, RetryPolicyV1):
-            raise ConfirmatoryRegistrationError(
-                "proposed_runtime_configuration.retry_policy must be a RetryPolicyV1"
-            )
-        snapshot = self.registration_expected_runtime_snapshot
-        if not isinstance(snapshot, RuntimeSnapshotV1):
-            raise ConfirmatoryRegistrationError(
-                "proposed_runtime_configuration.registration_expected_runtime_snapshot "
-                "must be a RuntimeSnapshotV1"
-            )
-        if self.timeout_seconds != snapshot.timeout_seconds:
-            raise ConfirmatoryRegistrationError(
-                "proposed_runtime_configuration.timeout_seconds must match the "
-                "registration-expected RuntimeSnapshotV1"
-            )
-        if self.retry_policy != snapshot.retry_policy:
-            raise ConfirmatoryRegistrationError(
-                "proposed_runtime_configuration.retry_policy must match the "
-                "registration-expected RuntimeSnapshotV1"
-            )
+        snapshots = self.registration_expected_runtime_snapshots
+        if not isinstance(snapshots, tuple):
+            raise ConfirmatoryRegistrationError(f"{context} must be a tuple")
+        for index, snapshot in enumerate(snapshots):
+            if not isinstance(snapshot, RuntimeSnapshotV1):
+                raise ConfirmatoryRegistrationError(
+                    f"{context}[{index}] must be a RuntimeSnapshotV1"
+                )
+        # RC-1, RC-4, and RC-3 in one place: non-empty, unique on
+        # ``(provider_name, model)``, and already sorted by it.  Nothing is
+        # sorted or deduplicated on the caller's behalf.
+        _require_sorted_unique(
+            [(snapshot.provider_name, snapshot.model) for snapshot in snapshots],
+            context,
+        )
 
-    @property
-    def registration_expected_runtime_identity_digest(self) -> str:
-        """The derived identity later capture points must reproduce."""
+    def registration_expected_runtime_identity_digest(
+        self, provider: str, model: str
+    ) -> str:
+        """The identity later capture points must reproduce, for one stratum.
 
-        return self.registration_expected_runtime_snapshot.runtime_identity_digest
+        Lookup is by the exact ``(provider, model)`` pair, never by position and
+        never by fallback: an unbound stratum raises rather than quietly
+        yielding some other stratum's digest (§12.3).
+        """
+
+        for snapshot in self.registration_expected_runtime_snapshots:
+            if snapshot.provider_name == provider and snapshot.model == model:
+                return snapshot.runtime_identity_digest
+        raise ConfirmatoryRegistrationError(
+            "proposed_runtime_configuration binds no registration-expected "
+            f"RuntimeSnapshotV1 for stratum {(provider, model)!r}"
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "registration_expected_runtime_snapshot": (
-                self.registration_expected_runtime_snapshot.to_dict()
-            ),
-            "retry_policy": self.retry_policy.to_dict(),
-            "timeout_seconds": self.timeout_seconds,
+            "registration_expected_runtime_snapshots": [
+                snapshot.to_dict()
+                for snapshot in self.registration_expected_runtime_snapshots
+            ]
         }
 
 
@@ -1087,6 +1104,7 @@ def draft_registration(
         raise ConfirmatoryRegistrationError(
             "proposed_runtime_configuration must be a ProposedRuntimeConfigurationV1"
         )
+    _validate_stratum_runtime_cover(strata, proposed_runtime_configuration)
     unsealed = RegistrationDraft(
         schema_version=REGISTRATION_DRAFT_SCHEMA_VERSION,
         registration_state=REGISTRATION_STATE_DRAFT,
@@ -1204,6 +1222,33 @@ def _validate_proposed_matrix(
                 f"does not match the proposed seed {expected_seed!r} registered for "
                 f"repetition {position.repetition!r}"
             )
+
+
+def _validate_stratum_runtime_cover(
+    proposed_strata: tuple[ProposedStratumV1, ...],
+    proposed_runtime_configuration: ProposedRuntimeConfigurationV1,
+) -> None:
+    """Enforce RC-5: the runtime collection exactly covers ``proposed_strata``.
+
+    The cross-check needs both objects, so it is a separate helper rather than a
+    new parameter on :func:`_validate_proposed_matrix`: on the load path the
+    runtime object is parsed *after* that call, and reordering existing checks
+    would widen the repair (eligibility clarification §18.1).
+
+    RC-5 is the whole of the mapping between the two spellings of one concept —
+    the stratum vocabulary ``(provider, model)`` and the snapshot vocabulary
+    ``(provider_name, model)``.  Equal lengths and index-wise equality make a
+    missing, foreign, duplicated, misordered, or extra snapshot all rejections,
+    with no normalization and no repair.
+    """
+
+    snapshots = proposed_runtime_configuration.registration_expected_runtime_snapshots
+    _require_exact_cover(
+        [(snapshot.provider_name, snapshot.model) for snapshot in snapshots],
+        [stratum.identity for stratum in proposed_strata],
+        "proposed_runtime_configuration.registration_expected_runtime_snapshots",
+        "(provider, model) of proposed_strata",
+    )
 
 
 def _require_sorted_unique(values: Sequence[Any], context: str) -> None:
@@ -1379,6 +1424,7 @@ def _draft_from_artifact(artifact: dict[str, Any]) -> RegistrationDraft:
         _require_object_field(artifact, "proposed_runtime_configuration"),
         "proposed_runtime_configuration",
     )
+    _validate_stratum_runtime_cover(strata, runtime)
     statistical = _statistical_from_mapping(
         _require_object_field(artifact, "proposed_statistical_configuration"),
         "proposed_statistical_configuration",
@@ -1539,17 +1585,20 @@ def _runtime_snapshot_from_mapping(value: Any, context: str) -> RuntimeSnapshotV
 def _runtime_from_mapping(
     mapping: dict[str, Any], context: str
 ) -> ProposedRuntimeConfigurationV1:
+    """Parse the one-key nested shape (§12.3); the legacy three-key one fails.
+
+    Every element goes through the **unchanged** ``_runtime_snapshot_from_mapping``,
+    so RC-2 — twenty frozen fields, ``runtime_identity_digest`` and
+    ``self_digest`` both verified — is enforced exactly as before, per snapshot.
+    """
+
     _require_exact_keys(mapping, _RUNTIME_KEYS, context)
-    snapshot = _runtime_snapshot_from_mapping(
-        mapping["registration_expected_runtime_snapshot"],
-        f"{context}.registration_expected_runtime_snapshot",
-    )
+    key = "registration_expected_runtime_snapshots"
     return ProposedRuntimeConfigurationV1(
-        timeout_seconds=_require_text_field(mapping, "timeout_seconds", context),
-        retry_policy=_retry_policy_from_mapping(
-            mapping["retry_policy"], f"{context}.retry_policy"
+        registration_expected_runtime_snapshots=tuple(
+            _runtime_snapshot_from_mapping(item, f"{context}.{key}[{index}]")
+            for index, item in enumerate(_require_array_field(mapping, key, context))
         ),
-        registration_expected_runtime_snapshot=snapshot,
     )
 
 
