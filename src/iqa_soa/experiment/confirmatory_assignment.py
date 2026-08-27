@@ -108,6 +108,8 @@ class AssignmentNotPersistedError(ConfirmatoryAssignmentError):
 
 RANDOMIZATION_MC_PROVENANCE_FILENAME = "randomization_mc_provenance.json"
 ASSIGNMENT_MANIFEST_FILENAME = "assignment_manifest.json"
+MC_PROVENANCE_PENDING_SUFFIX = ".pending"
+MC_PROVENANCE_RESERVATION_MARKER = b"MC_PROVENANCE_GENERATION_RESERVED_V1\n"
 ASSIGNMENT_PENDING_SUFFIX = ".pending"
 ASSIGNMENT_RESERVATION_MARKER = b"ASSIGNMENT_GENERATION_RESERVED_V1\n"
 
@@ -358,6 +360,13 @@ def randomization_mc_provenance_path(
             f"invalid MC-provenance path: {error}"
         ) from error
     return design_directory / RANDOMIZATION_MC_PROVENANCE_FILENAME
+
+
+def _mc_provenance_pending_path(confirmatory_root: Path, design_id: str) -> Path:
+    """Return the operational MC reservation path; never a scientific path."""
+
+    final_path = randomization_mc_provenance_path(confirmatory_root, design_id)
+    return final_path.with_name(final_path.name + MC_PROVENANCE_PENDING_SUFFIX)
 
 
 def assignment_manifest_path(confirmatory_root: Path, design_id: str) -> Path:
@@ -872,18 +881,38 @@ def persist_randomization_mc_provenance(
         raise _mc_failure("P18", f"bound registration chain failed: {error}") from error
     try:
         path = randomization_mc_provenance_path(root, design_id)
+        pending_path = _mc_provenance_pending_path(root, design_id)
     except ConfirmatoryAssignmentError as error:
         raise _mc_failure("P6", str(error)) from error
+    # Final-first is authoritative even if an operational reservation remains.
     if path.exists():
         raise DuplicateMcProvenanceError(
             f"randomization MC provenance already exists and is immutable: {path}"
         )
 
     mode = registration.randomization_mode
+    if pending_path.exists():
+        raise McProvenanceIntegrityError(
+            "randomization MC provenance final is absent but a prior "
+            f"operational reservation exists: {pending_path}"
+        )
+
     branch: dict[str, Any]
     if mode == RANDOMIZATION_MODE_EXACT_ENUMERATION:
         branch = {"exact_support_size": 2**registration.K}
     else:
+        try:
+            _reserve_mc_provenance(pending_path)
+        except FileExistsError as error:
+            if path.exists():
+                raise DuplicateMcProvenanceError(
+                    "randomization MC provenance already exists and is immutable: "
+                    f"{path}"
+                ) from error
+            raise McProvenanceIntegrityError(
+                "a prior randomization MC provenance operational reservation exists: "
+                f"{pending_path}"
+            ) from error
         generated_at = _capture_timestamp()
         raw_seed_bytes = secrets.token_bytes(MC_ENTROPY_BYTES)
         if len(raw_seed_bytes) != MC_ENTROPY_BYTES:
@@ -938,6 +967,9 @@ def persist_randomization_mc_provenance(
         raise DuplicateMcProvenanceError(
             f"randomization MC provenance already exists and is immutable: {path}"
         ) from error
+    if mode == RANDOMIZATION_MODE_MONTE_CARLO:
+        _sync_directory_metadata(path.parent)
+        _unlink_pending_after_durable_publication(pending_path)
     return _mc_from_validated(artifact, validated_mode)
 
 
@@ -970,14 +1002,65 @@ def _draw_assignment_bits(
     return tuple(drawn)
 
 
-def _sync_windows_directory_metadata(directory: Path) -> None:
-    """Flush one Windows directory handle, failing closed on unsupported semantics."""
+def _windows_kernel32() -> Any:
+    """Load the native Windows file API boundary or fail closed."""
 
     win_dll_factory = getattr(ctypes, "WinDLL", None)
+    if win_dll_factory is None:
+        raise OSError("Windows volume durability API is unavailable")
+    return win_dll_factory("kernel32", use_last_error=True)
+
+
+def _windows_last_error() -> int:
+    """Return the calling thread's Win32 error code or fail closed."""
+
     get_last_error = getattr(ctypes, "get_last_error", None)
-    if win_dll_factory is None or get_last_error is None:
-        raise OSError("Windows directory metadata durability API is unavailable")
-    kernel32: Any = win_dll_factory("kernel32", use_last_error=True)
+    if get_last_error is None:
+        raise OSError("Windows last-error API is unavailable")
+    return int(get_last_error())
+
+
+def _is_windows_unc_path(path: str) -> bool:
+    normalized = path.replace("/", "\\")
+    upper = normalized.upper()
+    return upper.startswith("\\\\?\\UNC\\") or (
+        normalized.startswith("\\\\") and not upper.startswith("\\\\?\\")
+    )
+
+
+def _close_windows_handle(kernel32: Any, handle: Any, description: str) -> None:
+    if not kernel32.CloseHandle(handle):
+        raise OSError(
+            _windows_last_error(),
+            f"cannot close {description} handle after durability barrier",
+        )
+
+
+def _sync_windows_directory_metadata(directory: Path) -> None:
+    """Flush the containing local Windows volume while holding the directory open."""
+
+    original_path = str(directory)
+    if _is_windows_unc_path(original_path):
+        raise OSError("remote/UNC paths have no supported Windows durability barrier")
+    directory_path = str(Path(directory).resolve(strict=True))
+    if _is_windows_unc_path(directory_path):
+        raise OSError("remote/UNC paths have no supported Windows durability barrier")
+
+    kernel32 = _windows_kernel32()
+    kernel32.GetVolumePathNameW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+    ]
+    kernel32.GetVolumePathNameW.restype = ctypes.c_int
+    kernel32.GetDriveTypeW.argtypes = [ctypes.c_wchar_p]
+    kernel32.GetDriveTypeW.restype = ctypes.c_uint32
+    kernel32.GetVolumeNameForVolumeMountPointW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+    ]
+    kernel32.GetVolumeNameForVolumeMountPointW.restype = ctypes.c_int
     kernel32.CreateFileW.argtypes = [
         ctypes.c_wchar_p,
         ctypes.c_uint32,
@@ -993,38 +1076,97 @@ def _sync_windows_directory_metadata(directory: Path) -> None:
     kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
     kernel32.CloseHandle.restype = ctypes.c_int
 
+    path_buffer_size = 32768
+    volume_path_buffer = ctypes.create_unicode_buffer(path_buffer_size)
+    if not kernel32.GetVolumePathNameW(
+        directory_path, volume_path_buffer, path_buffer_size
+    ):
+        raise OSError(
+            _windows_last_error(),
+            "cannot resolve the containing Windows volume mount point",
+            directory_path,
+        )
+    volume_root = volume_path_buffer.value
+    if not volume_root or _is_windows_unc_path(volume_root):
+        raise OSError(
+            "resolved Windows volume mount point is empty, remote, or unsupported"
+        )
+
+    drive_unknown = 0
+    drive_no_root_dir = 1
+    drive_remote = 4
+    drive_type = int(kernel32.GetDriveTypeW(volume_root))
+    if drive_type in {drive_unknown, drive_no_root_dir, drive_remote}:
+        raise OSError(
+            "resolved Windows volume is unavailable, remote, or unsupported: "
+            f"drive_type={drive_type}"
+        )
+
+    volume_name_buffer = ctypes.create_unicode_buffer(path_buffer_size)
+    if not kernel32.GetVolumeNameForVolumeMountPointW(
+        volume_root, volume_name_buffer, path_buffer_size
+    ):
+        raise OSError(
+            _windows_last_error(),
+            "cannot resolve a local Windows volume GUID path",
+            volume_root,
+        )
+    volume_name = volume_name_buffer.value
+    if not (
+        volume_name.startswith("\\\\?\\Volume{") and volume_name.endswith("}\\")
+    ):
+        raise OSError(f"unsupported Windows volume path form: {volume_name!r}")
+    volume_handle_path = volume_name[:-1]
+
+    no_access = 0
     generic_write = 0x40000000
     share_read_write_delete = 0x00000007
     open_existing = 3
     backup_semantics = 0x02000000
-    write_through = 0x80000000
     invalid_handle = ctypes.c_void_p(-1).value
-    handle = kernel32.CreateFileW(
-        str(directory),
-        generic_write,
+    directory_handle = kernel32.CreateFileW(
+        directory_path,
+        no_access,
         share_read_write_delete,
         None,
         open_existing,
-        backup_semantics | write_through,
+        backup_semantics,
         None,
     )
-    if handle in (None, invalid_handle):
-        error_code = int(get_last_error())
+    if directory_handle in (None, invalid_handle):
         raise OSError(
-            error_code,
-            "cannot open directory for durable metadata synchronization",
-            str(directory),
+            _windows_last_error(),
+            "cannot open parent directory for Windows volume durability barrier",
+            directory_path,
         )
     try:
-        if not kernel32.FlushFileBuffers(handle):
-            error_code = int(get_last_error())
+        volume_handle = kernel32.CreateFileW(
+            volume_handle_path,
+            generic_write,
+            share_read_write_delete,
+            None,
+            open_existing,
+            0,
+            None,
+        )
+        if volume_handle in (None, invalid_handle):
             raise OSError(
-                error_code,
-                "cannot durably synchronize directory metadata",
-                str(directory),
+                _windows_last_error(),
+                "cannot open containing Windows volume for durable metadata "
+                "synchronization; administrative privilege may be required",
+                volume_handle_path,
             )
+        try:
+            if not kernel32.FlushFileBuffers(volume_handle):
+                raise OSError(
+                    _windows_last_error(),
+                    "cannot durably synchronize containing Windows volume metadata",
+                    volume_handle_path,
+                )
+        finally:
+            _close_windows_handle(kernel32, volume_handle, "volume")
     finally:
-        kernel32.CloseHandle(handle)
+        _close_windows_handle(kernel32, directory_handle, "parent directory")
 
 
 def _sync_directory_metadata(directory: Path) -> None:
@@ -1048,6 +1190,16 @@ def _reserve_assignment(pending_path: Path) -> None:
 
     with pending_path.open("xb") as handle:
         handle.write(ASSIGNMENT_RESERVATION_MARKER)
+        handle.flush()
+        os.fsync(handle.fileno())
+    _sync_directory_metadata(pending_path.parent)
+
+
+def _reserve_mc_provenance(pending_path: Path) -> None:
+    """Exclusively create and durably publish the pre-entropy MC marker."""
+
+    with pending_path.open("xb") as handle:
+        handle.write(MC_PROVENANCE_RESERVATION_MARKER)
         handle.flush()
         os.fsync(handle.fileno())
     _sync_directory_metadata(pending_path.parent)

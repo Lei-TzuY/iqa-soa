@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import inspect
@@ -79,6 +80,19 @@ STATUS_PASS = "PASS"
 STATUS_FAIL = "FAIL"
 ALL_PASS = (STATUS_PASS,) * 4
 DESCRIPTIVE = (STATUS_FAIL, STATUS_PASS, STATUS_PASS, STATUS_PASS)
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_windows_durability_barrier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep synthetic persistence tests independent of Windows admin privilege."""
+
+    if os.name == "nt":
+        def synthetic_barrier(directory: Path) -> None:
+            assert directory.is_dir()
+
+        monkeypatch.setattr(assignment, "_sync_directory_metadata", synthetic_barrier)
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,6 +280,13 @@ def _assignment(chain: SyntheticChain) -> assignment.AssignmentManifestV1:
     )
 
 
+def _mc_pending_path(chain: SyntheticChain) -> Path:
+    final = randomization_mc_provenance_path(
+        chain.root, chain.registration.design_id
+    )
+    return final.with_name(final.name + assignment.MC_PROVENANCE_PENDING_SUFFIX)
+
+
 def test_k_zero_exact_provenance_is_mandatory_and_has_ten_keys(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -419,6 +440,8 @@ def test_failed_mc_persistence_cannot_redraw_entropy(
 ) -> None:
     chain = _synthetic_chain(tmp_path, 17)
     calls = 0
+    fsync_calls = 0
+    real_fsync = os.fsync
 
     def token_bytes(count: int) -> bytes:
         nonlocal calls
@@ -426,18 +449,354 @@ def test_failed_mc_persistence_cannot_redraw_entropy(
         return b"\x11" * count
 
     def fail_fsync(descriptor: int) -> None:
-        raise OSError("synthetic fsync failure")
+        nonlocal fsync_calls
+        fsync_calls += 1
+        if fsync_calls == 2:
+            raise OSError("synthetic final fsync failure")
+        real_fsync(descriptor)
 
     monkeypatch.setattr(secrets, "token_bytes", token_bytes)
     monkeypatch.setattr(os, "fsync", fail_fsync)
-    with pytest.raises(OSError, match="synthetic fsync failure"):
+    monkeypatch.setattr(assignment, "_sync_directory_metadata", lambda directory: None)
+    with pytest.raises(OSError, match="synthetic final fsync failure"):
         _provenance(chain)
     assert randomization_mc_provenance_path(
         tmp_path, chain.registration.design_id
     ).exists()
+    assert _mc_pending_path(chain).exists()
     with pytest.raises(DuplicateMcProvenanceError):
         _provenance(chain)
     assert calls == 1
+
+
+def test_mc_pending_is_durable_before_first_entropy_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    pending = _mc_pending_path(chain)
+    events: list[str] = []
+
+    def sync(directory: Path) -> None:
+        assert directory == pending.parent
+        assert pending.read_bytes() == assignment.MC_PROVENANCE_RESERVATION_MARKER
+        events.append("pending-durable")
+
+    def token_bytes(count: int) -> bytes:
+        assert events == ["pending-durable"]
+        events.append("entropy")
+        return b"\x12" * count
+
+    monkeypatch.setattr(assignment, "_sync_directory_metadata", sync)
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+    _provenance(chain)
+    assert events == ["pending-durable", "entropy", "pending-durable"]
+    assert not pending.exists()
+
+
+def test_mc_reservation_file_fsync_failure_draws_zero_entropy_and_retains_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    entropy_calls = 0
+
+    def fail_reservation_fsync(descriptor: int) -> None:
+        raise OSError(f"synthetic MC reservation fsync failure: {descriptor}")
+
+    def token_bytes(count: int) -> bytes:
+        nonlocal entropy_calls
+        entropy_calls += 1
+        return b"\x18" * count
+
+    monkeypatch.setattr(os, "fsync", fail_reservation_fsync)
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+    with pytest.raises(OSError, match="reservation fsync failure"):
+        _provenance(chain)
+    assert entropy_calls == 0
+    assert _mc_pending_path(chain).exists()
+    with pytest.raises(McProvenanceIntegrityError):
+        _provenance(chain)
+    assert entropy_calls == 0
+
+
+def test_existing_mc_pending_refuses_with_zero_entropy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    pending = _mc_pending_path(chain)
+    pending.write_bytes(assignment.MC_PROVENANCE_RESERVATION_MARKER)
+    monkeypatch.setattr(
+        secrets,
+        "token_bytes",
+        lambda count: pytest.fail(f"existing MC pending drew {count} entropy bytes"),
+    )
+    with pytest.raises(McProvenanceIntegrityError, match="operational reservation"):
+        _provenance(chain)
+    assert pending.read_bytes() == assignment.MC_PROVENANCE_RESERVATION_MARKER
+
+
+def test_mc_final_plus_pending_is_final_first_with_zero_entropy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    _provenance(chain)
+    pending = _mc_pending_path(chain)
+    pending.write_bytes(assignment.MC_PROVENANCE_RESERVATION_MARKER)
+    monkeypatch.setattr(
+        secrets,
+        "token_bytes",
+        lambda count: pytest.fail(f"final plus MC pending drew {count} entropy bytes"),
+    )
+    with pytest.raises(DuplicateMcProvenanceError):
+        _provenance(chain)
+
+
+def test_mc_pending_reservation_race_refuses_with_zero_entropy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+
+    def lose_reservation(path: Path) -> None:
+        raise FileExistsError(path)
+
+    monkeypatch.setattr(assignment, "_reserve_mc_provenance", lose_reservation)
+    monkeypatch.setattr(
+        secrets,
+        "token_bytes",
+        lambda count: pytest.fail(f"lost MC reservation drew {count} entropy bytes"),
+    )
+    with pytest.raises(McProvenanceIntegrityError, match="prior"):
+        _provenance(chain)
+
+
+def test_mc_pending_reservation_race_rechecks_final_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    final = randomization_mc_provenance_path(
+        tmp_path, chain.registration.design_id
+    )
+
+    def lose_to_final(path: Path) -> None:
+        final.write_bytes(b"synthetic-concurrent-final")
+        raise FileExistsError(path)
+
+    monkeypatch.setattr(assignment, "_reserve_mc_provenance", lose_to_final)
+    monkeypatch.setattr(
+        secrets,
+        "token_bytes",
+        lambda count: pytest.fail(f"lost MC reservation drew {count} entropy bytes"),
+    )
+    with pytest.raises(DuplicateMcProvenanceError):
+        _provenance(chain)
+
+
+def test_failure_immediately_after_mc_entropy_retains_pending_and_blocks_redraw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    calls = 0
+
+    def token_bytes(count: int) -> bytes:
+        nonlocal calls
+        calls += 1
+        return b"\x13" * count
+
+    def fail_pcg64(seed: int) -> None:
+        raise RuntimeError(f"synthetic post-entropy failure for {seed}")
+
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+    monkeypatch.setattr(np.random, "PCG64", fail_pcg64)
+    with pytest.raises(RuntimeError, match="post-entropy failure"):
+        _provenance(chain)
+    assert _mc_pending_path(chain).exists()
+    with pytest.raises(McProvenanceIntegrityError):
+        _provenance(chain)
+    assert calls == 1
+
+
+def test_mc_final_open_failure_retains_pending_and_blocks_redraw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    final = randomization_mc_provenance_path(
+        tmp_path, chain.registration.design_id
+    )
+    calls = 0
+    real_open = Path.open
+
+    def token_bytes(count: int) -> bytes:
+        nonlocal calls
+        calls += 1
+        return b"\x14" * count
+
+    def fail_final_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        if path == final and args and args[0] == "xb":
+            raise OSError("synthetic final open failure")
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+    monkeypatch.setattr(Path, "open", fail_final_open)
+    with pytest.raises(OSError, match="final open failure"):
+        _provenance(chain)
+    assert _mc_pending_path(chain).exists()
+    assert not final.exists()
+    with pytest.raises(McProvenanceIntegrityError):
+        _provenance(chain)
+    assert calls == 1
+
+
+def test_mc_partial_final_write_retains_pending_and_blocks_redraw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    final = randomization_mc_provenance_path(
+        tmp_path, chain.registration.design_id
+    )
+    calls = 0
+    real_open = Path.open
+
+    class PartialWriteFailure:
+        def __init__(self, handle: Any) -> None:
+            self.handle = handle
+
+        def __enter__(self) -> PartialWriteFailure:
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            self.handle.close()
+
+        def write(self, payload: bytes) -> int:
+            self.handle.write(payload[:8])
+            self.handle.flush()
+            raise OSError("synthetic partial final write failure")
+
+    def token_bytes(count: int) -> bytes:
+        nonlocal calls
+        calls += 1
+        return b"\x15" * count
+
+    def partial_final_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        handle = real_open(path, *args, **kwargs)
+        if path == final and args and args[0] == "xb":
+            return PartialWriteFailure(handle)
+        return handle
+
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+    monkeypatch.setattr(Path, "open", partial_final_open)
+    with pytest.raises(OSError, match="partial final write failure"):
+        _provenance(chain)
+    assert final.exists()
+    assert final.stat().st_size == 8
+    assert _mc_pending_path(chain).exists()
+    with pytest.raises(DuplicateMcProvenanceError):
+        _provenance(chain)
+    assert calls == 1
+
+
+def test_mc_final_directory_barrier_failure_retains_pending_and_blocks_redraw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    sync_calls = 0
+    entropy_calls = 0
+
+    def sync(directory: Path) -> None:
+        nonlocal sync_calls
+        sync_calls += 1
+        if sync_calls == 2:
+            raise OSError("synthetic MC final directory barrier failure")
+
+    def token_bytes(count: int) -> bytes:
+        nonlocal entropy_calls
+        entropy_calls += 1
+        return b"\x16" * count
+
+    monkeypatch.setattr(assignment, "_sync_directory_metadata", sync)
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+    with pytest.raises(OSError, match="final directory barrier failure"):
+        _provenance(chain)
+    assert _mc_pending_path(chain).exists()
+    with pytest.raises(DuplicateMcProvenanceError):
+        _provenance(chain)
+    assert entropy_calls == 1
+
+
+def test_mc_pending_cleanup_occurs_only_after_final_directory_barrier(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    events: list[str] = []
+    real_unlink = Path.unlink
+
+    def sync(directory: Path) -> None:
+        events.append("pending-barrier" if len(events) == 0 else "final-barrier")
+
+    def unlink(path: Path, *args: Any, **kwargs: Any) -> None:
+        if path == _mc_pending_path(chain):
+            events.append("cleanup")
+        real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(assignment, "_sync_directory_metadata", sync)
+    monkeypatch.setattr(Path, "unlink", unlink)
+    _provenance(chain)
+    assert events == ["pending-barrier", "final-barrier", "cleanup"]
+
+
+def test_mc_cleanup_failure_does_not_invalidate_durable_final(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    pending = _mc_pending_path(chain)
+    real_unlink = Path.unlink
+
+    def fail_pending_unlink(path: Path, *args: Any, **kwargs: Any) -> None:
+        if path == pending:
+            raise OSError("synthetic cleanup failure")
+        real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_pending_unlink)
+    provenance = _provenance(chain)
+    final = randomization_mc_provenance_path(
+        tmp_path, chain.registration.design_id
+    )
+    assert load_randomization_mc_provenance(final) == provenance
+    assert pending.exists()
+
+
+def test_mc_loader_ignores_operational_pending_and_remains_p1_p24(
+    tmp_path: Path,
+) -> None:
+    chain = _synthetic_chain(tmp_path, 17)
+    provenance = _provenance(chain)
+    pending = _mc_pending_path(chain)
+    pending.write_bytes(b"not-scientific-json")
+    final = randomization_mc_provenance_path(
+        tmp_path, chain.registration.design_id
+    )
+    assert load_randomization_mc_provenance(final) == provenance
+    loader_doc = inspect.getdoc(load_randomization_mc_provenance)
+    assert loader_doc is not None
+    assert "P1-P24" in loader_doc
+
+
+def test_exact_mode_never_creates_mc_pending_and_refuses_impossible_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    normal = _synthetic_chain(tmp_path, 1, design_suffix="exact-normal")
+    monkeypatch.setattr(
+        secrets,
+        "token_bytes",
+        lambda count: pytest.fail(f"exact mode drew {count} entropy bytes"),
+    )
+    _provenance(normal)
+    assert not _mc_pending_path(normal).exists()
+
+    impossible = _synthetic_chain(tmp_path, 1, design_suffix="exact-pending")
+    pending = _mc_pending_path(impossible)
+    pending.write_bytes(assignment.MC_PROVENANCE_RESERVATION_MARKER)
+    with pytest.raises(McProvenanceIntegrityError, match="operational reservation"):
+        _provenance(impossible)
+    assert pending.exists()
 
 
 def test_mc_loader_first_failure_order_is_observable(tmp_path: Path) -> None:
@@ -990,3 +1349,225 @@ def test_schema_literals_and_file_names_are_exact(tmp_path: Path) -> None:
     assert assignment_manifest_path(
         tmp_path, chain.registration.design_id
     ).name == "assignment_manifest.json"
+
+
+class FakeWinFunction:
+    def __init__(self, callback: Callable[..., int]) -> None:
+        self.callback = callback
+        self.argtypes: list[Any] | None = None
+        self.restype: Any = None
+
+    def __call__(self, *args: Any) -> int:
+        return self.callback(*args)
+
+
+class FakeKernel32:
+    DIRECTORY_HANDLE = 101
+    VOLUME_HANDLE = 202
+    VOLUME_ROOT = "C:\\"
+    VOLUME_GUID = "\\\\?\\Volume{12345678-1234-1234-1234-123456789abc}\\"
+
+    def __init__(self, failure: str | None = None, *, drive_type: int = 3) -> None:
+        self.failure = failure
+        self.drive_type = drive_type
+        self.events: list[tuple[str, object]] = []
+        self.GetVolumePathNameW = FakeWinFunction(self._get_volume_path)
+        self.GetDriveTypeW = FakeWinFunction(self._get_drive_type)
+        self.GetVolumeNameForVolumeMountPointW = FakeWinFunction(
+            self._get_volume_name
+        )
+        self.CreateFileW = FakeWinFunction(self._create_file)
+        self.FlushFileBuffers = FakeWinFunction(self._flush_file_buffers)
+        self.CloseHandle = FakeWinFunction(self._close_handle)
+
+    def _get_volume_path(self, path: str, buffer: Any, size: int) -> int:
+        self.events.append(("resolve-volume-root", path))
+        assert size >= len(self.VOLUME_ROOT) + 1
+        if self.failure == "volume_path":
+            return 0
+        buffer.value = self.VOLUME_ROOT
+        return 1
+
+    def _get_drive_type(self, volume_root: str) -> int:
+        self.events.append(("drive-type", volume_root))
+        return self.drive_type
+
+    def _get_volume_name(self, volume_root: str, buffer: Any, size: int) -> int:
+        self.events.append(("resolve-volume-guid", volume_root))
+        assert size >= len(self.VOLUME_GUID) + 1
+        if self.failure == "volume_name":
+            return 0
+        buffer.value = self.VOLUME_GUID
+        return 1
+
+    def _create_file(
+        self,
+        path: str,
+        access: int,
+        share: int,
+        security: Any,
+        disposition: int,
+        flags: int,
+        template: Any,
+    ) -> int:
+        del share, security, disposition, template
+        is_volume = path == self.VOLUME_GUID[:-1]
+        event = "open-volume" if is_volume else "open-directory"
+        self.events.append((event, (path, access, flags)))
+        failure_name = "volume_open" if is_volume else "directory_open"
+        if self.failure == failure_name:
+            invalid_handle = ctypes.c_void_p(-1).value
+            assert invalid_handle is not None
+            return invalid_handle
+        return self.VOLUME_HANDLE if is_volume else self.DIRECTORY_HANDLE
+
+    def _flush_file_buffers(self, handle: int) -> int:
+        self.events.append(("flush", handle))
+        if self.failure == "volume_flush":
+            return 0
+        return 1
+
+    def _close_handle(self, handle: int) -> int:
+        self.events.append(("close", handle))
+        if self.failure == "close_volume" and handle == self.VOLUME_HANDLE:
+            return 0
+        if self.failure == "close_directory" and handle == self.DIRECTORY_HANDLE:
+            return 0
+        return 1
+
+
+def _install_fake_windows_api(
+    monkeypatch: pytest.MonkeyPatch, kernel32: FakeKernel32
+) -> None:
+    monkeypatch.setattr(assignment, "_windows_kernel32", lambda: kernel32)
+    monkeypatch.setattr(assignment, "_windows_last_error", lambda: 5)
+
+
+def test_windows_durability_flushes_volume_while_parent_directory_is_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kernel32 = FakeKernel32()
+    _install_fake_windows_api(monkeypatch, kernel32)
+
+    assignment._sync_windows_directory_metadata(tmp_path)
+
+    assert ("flush", FakeKernel32.VOLUME_HANDLE) in kernel32.events
+    assert ("flush", FakeKernel32.DIRECTORY_HANDLE) not in kernel32.events
+    assert kernel32.events.index(("flush", FakeKernel32.VOLUME_HANDLE)) < (
+        kernel32.events.index(("close", FakeKernel32.DIRECTORY_HANDLE))
+    )
+    assert kernel32.events[-2:] == [
+        ("close", FakeKernel32.VOLUME_HANDLE),
+        ("close", FakeKernel32.DIRECTORY_HANDLE),
+    ]
+    directory_open = next(
+        details for event, details in kernel32.events if event == "open-directory"
+    )
+    volume_open = next(
+        details for event, details in kernel32.events if event == "open-volume"
+    )
+    assert isinstance(directory_open, tuple)
+    assert isinstance(volume_open, tuple)
+    assert directory_open[1:] == (0, 0x02000000)
+    assert volume_open == (FakeKernel32.VOLUME_GUID[:-1], 0x40000000, 0)
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "volume_path",
+        "volume_name",
+        "directory_open",
+        "volume_open",
+        "volume_flush",
+        "close_volume",
+        "close_directory",
+    ],
+)
+def test_windows_durability_native_failures_fail_closed_and_close_handles(
+    failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kernel32 = FakeKernel32(failure)
+    _install_fake_windows_api(monkeypatch, kernel32)
+
+    with pytest.raises(OSError):
+        assignment._sync_windows_directory_metadata(tmp_path)
+
+    if failure in {"volume_open", "volume_flush", "close_volume", "close_directory"}:
+        assert ("close", FakeKernel32.DIRECTORY_HANDLE) in kernel32.events
+    if failure in {"volume_flush", "close_volume", "close_directory"}:
+        assert ("close", FakeKernel32.VOLUME_HANDLE) in kernel32.events
+
+
+def test_windows_durability_rejects_remote_and_unc_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        assignment,
+        "_windows_kernel32",
+        lambda: pytest.fail("UNC rejection attempted to load native API"),
+    )
+    with pytest.raises(OSError, match="remote/UNC"):
+        assignment._sync_windows_directory_metadata(
+            Path(r"\\server\share\confirmatory\design")
+        )
+
+    kernel32 = FakeKernel32(drive_type=4)
+    _install_fake_windows_api(monkeypatch, kernel32)
+    with pytest.raises(OSError, match="remote"):
+        assignment._sync_windows_directory_metadata(tmp_path)
+    assert all(event != "open-directory" for event, _ in kernel32.events)
+
+
+def test_failed_pre_randomness_barriers_draw_zero_bits_and_zero_mc_entropy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    exact_chain = _synthetic_chain(tmp_path, 1, design_suffix="assignment-barrier")
+    _provenance(exact_chain)
+    mc_chain = _synthetic_chain(tmp_path, 17, design_suffix="mc-barrier")
+    bit_calls = 0
+    entropy_calls = 0
+
+    def fail_barrier(directory: Path) -> None:
+        raise OSError(f"synthetic pre-randomness barrier failure: {directory}")
+
+    def randbits(width: int) -> int:
+        nonlocal bit_calls
+        bit_calls += 1
+        return width
+
+    def token_bytes(count: int) -> bytes:
+        nonlocal entropy_calls
+        entropy_calls += 1
+        return b"\x17" * count
+
+    monkeypatch.setattr(assignment, "_sync_directory_metadata", fail_barrier)
+    monkeypatch.setattr(secrets, "randbits", randbits)
+    monkeypatch.setattr(secrets, "token_bytes", token_bytes)
+
+    with pytest.raises(OSError, match="pre-randomness barrier failure"):
+        _assignment(exact_chain)
+    with pytest.raises(OSError, match="pre-randomness barrier failure"):
+        _provenance(mc_chain)
+    assert bit_calls == 0
+    assert entropy_calls == 0
+    assert assignment_pending_path(
+        tmp_path, exact_chain.registration.design_id
+    ).exists()
+    assert _mc_pending_path(mc_chain).exists()
+
+
+def test_scientific_schema_counts_remain_exactly_ten_nineteen_thirteen(
+    tmp_path: Path,
+) -> None:
+    exact_chain = _synthetic_chain(tmp_path, 1, design_suffix="schema-exact")
+    mc_chain = _synthetic_chain(tmp_path, 17, design_suffix="schema-mc")
+    exact = _provenance(exact_chain).to_artifact()
+    mc = _provenance(mc_chain).to_artifact()
+    manifest = _assignment(exact_chain).to_artifact()
+    assert (len(exact), len(mc), len(manifest)) == (10, 19, 13)
+    assert all(
+        "pending" not in key
+        for artifact in (exact, mc, manifest)
+        for key in artifact
+    )
