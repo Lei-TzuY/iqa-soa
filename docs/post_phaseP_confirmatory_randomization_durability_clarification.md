@@ -145,7 +145,7 @@ For `MONTE_CARLO`, the production operation still accepts only `(confirmatory_ro
 13. Capture `created_at`, compute `self_digest`, and validate the complete `P1`–`P24` contract in construction-time form.
 14. Exclusive-create `randomization_mc_provenance.json`.
 15. Write the complete canonical scientific bytes, flush them, and sync the final file data.
-16. Durably synchronize the filesystem metadata containing the final provenance directory entry.
+16. Durably synchronize the filesystem metadata containing the final provenance directory entry. **For Monte-Carlo mode, successful completion of this barrier is the operational instant `MC_PROVENANCE_PERSISTED` begins.**
 17. **Only after step 16 succeeds** may `.pending` be unlinked. Cleanup is optional/non-authoritative; cleanup failure does not invalidate a valid final provenance artifact.
 18. Return only the already-persisted, already-validated provenance object.
 
@@ -185,8 +185,8 @@ The new reservation closes every same-design redraw window:
 | final create itself fails | durable `.pending` remains; retry refuses before entropy |
 | crash during final write | final may be partial and `.pending` remains; generation sees final first and never redraws; loader rejects malformed final |
 | final file-data sync fails | `.pending` remains; no redraw |
-| final directory-entry durability sync fails | `.pending` remains; no redraw |
-| final durable, cleanup not yet attempted | final is authoritative; no redraw |
+| final directory-entry durability sync fails | `.pending` remains; no redraw; the operation has not reached `MC_PROVENANCE_PERSISTED` |
+| final durable, cleanup not yet attempted | final is authoritative; state has advanced; no redraw |
 | cleanup fails | final remains authoritative; no redraw |
 
 Manual deletion or alteration of the operational reservation is outside the automatic protocol threat model, exactly like manual deletion of the assignment reservation.
@@ -239,18 +239,18 @@ That applies to:
 
 For a **local Windows volume**, the accepted reference realization is a documented **volume flush**, not a directory-handle flush.
 
-A conforming Windows implementation may:
+A conforming Windows implementation executes the durability barrier as follows:
 
 1. Resolve the target path to the local volume that contains the confirmatory design directory.
-2. Open the relevant parent directory with `CreateFileW` + `FILE_FLAG_BACKUP_SEMANTICS` when needed to establish/inspect the directory object; do **not** treat flushing that directory handle as the durability barrier.
+2. Open the relevant parent directory with `CreateFileW` + `FILE_FLAG_BACKUP_SEMANTICS` and **keep that directory handle open across the volume flush**. The directory handle exists to anchor the affected directory object as open; `FlushFileBuffers` is **not** called on this handle.
 3. Open the containing volume with `CreateFileW` using a supported volume path form (for example a drive-volume form or volume-GUID form without a trailing root separator) and the access required by `FlushFileBuffers`.
-4. Call `FlushFileBuffers` on the **volume handle**.
+4. Call `FlushFileBuffers` on the **volume handle** while the parent-directory handle from step 2 remains open.
 5. Treat success as the Windows durability barrier for the preceding directory-entry mutation.
-6. Close all native handles reliably.
+6. Close both native handles reliably.
 
 Microsoft documents that flushing a volume this way requires administrative privileges. That requirement is accepted by this confirmatory protocol.
 
-If the process lacks the necessary privilege, the path is a remote/UNC path for which an equivalent supported durability primitive cannot be established, volume resolution fails, the volume cannot be opened, or the volume flush fails, the operation **fails closed** at the relevant boundary.
+If the parent directory cannot be opened under documented directory-handle semantics, the process lacks the necessary volume privilege, the path is a remote/UNC path for which an equivalent supported durability primitive cannot be established, volume resolution fails, the volume cannot be opened, or the volume flush fails, the operation **fails closed** at the relevant boundary.
 
 No assignment bit or MC seed may be drawn after a failed pre-draw/pre-entropy durability barrier.
 
@@ -277,11 +277,19 @@ No portability claim is made for filesystems that do not honor the durability se
 
 Operational reservations do not create lifecycle states.
 
-`MC_PROVENANCE_PERSISTED` still begins only when the final `randomization_mc_provenance.json` exists and validates under the frozen scientific contract. A `.pending` file alone does not mean the state has advanced.
+For `EXACT_ENUMERATION`, `MC_PROVENANCE_PERSISTED` retains the existing meaning: the final provenance artifact has been successfully persisted and validates under the frozen scientific contract; no entropy reservation exists on this branch.
+
+For `MONTE_CARLO`, final-file existence alone is **not** sufficient for the generating operation to report successful state advancement. `MC_PROVENANCE_PERSISTED` begins only after all three conditions hold:
+
+1. the final nineteen-key artifact is complete and validates under `P1`–`P24`;
+2. its final file data has been durably synchronized; and
+3. the final provenance directory entry has passed the step-16 durability barrier.
+
+A `.pending` file alone never means the state has advanced. If step 16 fails, the operation returns failure, retains `.pending`, and does not report `MC_PROVENANCE_PERSISTED` even if the final pathname happens to remain visible in the current process lifetime.
 
 `ASSIGNMENT_PERSISTED` remains governed by the already-frozen assignment clarification: successful durable final-entry synchronization (`R5'`) is the publication boundary; `.pending` is not scientific state.
 
-No state machine token is added or renamed.
+No state-machine token or persisted state field is added or renamed.
 
 ---
 
@@ -315,7 +323,7 @@ At minimum, add or strengthen synthetic tests proving all of the following.
 - Failure of the final provenance `open("xb")` **after entropy** leaves `.pending`; a second call draws zero additional entropy.
 - Failure during final write leaves `.pending`; a second call draws zero additional entropy.
 - Failure of final file-data sync leaves `.pending`; a second call draws zero additional entropy.
-- Failure of final directory-entry durability sync leaves `.pending`; a second call draws zero additional entropy.
+- Failure of final directory-entry durability sync leaves `.pending`; a second call draws zero additional entropy and the operation does not report `MC_PROVENANCE_PERSISTED`.
 - Final + pending is final-authoritative for generation: duplicate-final refusal, zero entropy.
 - Successful final persistence does not clean `.pending` until after final directory-entry durability succeeds.
 - Exact mode still makes zero entropy calls and does not require an MC reservation.
@@ -327,9 +335,10 @@ Native Windows behavior is tested by mocking the Win32 boundary rather than requ
 
 Tests must prove:
 
-- the accepted Windows durability helper targets a volume handle for the actual flush barrier;
+- the accepted Windows durability helper opens/holds the parent directory handle but targets the **volume handle** for the actual `FlushFileBuffers` barrier;
+- the parent-directory handle remains open while the volume flush executes;
 - the implementation no longer treats `FlushFileBuffers(directory_handle)` as proof of durability;
-- inability to resolve/open/flush the volume fails closed;
+- inability to resolve/open/flush the volume, or inability to open the parent directory under supported semantics, fails closed;
 - pre-draw assignment reservation failure causes zero `randbits` calls;
 - pre-entropy provenance reservation failure causes zero `token_bytes` calls;
 - assignment `R5'` failure retains assignment `.pending`;
@@ -372,9 +381,11 @@ Full pytest is still **not** required for this narrow repair. Focused WU1–WU4 
 | Durable evidence exists before MC entropy | YES |
 | Failure after MC entropy cannot re-arm same `design_id` | YES |
 | MC operational reservation is outside scientific digest chain | YES |
+| Monte-Carlo state does not advance before final directory-entry durability succeeds | YES |
 | Assignment `R5 -> R5' -> R6` remains frozen | YES |
 | Directory-handle `FlushFileBuffers` accepted as Windows proof | NO |
 | Documented Windows volume-flush path accepted as reference realization | YES |
+| Parent directory handle remains open across Windows volume flush | YES |
 | Unsupported Windows durability fails closed | YES |
 | Phase-P remains untouched | YES |
 
