@@ -195,6 +195,14 @@ UNAVAILABLE_REASONS: tuple[str, ...] = (
     MONTE_CARLO_CONFIGURATION_MISMATCH,
 )
 
+#: The only two §12.2 unavailable reasons that may name registered positions
+#: in the top-level ``missing_positions`` array; every other reason persists an
+#: empty array, and ``PRIMARY_OBSERVATION_NOT_TOTAL`` always names at least one.
+_POSITION_BEARING_UNAVAILABLE_REASONS: tuple[str, ...] = (
+    EXECUTION_NAMESPACE_MISMATCH,
+    PRIMARY_OBSERVATION_NOT_TOTAL,
+)
+
 #: The frozen two-sided decision threshold.  ``ALPHA`` is the persisted
 #: canonical decimal string; this is the numeric comparison it denotes.
 ALPHA_THRESHOLD = 0.05
@@ -1537,14 +1545,18 @@ def _walk_fixed_sequence(
 # ---------------------------------------------------------------------------
 
 
-def _seal_manifest(payload: dict[str, Any]) -> FinalAnalysisManifestV1:
+def _seal_manifest(
+    payload: dict[str, Any], *, expected_mc_samples: int | None
+) -> FinalAnalysisManifestV1:
     try:
         artifact = attach_self_digest(payload)
     except ConfirmatoryRegistrationError as error:
         raise ConfirmatoryAnalysisIntegrityError(
             "final analysis manifest is not canonically serializable"
         ) from error
-    manifest = _manifest_from_artifact(artifact)
+    manifest = _manifest_from_artifact(
+        artifact, expected_mc_samples=expected_mc_samples
+    )
     if manifest.to_artifact() != artifact:
         raise ConfirmatoryAnalysisIntegrityError(
             "final analysis manifest does not reconstruct exactly"
@@ -1583,7 +1595,9 @@ def _build_manifest(
         "statistic_spec_id": STATISTIC_SPEC_ID,
         "unavailable_reason": unavailable_reason,
     }
-    return _seal_manifest(payload)
+    return _seal_manifest(
+        payload, expected_mc_samples=_registered_mc_samples(chain)
+    )
 
 
 def _require_string_array(value: Any) -> tuple[str, ...]:
@@ -1626,7 +1640,24 @@ def _task_difference_from_artifact(value: Any) -> TaskDifferenceV1:
     return TaskDifferenceV1(task_id=task_id, difference=number)
 
 
-def _endpoint_result_from_artifact(value: Any, *, expected_index: int) -> EndpointTestResultV1:
+def _endpoint_result_from_artifact(
+    value: Any,
+    *,
+    expected_index: int,
+    randomization_mode: str,
+    expected_mc_samples: int | None,
+) -> EndpointTestResultV1:
+    """Rebuild one frozen thirteen-key endpoint result, or fail closed.
+
+    A valid ``self_digest`` on the enclosing manifest authenticates only that
+    the bytes were not edited without resealing.  It says nothing about whether
+    the object still satisfies the frozen semantic contract, so every
+    decision-specific relationship of clarification §12.4 is checked here before
+    an existing final may be returned.  Nothing is recomputed from evidence: the
+    persisted p-value, statistic, and differences are checked against each other
+    and against the frozen shape, never re-derived.
+    """
+
     if not isinstance(value, dict) or tuple(sorted(value)) != _ENDPOINT_RESULT_KEYS:
         raise ConfirmatoryAnalysisIntegrityError(
             "a persisted endpoint result does not have exactly thirteen keys"
@@ -1641,9 +1672,16 @@ def _endpoint_result_from_artifact(value: Any, *, expected_index: int) -> Endpoi
         raise ConfirmatoryAnalysisIntegrityError(
             "a persisted endpoint result is out of the frozen fixed sequence"
         )
+
     applicable = _require_string_array(value["applicable_task_ids"])
     missing = _require_string_array(value["missing_positions"])
-    if not _is_json_integer(value["K"], minimum=0) or value["K"] != len(applicable):
+    for position_id in missing:
+        if not _is_digest(position_id):
+            raise ConfirmatoryAnalysisIntegrityError(
+                "a persisted endpoint missing_positions grammar is invalid"
+            )
+    registered_k = value["K"]
+    if not _is_json_integer(registered_k, minimum=0) or registered_k != len(applicable):
         raise ConfirmatoryAnalysisIntegrityError("a persisted endpoint K is invalid")
     k_plus = value["K_plus"]
     if k_plus is not None and not _is_json_integer(k_plus, minimum=0):
@@ -1654,11 +1692,10 @@ def _endpoint_result_from_artifact(value: Any, *, expected_index: int) -> Endpoi
             "persisted task_differences must be a JSON array"
         )
     records = tuple(_task_difference_from_artifact(item) for item in differences)
-    if [record.task_id for record in records] != sorted(
-        record.task_id for record in records
-    ):
+    difference_ids = [record.task_id for record in records]
+    if difference_ids != sorted(set(difference_ids)):
         raise ConfirmatoryAnalysisIntegrityError(
-            "persisted task_differences are not sorted by task id"
+            "persisted task_differences are not sorted and distinct by task id"
         )
     samples = value["randomization_mc_samples"]
     if samples is not None and not _is_json_integer(samples, minimum=1):
@@ -1671,30 +1708,215 @@ def _endpoint_result_from_artifact(value: Any, *, expected_index: int) -> Endpoi
         raise ConfirmatoryAnalysisIntegrityError("a persisted endpoint decision is invalid")
     if reason is not None and reason not in ENDPOINT_REASONS:
         raise ConfirmatoryAnalysisIntegrityError("a persisted endpoint reason is invalid")
+    observed = _require_optional_number(value["observed_statistic"])
+    probability = _require_optional_number(value["p_value"])
+
     if decision in (DECISION_REJECT_NULL, DECISION_FAIL_TO_REJECT):
-        if reason is not None or len(records) != len(applicable):
-            raise ConfirmatoryAnalysisIntegrityError(
-                "a persisted computed endpoint result is internally inconsistent"
-            )
-    elif records:
-        raise ConfirmatoryAnalysisIntegrityError(
-            "an uncomputed endpoint result must persist no task differences"
+        _require_computed_endpoint_shape(
+            applicable=applicable,
+            missing=missing,
+            registered_k=registered_k,
+            k_plus=k_plus,
+            records=records,
+            difference_ids=difference_ids,
+            observed=observed,
+            probability=probability,
+            samples=samples,
+            decision=decision,
+            reason=reason,
+            randomization_mode=randomization_mode,
+            expected_mc_samples=expected_mc_samples,
         )
+    else:
+        _require_uncomputed_endpoint_shape(
+            applicable=applicable,
+            missing=missing,
+            registered_k=registered_k,
+            k_plus=k_plus,
+            records=records,
+            observed=observed,
+            probability=probability,
+            samples=samples,
+            decision=decision,
+            reason=reason,
+        )
+
     return EndpointTestResultV1(
         endpoint=endpoint,
         family_role=family_role,
         sequence_index=sequence_index,
         applicable_task_ids=applicable,
         missing_positions=missing,
-        K=cast(int, value["K"]),
+        K=cast(int, registered_k),
         K_plus=None if k_plus is None else cast(int, k_plus),
         task_differences=records,
-        observed_statistic=_require_optional_number(value["observed_statistic"]),
-        p_value=_require_optional_number(value["p_value"]),
+        observed_statistic=observed,
+        p_value=probability,
         randomization_mc_samples=None if samples is None else cast(int, samples),
         decision=decision,
         reason=reason,
     )
+
+
+def _require_computed_endpoint_shape(
+    *,
+    applicable: tuple[str, ...],
+    missing: tuple[str, ...],
+    registered_k: Any,
+    k_plus: Any,
+    records: tuple[TaskDifferenceV1, ...],
+    difference_ids: Sequence[str],
+    observed: float | None,
+    probability: float | None,
+    samples: Any,
+    decision: str,
+    reason: Any,
+    randomization_mode: str,
+    expected_mc_samples: int | None,
+) -> None:
+    """Every frozen relationship a tested endpoint result must still satisfy."""
+
+    if reason is not None:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint result must persist a null reason"
+        )
+    if missing:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint result must persist no missing positions"
+        )
+    if registered_k <= 0:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint result must have a positive K"
+        )
+    if len(records) != registered_k:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint result must persist exactly K task differences"
+        )
+    if tuple(difference_ids) != applicable:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "computed task_differences do not cover exactly the applicable tasks"
+        )
+    if k_plus is None or not 0 <= k_plus <= registered_k:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint K_plus is missing or out of range"
+        )
+    if k_plus != sum(1 for record in records if abs(record.difference) > 0.0):
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint K_plus does not count its nonzero task differences"
+        )
+    if observed is None or probability is None:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint result must persist a statistic and a p-value"
+        )
+    if not 0.0 <= probability <= 1.0:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint p-value is outside the unit interval"
+        )
+    expected_decision = (
+        DECISION_REJECT_NULL
+        if probability <= ALPHA_THRESHOLD
+        else DECISION_FAIL_TO_REJECT
+    )
+    if decision != expected_decision:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a computed endpoint decision contradicts its persisted p-value"
+        )
+    if randomization_mode == RANDOMIZATION_MODE_EXACT_ENUMERATION:
+        if samples is not None:
+            raise ConfirmatoryAnalysisIntegrityError(
+                "an exact-enumeration endpoint must persist no Monte Carlo count"
+            )
+        return
+    if samples is None or samples != expected_mc_samples:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a Monte Carlo endpoint does not carry the registered sample count"
+        )
+
+
+def _require_uncomputed_endpoint_shape(
+    *,
+    applicable: tuple[str, ...],
+    missing: tuple[str, ...],
+    registered_k: Any,
+    k_plus: Any,
+    records: tuple[TaskDifferenceV1, ...],
+    observed: float | None,
+    probability: float | None,
+    samples: Any,
+    decision: str,
+    reason: Any,
+) -> None:
+    """The exact frozen shape of an unavailable or gate-closed endpoint result."""
+
+    if records or observed is not None or probability is not None or samples is not None:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "an uncomputed endpoint result must persist no statistic or differences"
+        )
+    if decision == DECISION_UNAVAILABLE:
+        if reason == REASON_NO_APPLICABLE_TASKS:
+            if applicable or missing or registered_k != 0 or k_plus != 0:
+                raise ConfirmatoryAnalysisIntegrityError(
+                    "a no-applicable-tasks endpoint result has an invalid shape"
+                )
+            return
+        if reason == REASON_APPLICABLE_ENDPOINT_NOT_TOTAL:
+            if (
+                not applicable
+                or registered_k != len(applicable)
+                or k_plus is not None
+                or not missing
+            ):
+                raise ConfirmatoryAnalysisIntegrityError(
+                    "a non-total endpoint result has an invalid shape"
+                )
+            return
+        raise ConfirmatoryAnalysisIntegrityError(
+            "an unavailable endpoint result has an invalid reason"
+        )
+    if reason != REASON_FIXED_SEQUENCE_GATE_CLOSED:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a gate-closed endpoint result must persist the gate-closed reason"
+        )
+    if applicable or missing or registered_k != 0 or k_plus is not None:
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a gate-closed endpoint result has an invalid shape"
+        )
+
+
+def _validate_persisted_fixed_sequence(
+    *,
+    primary: EndpointTestResultV1,
+    secondaries: Sequence[EndpointTestResultV1],
+) -> None:
+    """Replay the frozen §11 gate over a persisted family without recomputation.
+
+    The primary must be computed.  A non-rejecting primary closes all five
+    secondaries; otherwise each rejection opens exactly the next endpoint and
+    the first non-rejection or unavailability closes every later result.  A
+    result that is computed after the gate closed, or gate-closed while the gate
+    is still open, is refused.
+    """
+
+    if primary.decision not in (DECISION_REJECT_NULL, DECISION_FAIL_TO_REJECT):
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a complete final analysis manifest needs a computed primary result"
+        )
+    gate_open = primary.decision == DECISION_REJECT_NULL
+    for record in secondaries:
+        if not gate_open:
+            if record.decision != DECISION_NOT_TESTED_GATE_CLOSED:
+                raise ConfirmatoryAnalysisIntegrityError(
+                    "a persisted secondary result was reached after its gate closed"
+                )
+            continue
+        if record.decision == DECISION_REJECT_NULL:
+            continue
+        if record.decision in (DECISION_FAIL_TO_REJECT, DECISION_UNAVAILABLE):
+            gate_open = False
+            continue
+        raise ConfirmatoryAnalysisIntegrityError(
+            "a persisted secondary result is gate-closed while its gate is open"
+        )
 
 
 def _runtime_snapshot_digests_from_artifact(value: Any) -> RuntimeSnapshotDigestsV1:
@@ -1766,8 +1988,17 @@ def _runtime_snapshot_digests_from_artifact(value: Any) -> RuntimeSnapshotDigest
     )
 
 
-def _manifest_from_artifact(artifact: Mapping[str, Any]) -> FinalAnalysisManifestV1:
-    """Rebuild the exact nineteen-key manifest or fail closed."""
+def _manifest_from_artifact(
+    artifact: Mapping[str, Any], *, expected_mc_samples: int | None
+) -> FinalAnalysisManifestV1:
+    """Rebuild the exact nineteen-key manifest or fail closed.
+
+    ``expected_mc_samples`` is the registered global ``M`` a Monte Carlo study
+    must still bind on every computed endpoint; it is ``None`` for an exact
+    registration.  A valid ``self_digest`` is never sufficient here: the whole
+    frozen semantic contract of §12.2/§12.4 and the §11 fixed sequence are
+    revalidated, without recomputing any statistic.
+    """
 
     if tuple(sorted(artifact)) != _FINAL_MANIFEST_KEYS:
         raise ConfirmatoryAnalysisIntegrityError(
@@ -1833,15 +2064,22 @@ def _manifest_from_artifact(artifact: Mapping[str, Any]) -> FinalAnalysisManifes
             raise ConfirmatoryAnalysisIntegrityError(
                 "a complete final analysis manifest needs a primary and five secondaries"
             )
-        primary = _endpoint_result_from_artifact(primary_raw, expected_index=0)
-        if primary.decision not in (DECISION_REJECT_NULL, DECISION_FAIL_TO_REJECT):
-            raise ConfirmatoryAnalysisIntegrityError(
-                "a complete final analysis manifest needs a computed primary result"
-            )
+        primary = _endpoint_result_from_artifact(
+            primary_raw,
+            expected_index=0,
+            randomization_mode=mode,
+            expected_mc_samples=expected_mc_samples,
+        )
         secondaries = tuple(
-            _endpoint_result_from_artifact(item, expected_index=index)
+            _endpoint_result_from_artifact(
+                item,
+                expected_index=index,
+                randomization_mode=mode,
+                expected_mc_samples=expected_mc_samples,
+            )
             for index, item in enumerate(secondary_raw, start=1)
         )
+        _validate_persisted_fixed_sequence(primary=primary, secondaries=secondaries)
     elif status == RESULT_STATUS_UNAVAILABLE:
         if reason not in UNAVAILABLE_REASONS:
             raise ConfirmatoryAnalysisIntegrityError(
@@ -1856,6 +2094,14 @@ def _manifest_from_artifact(artifact: Mapping[str, Any]) -> FinalAnalysisManifes
         ):
             raise ConfirmatoryAnalysisIntegrityError(
                 "an unavailable final analysis manifest has an invalid shape"
+            )
+        if reason == PRIMARY_OBSERVATION_NOT_TOTAL and not missing_positions:
+            raise ConfirmatoryAnalysisIntegrityError(
+                "a non-total primary observation must name its affected positions"
+            )
+        if reason not in _POSITION_BEARING_UNAVAILABLE_REASONS and missing_positions:
+            raise ConfirmatoryAnalysisIntegrityError(
+                "this unavailable reason must persist no top-level missing positions"
             )
         primary = None
         secondaries = ()
@@ -1931,14 +2177,27 @@ def _publish_final(
     _unlink_pending_after_durable_publication(pending_path)
 
 
-def _load_final_manifest(final_path: Path) -> FinalAnalysisManifestV1:
+def _registered_mc_samples(chain: _AuthenticatedChain) -> int | None:
+    """The registered global ``M`` a persisted Monte Carlo endpoint must bind."""
+
+    samples = (
+        chain.registration.registered_statistical_configuration.randomization_mc_samples
+    )
+    return None if samples is None else int(samples)
+
+
+def _load_final_manifest(
+    final_path: Path, *, expected_mc_samples: int | None
+) -> FinalAnalysisManifestV1:
     try:
         artifact = parse_artifact(final_path.read_bytes())
     except (OSError, ConfirmatoryRegistrationError) as error:
         raise ConfirmatoryAnalysisIntegrityError(
             "existing final analysis manifest is malformed or digest-invalid"
         ) from error
-    manifest = _manifest_from_artifact(artifact)
+    manifest = _manifest_from_artifact(
+        artifact, expected_mc_samples=expected_mc_samples
+    )
     if manifest.to_artifact() != artifact:
         raise ConfirmatoryAnalysisIntegrityError(
             "existing final analysis manifest does not recanonicalize exactly"
@@ -2002,7 +2261,22 @@ def _revalidate_success_final(
 def _validate_referenced_analysis_snapshots(
     *, manifest: FinalAnalysisManifestV1, chain: _AuthenticatedChain
 ) -> None:
+    """Reauthenticate the analysis snapshots an existing success final references.
+
+    Exactly one snapshot per registered stratum must still be present under its
+    frozen ``stratum_id``, must still carry the referenced ``self_digest`` and
+    its own provider/model, and must still reproduce that registered stratum's
+    ``runtime_identity_digest``.  Identity is the sole cross-capture equality
+    invariant: ``captured_at`` is never compared, and the persisted analysis
+    snapshot's ``self_digest`` is never compared to a registration-time
+    snapshot's ``self_digest``.  Nothing is recaptured and no provider is
+    contacted.
+    """
+
     namespace = _safe_child(chain.design_root, ANALYSIS_RUNTIME_SNAPSHOTS_DIRNAME)
+    registered = {
+        (stratum.provider, stratum.model): stratum for stratum in chain.strata
+    }
     expected = tuple(
         (stratum.provider, stratum.model) for stratum in chain.strata
     )
@@ -2029,6 +2303,12 @@ def _validate_referenced_analysis_snapshots(
         ):
             raise ConfirmatoryAnalysisIntegrityError(
                 "a referenced analysis runtime snapshot does not match its binding"
+            )
+        stratum = registered[(record.provider, record.model)]
+        if snapshot.runtime_identity_digest != stratum.runtime_identity_digest:
+            raise ConfirmatoryAnalysisIntegrityError(
+                "a referenced analysis runtime snapshot no longer reproduces the "
+                "registered runtime identity"
             )
 
 
@@ -2057,7 +2337,9 @@ def _existing_final_result(
         raise ConfirmatoryAnalysisIntegrityError(
             "final analysis manifest is not a regular file"
         )
-    manifest = _load_final_manifest(final_path)
+    manifest = _load_final_manifest(
+        final_path, expected_mc_samples=_registered_mc_samples(chain)
+    )
     _validate_existing_manifest_bindings(manifest=manifest, chain=chain)
     if manifest.result_status == RESULT_STATUS_COMPLETE:
         _revalidate_success_final(

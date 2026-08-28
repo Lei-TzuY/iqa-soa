@@ -26,7 +26,10 @@ import pytest
 from iqa_soa.agent.providers import AgentProvider, DeterministicStubProvider
 from iqa_soa.experiment import confirmatory as wu5
 import iqa_soa.experiment.confirmatory_assignment as assignment_module
-from iqa_soa.experiment.confirmatory import capture_runtime_snapshot_v1
+from iqa_soa.experiment.confirmatory import (
+    _load_runtime_snapshot,
+    capture_runtime_snapshot_v1,
+)
 from iqa_soa.experiment.confirmatory_assignment import (
     MC_RNG_BIT_GENERATOR,
     AssignmentManifestV1,
@@ -62,6 +65,7 @@ from iqa_soa.experiment.confirmatory_registration import (
     ProposedStratumV1,
     RegistrationManifest,
     RuntimeSnapshotV1,
+    attach_self_digest,
     canonical_json_bytes,
     draft_registration,
     freeze_final_registration,
@@ -2167,3 +2171,503 @@ def test_task_difference_uses_full_minus_off_orientation() -> None:
     assert analyzer._task_difference(
         endpoint=PRIMARY, task_id="SYN-001", positions=positions, rows=rows
     ) == pytest.approx(-1.0)
+
+
+# ---------------------------------------------------------------------------
+# Adversarial digest-valid semantic corruption of an existing final manifest
+#
+# Every test below mutates one semantic field of an already-published final
+# analysis manifest and then reseals the artifact with a freshly computed,
+# genuinely valid ``self_digest``.  A digest check therefore passes; only the
+# frozen semantic contract of the loader can reject these artifacts.
+# ---------------------------------------------------------------------------
+
+
+def _reseal_final(
+    design: SyntheticDesign, mutate: Callable[[dict[str, Any]], None]
+) -> dict[str, Any]:
+    """Mutate the published final manifest and reseal it with a valid digest."""
+
+    artifact = json.loads(design.final_path.read_text(encoding="utf-8"))
+    mutate(artifact)
+    artifact.pop("self_digest", None)
+    sealed = attach_self_digest(artifact)
+    design.final_path.write_bytes(canonical_json_bytes(sealed) + b"\n")
+    # The tampered artifact is digest-valid: parse_artifact verifies exactly the
+    # shared self_digest contract and must accept these bytes.
+    reparsed = parse_artifact(design.final_path.read_bytes())
+    assert reparsed == sealed
+    return sealed
+
+
+def _computed_copy(record: Mapping[str, Any], *, index: int) -> dict[str, Any]:
+    """A computed endpoint record relabelled for one fixed-sequence position."""
+
+    endpoint, family_role, sequence_index = analyzer.ENDPOINT_SEQUENCE[index]
+    copied = dict(record)
+    copied["endpoint"] = endpoint
+    copied["family_role"] = family_role
+    copied["sequence_index"] = sequence_index
+    return copied
+
+
+def _failing_primary_design(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> SyntheticDesign:
+    """A published success whose primary fails to reject and closes every gate."""
+
+    design = _complete_design(tmp_path, monkeypatch, tasks=_tasks(3))
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    assert published.manifest.primary_result is not None
+    assert published.manifest.primary_result.decision == DECISION_FAIL_TO_REJECT
+    return design
+
+
+def _rejecting_design(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **kwargs: Any
+) -> SyntheticDesign:
+    """A published success whose primary rejects and whose secondaries are walked."""
+
+    design = _complete_design(
+        tmp_path,
+        monkeypatch,
+        tasks=_tasks(6, privacy=True, attack=True),
+        outcome=_separating_outcome(PRIMARY, *SECONDARIES),
+        **kwargs,
+    )
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    assert published.manifest.primary_result is not None
+    assert published.manifest.primary_result.decision == DECISION_REJECT_NULL
+    return design
+
+
+def test_digest_valid_null_p_value_on_a_computed_primary_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    _reseal_final(design, lambda a: a["primary_result"].update({"p_value": None}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_null_statistic_on_a_computed_primary_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    _reseal_final(
+        design, lambda a: a["primary_result"].update({"observed_statistic": None})
+    )
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_p_value_outside_the_unit_interval_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    _reseal_final(design, lambda a: a["primary_result"].update({"p_value": 1.5}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+    design_two = _failing_primary_design(tmp_path / "negative", monkeypatch)
+    _reseal_final(design_two, lambda a: a["primary_result"].update({"p_value": -0.25}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design_two.analyze()
+
+
+def test_digest_valid_decision_contradicting_the_threshold_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    # FAIL_TO_REJECT retained beside a p-value that crosses alpha.
+    _reseal_final(design, lambda a: a["primary_result"].update({"p_value": 0.01}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_rejecting_decision_above_alpha_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    _reseal_final(
+        design, lambda a: a["primary_result"].update({"decision": DECISION_REJECT_NULL})
+    )
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_duplicate_task_difference_id_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+
+    def duplicate(artifact: dict[str, Any]) -> None:
+        differences = artifact["primary_result"]["task_differences"]
+        differences[1] = dict(differences[0])
+
+    _reseal_final(design, duplicate)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_task_difference_omitting_an_applicable_task_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+
+    def substitute(artifact: dict[str, Any]) -> None:
+        artifact["primary_result"]["task_differences"][2]["task_id"] = "SYN-999"
+
+    _reseal_final(design, substitute)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_task_difference_count_below_k_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+
+    def truncate(artifact: dict[str, Any]) -> None:
+        del artifact["primary_result"]["task_differences"][-1]
+
+    _reseal_final(design, truncate)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_incorrect_k_plus_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    assert json.loads(design.final_path.read_text(encoding="utf-8"))["primary_result"][
+        "K_plus"
+    ] == 0
+    _reseal_final(design, lambda a: a["primary_result"].update({"K_plus": 1}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_k_plus_above_k_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _rejecting_design(tmp_path, monkeypatch)
+    _reseal_final(design, lambda a: a["primary_result"].update({"K_plus": 7}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_exact_result_carrying_a_sample_count_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    assert design.registration.randomization_mode == "EXACT_ENUMERATION"
+    _reseal_final(
+        design, lambda a: a["primary_result"].update({"randomization_mc_samples": 200})
+    )
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_monte_carlo_result_with_the_wrong_m_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _monte_carlo_design(tmp_path, monkeypatch, samples=64)
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    assert published.manifest.primary_result is not None
+    assert published.manifest.primary_result.randomization_mc_samples == 64
+    _reseal_final(
+        design, lambda a: a["primary_result"].update({"randomization_mc_samples": 63})
+    )
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_monte_carlo_result_dropping_m_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _monte_carlo_design(tmp_path, monkeypatch, samples=64)
+    assert isinstance(design.analyze(), ConfirmatorySuccess)
+    _reseal_final(
+        design, lambda a: a["primary_result"].update({"randomization_mc_samples": None})
+    )
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_computed_secondary_after_a_failing_primary_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+
+    def reopen(artifact: dict[str, Any]) -> None:
+        artifact["secondary_results"][0] = _computed_copy(
+            artifact["primary_result"], index=1
+        )
+
+    sealed = _reseal_final(design, reopen)
+    assert sealed["primary_result"]["decision"] == DECISION_FAIL_TO_REJECT
+    assert sealed["secondary_results"][0]["decision"] == DECISION_FAIL_TO_REJECT
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_computed_result_after_a_failing_secondary_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _complete_design(
+        tmp_path,
+        monkeypatch,
+        tasks=_tasks(6, privacy=True, attack=True),
+        outcome=_separating_outcome(PRIMARY, "unsafe_action_proposed"),
+    )
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    decisions = [record.decision for record in published.manifest.secondary_results]
+    assert decisions[0] == DECISION_FAIL_TO_REJECT
+    assert decisions[1] == DECISION_NOT_TESTED_GATE_CLOSED
+
+    def reopen(artifact: dict[str, Any]) -> None:
+        artifact["secondary_results"][1] = _computed_copy(
+            artifact["secondary_results"][0], index=2
+        )
+
+    _reseal_final(design, reopen)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_computed_result_after_an_unavailable_secondary_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _complete_design(
+        tmp_path,
+        monkeypatch,
+        tasks=_tasks(6),
+        outcome=_separating_outcome(PRIMARY, *SECONDARIES),
+    )
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    assert published.manifest.secondary_results[3].decision == DECISION_UNAVAILABLE
+    assert published.manifest.secondary_results[3].reason == REASON_NO_APPLICABLE_TASKS
+    assert (
+        published.manifest.secondary_results[4].decision
+        == DECISION_NOT_TESTED_GATE_CLOSED
+    )
+
+    def reopen(artifact: dict[str, Any]) -> None:
+        artifact["secondary_results"][4] = _computed_copy(
+            artifact["secondary_results"][2], index=5
+        )
+
+    _reseal_final(design, reopen)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_gate_closed_secondary_while_the_gate_is_open_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _rejecting_design(tmp_path, monkeypatch)
+
+    def close_early(artifact: dict[str, Any]) -> None:
+        artifact["secondary_results"][0] = {
+            "K": 0,
+            "K_plus": None,
+            "applicable_task_ids": [],
+            "decision": DECISION_NOT_TESTED_GATE_CLOSED,
+            "endpoint": SECONDARIES[0],
+            "family_role": "SECONDARY",
+            "missing_positions": [],
+            "observed_statistic": None,
+            "p_value": None,
+            "randomization_mc_samples": None,
+            "reason": REASON_FIXED_SEQUENCE_GATE_CLOSED,
+            "sequence_index": 1,
+            "task_differences": [],
+        }
+
+    _reseal_final(design, close_early)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_gate_closed_record_carrying_a_statistic_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    _reseal_final(
+        design, lambda a: a["secondary_results"][2].update({"p_value": 0.5})
+    )
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_gate_closed_record_carrying_applicable_tasks_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+
+    def widen(artifact: dict[str, Any]) -> None:
+        artifact["secondary_results"][0].update(
+            {"applicable_task_ids": ["SYN-001"], "K": 1}
+        )
+
+    _reseal_final(design, widen)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_no_applicable_tasks_record_with_a_null_k_plus_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _complete_design(
+        tmp_path,
+        monkeypatch,
+        tasks=_tasks(6),
+        outcome=_separating_outcome(PRIMARY, *SECONDARIES),
+    )
+    assert isinstance(design.analyze(), ConfirmatorySuccess)
+    _reseal_final(design, lambda a: a["secondary_results"][3].update({"K_plus": None}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_success_with_top_level_missing_positions_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _failing_primary_design(tmp_path, monkeypatch)
+    position_id = design.registration.confirmatory_positions[0].position_id
+    _reseal_final(design, lambda a: a.update({"missing_positions": [position_id]}))
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_unavailable_reason_carrying_positions_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _build_design(tmp_path, monkeypatch, tasks=_tasks(2))
+    published = design.analyze()
+    assert isinstance(published, ConfirmatoryUnavailable)
+    position_id = design.registration.confirmatory_positions[0].position_id
+
+    def relabel(artifact: dict[str, Any]) -> None:
+        artifact["unavailable_reason"] = STATISTIC_VERSION_MISMATCH
+        artifact["missing_positions"] = [position_id]
+
+    _reseal_final(design, relabel)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_digest_valid_non_total_primary_without_positions_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _build_design(tmp_path, monkeypatch, tasks=_tasks(2))
+    assert isinstance(design.analyze(), ConfirmatoryUnavailable)
+
+    def relabel(artifact: dict[str, Any]) -> None:
+        artifact["unavailable_reason"] = PRIMARY_OBSERVATION_NOT_TOTAL
+        artifact["missing_positions"] = []
+
+    _reseal_final(design, relabel)
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
+
+
+def test_semantic_reload_validation_recomputes_no_statistic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _rejecting_design(tmp_path, monkeypatch)
+
+    def forbidden(**kwargs: Any) -> Any:
+        raise AssertionError("reload validation must not recompute a statistic")
+
+    monkeypatch.setattr(analyzer, "_walk_fixed_sequence", forbidden)
+    monkeypatch.setattr(analyzer, "_endpoint_statistic", forbidden)
+    monkeypatch.setattr(analyzer, "_task_differences", forbidden)
+    monkeypatch.setattr(analyzer, "_exact_support", forbidden)
+    monkeypatch.setattr(analyzer, "_monte_carlo_support", forbidden)
+    assert isinstance(design.analyze(), ConfirmatorySuccess)
+
+
+# ---------------------------------------------------------------------------
+# Existing-success analysis snapshot runtime identity
+# ---------------------------------------------------------------------------
+
+
+def test_existing_success_refuses_a_drifted_analysis_runtime_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _complete_design(tmp_path, monkeypatch, tasks=_tasks(2))
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    record = published.manifest.runtime_snapshot_digests.analysis[0]
+    snapshot_path = design.analysis_snapshots_root / f"{record.stratum_id}.json"
+    original = _load_runtime_snapshot(snapshot_path)
+
+    foreign = replace(original, artifact_version="synthetic-foreign-artifact")
+    assert foreign.provider_name == original.provider_name
+    assert foreign.model == original.model
+    assert foreign.runtime_identity_digest != original.runtime_identity_digest
+    snapshot_path.write_bytes(serialize_artifact(foreign.to_dict()))
+
+    # Both artifacts remain individually well formed and digest-valid: the
+    # replacement is an internally valid twenty-key RuntimeSnapshotV1 and the
+    # final manifest is resealed with a genuinely recomputed self_digest.
+    reloaded = parse_artifact(snapshot_path.read_bytes())
+    assert len(reloaded) == 20
+    assert reloaded["self_digest"] == foreign.self_digest
+
+    _reseal_final(
+        design,
+        lambda a: a["runtime_snapshot_digests"]["analysis"][0].update(
+            {"self_digest": foreign.self_digest}
+        ),
+    )
+
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError) as failure:
+        design.analyze()
+    assert "registered runtime identity" in str(failure.value)
+
+
+def test_existing_success_accepts_an_analysis_snapshot_recaptured_at_a_new_instant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _complete_design(tmp_path, monkeypatch, tasks=_tasks(2))
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    record = published.manifest.runtime_snapshot_digests.analysis[0]
+    snapshot_path = design.analysis_snapshots_root / f"{record.stratum_id}.json"
+    original = _load_runtime_snapshot(snapshot_path)
+
+    restamped = replace(original, captured_at="2031-02-03T04:05:06Z")
+    assert restamped.captured_at != original.captured_at
+    assert restamped.self_digest != original.self_digest
+    assert restamped.runtime_identity_digest == original.runtime_identity_digest
+    snapshot_path.write_bytes(serialize_artifact(restamped.to_dict()))
+    _reseal_final(
+        design,
+        lambda a: a["runtime_snapshot_digests"]["analysis"][0].update(
+            {"self_digest": restamped.self_digest}
+        ),
+    )
+
+    # captured_at is never compared and self_digest is never compared across
+    # capture points; runtime_identity_digest alone is the cross-capture
+    # equality invariant, so this reload still authenticates.
+    assert isinstance(design.analyze(), ConfirmatorySuccess)
+
+
+def test_existing_success_refuses_a_missing_analysis_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    design = _complete_design(tmp_path, monkeypatch, tasks=_tasks(2))
+    published = design.analyze()
+    assert isinstance(published, ConfirmatorySuccess)
+    record = published.manifest.runtime_snapshot_digests.analysis[0]
+    (design.analysis_snapshots_root / f"{record.stratum_id}.json").unlink()
+    with pytest.raises(ConfirmatoryAnalysisIntegrityError):
+        design.analyze()
