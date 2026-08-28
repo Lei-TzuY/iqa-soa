@@ -1,7 +1,7 @@
 # Post-Phase-P confirmatory analysis clarification — independent-review repairs
 
 **Record kind:** binding narrow repair addendum to `docs/post_phaseP_confirmatory_analysis_clarification.md`.
-**Status:** REVIEW-BLOCKER REPAIR. This document supersedes only the clauses explicitly named below. Every other clause of the WU6 clarification remains unchanged.
+**Status:** REVIEW-BLOCKER REPAIR — CLOSED. This document supersedes only the clauses explicitly named below. Every other clause of the WU6 clarification remains unchanged.
 **Date:** 2026-08-28
 **Base clarification head reviewed:** `a5b054f841181737bd68eb1aa8e9c54920940e91`.
 **Independent review verdict:** `BLOCK_WU6_ANALYSIS_CLARIFICATION` with exactly two blockers.
