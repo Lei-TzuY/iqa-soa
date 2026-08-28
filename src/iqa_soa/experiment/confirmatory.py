@@ -672,11 +672,10 @@ def _expected_qa_mode_value(baseline_label: str, task_bit: int) -> str:
     raise ConfirmatoryExecutionError("registered baseline label is invalid")
 
 
-def _validate_execution_row(
+def _validate_execution_row_content(
     *,
     row: Mapping[str, Any],
     row_name: str,
-    snapshot: RuntimeSnapshotV1,
     position: ConfirmatoryPositionV1,
     case: BenchmarkCase,
     task_bit: int,
@@ -684,7 +683,19 @@ def _validate_execution_row(
     eligibility: EligibilityManifestV1,
     assignment: AssignmentManifestV1,
     provenance: RandomizationMcProvenanceV1,
+    enforce_mc_temporal_order: bool = True,
 ) -> None:
+    """The frozen 27-key row checks that need no paired runtime snapshot.
+
+    Factored out of :func:`_validate_execution_row` verbatim, in the identical
+    order, so a downstream consumer that must sequence the row checks and the
+    snapshot checks into two distinct numbered gates reuses this one definition
+    instead of growing a second 27-key schema.  ``enforce_mc_temporal_order``
+    defaults to the WU5 behaviour and exists only for a consumer whose frozen
+    failure precedence places the MC temporal decision after, not inside, row
+    validation.
+    """
+
     if set(row) != set(EXECUTION_ROW_KEYS) or len(row) != 27:
         raise ConfirmatoryExecutionError("execution row must have exactly 27 keys")
     if row_name != f"{position.position_id}.json":
@@ -726,13 +737,23 @@ def _validate_execution_row(
     timestamp = _timestamp_instant(row["timestamp"])
     if timestamp is None:
         raise ConfirmatoryExecutionError("execution row timestamp is invalid")
-    if provenance.generated_at is not None:
+    if enforce_mc_temporal_order and provenance.generated_at is not None:
         generated_at = _timestamp_instant(provenance.generated_at)
         if generated_at is None or generated_at > timestamp:
             raise ConfirmatoryExecutionError(
                 "MC provenance generated_at postdates execution row"
             )
     _validate_endpoint_coupling(row, case)
+
+
+def _validate_row_snapshot_binding(
+    *,
+    row: Mapping[str, Any],
+    snapshot: RuntimeSnapshotV1,
+    position: ConfirmatoryPositionV1,
+    registration: RegistrationManifest,
+) -> None:
+    """The frozen row-to-persisted-snapshot binding checks, factored verbatim."""
 
     if snapshot.provider_name != position.provider or snapshot.model != position.model:
         raise ConfirmatoryExecutionError("persisted snapshot provider/model mismatch")
@@ -743,6 +764,38 @@ def _validate_execution_row(
         raise ConfirmatoryExecutionError("execution row snapshot digest mismatch")
     if row["runtime_identity_digest"] != snapshot.runtime_identity_digest:
         raise ConfirmatoryExecutionError("execution row runtime identity mismatch")
+
+
+def _validate_execution_row(
+    *,
+    row: Mapping[str, Any],
+    row_name: str,
+    snapshot: RuntimeSnapshotV1,
+    position: ConfirmatoryPositionV1,
+    case: BenchmarkCase,
+    task_bit: int,
+    registration: RegistrationManifest,
+    eligibility: EligibilityManifestV1,
+    assignment: AssignmentManifestV1,
+    provenance: RandomizationMcProvenanceV1,
+) -> None:
+    _validate_execution_row_content(
+        row=row,
+        row_name=row_name,
+        position=position,
+        case=case,
+        task_bit=task_bit,
+        registration=registration,
+        eligibility=eligibility,
+        assignment=assignment,
+        provenance=provenance,
+    )
+    _validate_row_snapshot_binding(
+        row=row,
+        snapshot=snapshot,
+        position=position,
+        registration=registration,
+    )
 
 
 def _validate_completed_pair(
