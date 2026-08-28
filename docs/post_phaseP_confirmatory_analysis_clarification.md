@@ -177,7 +177,7 @@ It is used only when WU6 cannot honestly construct a trusted final scientific re
 - unsafe/unresolvable design path;
 - registration/eligibility/provenance/assignment chain cannot authenticate;
 - valid artifact transplant/cross-binding failure;
-- existing final-analysis manifest malformed, digest-invalid, or bound to another chain;
+- existing final-analysis manifest malformed, digest-invalid, bound to another chain, or bound to execution rows that no longer match;
 - pending-only prior final-analysis state;
 - immutable publication/durability failure before the final becomes authoritative.
 
@@ -344,6 +344,33 @@ runtime_snapshots/<position_id>.json
 WU6 must reuse WU5 row/snapshot constants and validation semantics. It may factor a shared internal validator from `experiment.confirmatory` only if WU5 behavior remains unchanged. A second drifting 27-key/20-key schema implementation is forbidden.
 
 Namespace missing final positions are reported in the top-level `missing_positions` field (§12.2). Row-level primary-unobserved positions are reported there as well.
+
+### 7.3 `execution_rows_digest` — binding the exact analyzed evidence
+
+WU5 rows deliberately remain exactly 27 keys and carry no `self_digest`. Therefore the terminal analysis artifact binds the exact validated semantic row set with one downstream aggregate digest rather than mutating the WU5 row schema.
+
+After §7.2 passes, construct the preimage as an array of the **parsed, validated 27-key row objects**, ordered by lexicographically sorted registered `position_id`:
+
+```python
+execution_rows_preimage = [
+    validated_rows[position_id]
+    for position_id in sorted(registered_position_ids)
+]
+```
+
+Then:
+
+```python
+execution_rows_digest = sha256(
+    canonical_json_bytes(execution_rows_preimage)
+).hexdigest()
+```
+
+There is no wrapper object, filename, timestamp, pending marker, presentation LF, or runtime snapshot in this preimage. The digest authenticates the exact semantic execution rows that entered analysis, independent of incidental source-file whitespace.
+
+A success `FinalAnalysisManifestV1` must persist this lowercase 64-hex digest. A whole-analysis unavailable manifest persists `execution_rows_digest = null`, because no complete accepted row set entered confirmatory statistics.
+
+When a valid existing **success** final manifest is reopened, WU6 must re-run enough of §7 to authenticate the current row namespace and recompute this digest. A mismatch is `ConfirmatoryAnalysisIntegrityError`; the stale final is never silently returned against changed execution evidence. This validation performs no provider dispatch and no statistic recomputation.
 
 ---
 
@@ -631,7 +658,7 @@ For each reached endpoint:
 4. compute nested `D_k`, `K_e`, `K_plus`, statistic;
 5. use global randomization mode/support/shared MC matrix;
 6. compare `p<=0.05`;
-7. rejection continues; non-rejection closes later tests.
+7. rejection continues; non-rejection closes later endpoints.
 
 If applicable totality fails:
 
@@ -648,7 +675,7 @@ Shared MC draws are valid here; fixed-sequence FWER does not require independent
 
 ## 12. `final_analysis_manifest.json` — exact schema
 
-### 12.1 Top-level — exactly 18 keys
+### 12.1 Top-level — exactly 19 keys
 
 ```text
 schema_version
@@ -659,6 +686,7 @@ final_registration_digest
 eligibility_manifest_digest
 randomization_mc_provenance_digest
 assignment_digest
+execution_rows_digest
 runtime_snapshot_digests
 statistic_spec_id
 randomization_mode
@@ -691,20 +719,22 @@ All upstream digest fields equal the current validated artifacts' `self_digest` 
 Success:
 
 ```text
-result_status      = CONFIRMATORY_ANALYSIS_COMPLETE
-unavailable_reason = null
-missing_positions  = []
-primary_result     = EndpointTestResultV1
-secondary_results  = exactly five EndpointTestResultV1 objects in S-1..S-5 order
+result_status        = CONFIRMATORY_ANALYSIS_COMPLETE
+unavailable_reason   = null
+missing_positions    = []
+execution_rows_digest = §7.3 lowercase 64-hex digest
+primary_result       = EndpointTestResultV1
+secondary_results    = exactly five EndpointTestResultV1 objects in S-1..S-5 order
 ```
 
 Whole-analysis unavailable:
 
 ```text
-result_status      = CONFIRMATORY_RANDOMIZATION_TEST_UNAVAILABLE
-unavailable_reason = one §13 token
-primary_result     = null
-secondary_results  = []
+result_status        = CONFIRMATORY_RANDOMIZATION_TEST_UNAVAILABLE
+unavailable_reason   = one §13 token
+execution_rows_digest = null
+primary_result       = null
+secondary_results    = []
 runtime_snapshot_digests = {"analysis": [], "pre_execution": []}
 ```
 
@@ -854,15 +884,20 @@ Pending is operational only, outside all digests.
 ### 14.2 Initial states
 
 ```text
-valid final, no pending
-    -> validate final self-digest, chain bindings, schema, and referenced success snapshots
-    -> return tagged result
-    -> no recomputation / runtime recapture
+valid success final, no pending
+    -> validate final self-digest, chain bindings, schema, referenced snapshots
+    -> authenticate current execution-row namespace and recompute execution_rows_digest
+    -> require exact equality with final.execution_rows_digest
+    -> return tagged result; no statistic recomputation/runtime recapture
+
+valid unavailable final, no pending
+    -> validate final self-digest, chain bindings and schema
+    -> return tagged result; no recomputation/runtime recapture
 
 valid final + pending
-    -> final authoritative; validate/return final; no reanalysis
+    -> final authoritative; apply the corresponding validation above and return; no reanalysis
 
-invalid final
+invalid/stale final
     -> ConfirmatoryAnalysisIntegrityError; never overwrite
 
 no final + pending
@@ -884,13 +919,14 @@ After §5 chain authentication:
 4. run §13 gates, including §8 Stage-A in-memory runtime authentication;
 5. if all whole-analysis gates pass, persist §8 Stage-B analysis snapshots durably;
 6. compute primary/fixed-sequence statistics, or construct whole-unavailable result from the first failed gate;
-7. build one exact 18-key final manifest;
-8. overwrite/stage complete canonical manifest bytes into pending and durably flush;
-9. atomically create final no-clobber from staged pending (same-filesystem hard-link reference realization accepted);
-10. durably sync final directory entry;
-11. only then optionally unlink pending.
+7. for success, compute/bind §7.3 `execution_rows_digest`; for unavailable use null;
+8. build one exact 19-key final manifest;
+9. overwrite/stage complete canonical manifest bytes into pending and durably flush;
+10. atomically create final no-clobber from staged pending (same-filesystem hard-link reference realization accepted);
+11. durably sync final directory entry;
+12. only then optionally unlink pending.
 
-Any failure before step 10 leaves pending and never authorizes automatic reanalysis. Cleanup failure after step 10 does not invalidate final.
+Any failure before step 11 leaves pending and never authorizes automatic reanalysis. Cleanup failure after step 11 does not invalidate final.
 
 A crash after Stage-B analysis snapshot persistence is safe against silent recomputation because the durable final-analysis pending reservation already exists.
 
@@ -903,10 +939,10 @@ When all whole-analysis gates pass:
 1. persist authenticated analysis snapshots (§8 Stage B);
 2. compute primary result;
 3. walk fixed sequence only if primary rejects;
-4. build complete success `runtime_snapshot_digests`;
+4. bind §7.3 `execution_rows_digest` and complete success `runtime_snapshot_digests`;
 5. `missing_positions=[]`;
 6. capture final `created_at` once;
-7. seal/validate exact 18-key success manifest;
+7. seal/validate exact 19-key success manifest;
 8. publish §14.
 
 Primary `FAIL_TO_REJECT` is a valid `CONFIRMATORY_ANALYSIS_COMPLETE`, not unavailable.
@@ -970,7 +1006,10 @@ No real provider inference, real confirmatory analysis, or Phase-P access.
 
 ### Final/crash
 
-- valid final idempotent return without recapture/recompute;
+- valid success final idempotent return only after current row digest revalidation, without statistic recomputation/runtime recapture;
+- changing any persisted execution-row semantic field after successful final publication causes existing-final integrity refusal;
+- incidental row JSON whitespace change with the same parsed 27-key semantic object does not change `execution_rows_digest`;
+- valid unavailable final is returned without recomputation;
 - valid final+pending authoritative;
 - corrupt final refused/no overwrite;
 - pending-only refused;
@@ -995,7 +1034,8 @@ No real provider inference, real confirmatory analysis, or Phase-P access.
 - WU5 exact 27/20 schemas reused;
 - row filename/position/digest/bit/baseline/qa/runtime/timestamp enforced;
 - each logical pair exactly one OFF/FULL;
-- top-level unavailable `missing_positions` exact sorted IDs.
+- top-level unavailable `missing_positions` exact sorted IDs;
+- success `execution_rows_digest` is canonical semantic digest of all validated rows in sorted registered-position order.
 
 ### Applicability
 
@@ -1032,7 +1072,9 @@ No real provider inference, real confirmatory analysis, or Phase-P access.
 
 ### Manifest
 
-- exactly 18 top-level keys;
+- exactly 19 top-level keys;
+- success has non-null 64-hex `execution_rows_digest`;
+- unavailable has `execution_rows_digest=null`;
 - success primary + exactly five secondaries;
 - unavailable primary null, secondaries empty, runtime arrays empty;
 - exactly 13 endpoint-result keys;
@@ -1061,6 +1103,12 @@ No real provider inference, real confirmatory analysis, or Phase-P access.
 | immutable publication | §14 |
 | runtime snapshot digest binding | §12.3 |
 | K=0 | §10.1 |
+
+Additional terminal-evidence closure, required so the immutable final result cannot outlive the rows it analyzed:
+
+```text
+EXECUTION_ROWS_DIGEST_BINDING_FROZEN: YES
+```
 
 ```
 WU6_PUBLIC_API_FROZEN: YES
