@@ -18,7 +18,11 @@ from iqa_soa.agent import (
     DeterministicStubProvider,
     OpenAICompatibleProvider,
 )
-from iqa_soa.agent.providers import ProviderError, ProviderResponse
+from iqa_soa.agent.providers import (
+    ProviderError,
+    ProviderFailureOrigin,
+    ProviderResponse,
+)
 from iqa_soa.benchmark import load_benchmark_cases
 from iqa_soa.experiment import confirmatory
 import iqa_soa.experiment.confirmatory_assignment as assignment
@@ -295,9 +299,10 @@ def _synthetic_run(
     monkeypatch: pytest.MonkeyPatch,
     *,
     assignment_bit: int = 1,
+    design_id: str = DESIGN_ID,
 ) -> SyntheticRun:
     root = tmp_path / "confirmatory-root"
-    root.mkdir()
+    root.mkdir(exist_ok=True)
     config_path, config = _write_config(tmp_path / "config-root")
     snapshot = _snapshot()
     positions = tuple(
@@ -314,7 +319,7 @@ def _synthetic_run(
         for slot, label in ((1, BASELINE_LABEL_OFF), (2, BASELINE_LABEL_FULL))
     )
     draft = draft_registration(
-        design_id=DESIGN_ID,
+        design_id=design_id,
         created_at=CREATED_AT,
         proposed_tasks=(TASK_ID,),
         proposed_strata=(ProposedStratumV1(provider=PROVIDER, model=MODEL),),
@@ -416,12 +421,14 @@ class RecordingProvider(DeterministicStubProvider):
         output: Path,
         position: ConfirmatoryPositionV1,
         failure_class: str | None = None,
+        provider_failure_origin: ProviderFailureOrigin | None = None,
         events: list[str] | None = None,
     ) -> None:
         super().__init__(MODEL)
         self.output = output
         self.position = position
         self.failure_class = failure_class
+        self.provider_failure_origin = provider_failure_origin
         self.events = events
         self.seeds: list[int] = []
 
@@ -454,7 +461,14 @@ class RecordingProvider(DeterministicStubProvider):
         if self.failure_class == "runtime":
             raise RuntimeError("synthetic runtime failure")
         if self.failure_class is not None:
-            raise ProviderError("synthetic secret-free failure", failure_class=self.failure_class)
+            raise ProviderError(
+                "synthetic secret-free failure",
+                failure_class=self.failure_class,
+                failure_origin=(
+                    self.provider_failure_origin
+                    or ProviderFailureOrigin.PROVIDER_INFRASTRUCTURE
+                ),
+            )
         return super().generate_action(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -472,10 +486,12 @@ class RecordingFactory:
         output: Path,
         *,
         failure_class: str | None = None,
+        provider_failure_origin: ProviderFailureOrigin | None = None,
         events: list[str] | None = None,
     ) -> None:
         self.output = output
         self.failure_class = failure_class
+        self.provider_failure_origin = provider_failure_origin
         self.events = events
         self.providers: list[RecordingProvider] = []
 
@@ -486,6 +502,7 @@ class RecordingFactory:
             output=self.output,
             position=position,
             failure_class=self.failure_class,
+            provider_failure_origin=self.provider_failure_origin,
             events=self.events,
         )
         self.providers.append(provider)
@@ -909,6 +926,46 @@ def test_provider_model_mismatch_refuses_before_capture_or_dispatch(
     assert not (run.output / "runtime_snapshots" / f"{first.position_id}.json").exists()
 
 
+@pytest.mark.parametrize(
+    ("transplant", "expected_error"),
+    [
+        ("provenance_and_assignment", "randomization provenance is not bound"),
+        ("assignment", "assignment is not bound"),
+    ],
+)
+def test_cross_design_transplant_refuses_before_provider_or_reservation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    transplant: str,
+    expected_error: str,
+) -> None:
+    design_x = _synthetic_run(
+        tmp_path,
+        monkeypatch,
+        assignment_bit=0,
+        design_id="synthetic-wu5-design-x",
+    )
+    design_y = _synthetic_run(
+        tmp_path,
+        monkeypatch,
+        assignment_bit=1,
+        design_id="synthetic-wu5-design-y",
+    )
+    assert load_assignment_manifest(design_x.assignment_path).bits == (0,)
+    assert load_assignment_manifest(design_y.assignment_path).bits == (1,)
+
+    if transplant == "provenance_and_assignment":
+        design_x.provenance_path.write_bytes(design_y.provenance_path.read_bytes())
+    design_x.assignment_path.write_bytes(design_y.assignment_path.read_bytes())
+
+    factory = RecordingFactory(design_x.output)
+    with pytest.raises(ConfirmatoryExecutionError, match=expected_error):
+        _run(design_x, factory)
+    assert factory.providers == []
+    assert not (design_x.output / "execution_rows").exists()
+    assert not (design_x.output / "runtime_snapshots").exists()
+
+
 def test_complete_resume_validates_namespace_without_factory_or_recapture(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1009,6 +1066,7 @@ def test_runtime_identity_mismatch_refuses_without_dispatch_and_keeps_pending(
     ("provider_failure", "expected"),
     [
         ("provider_error", "PROVIDER_FAILURE"),
+        ("invalid_json", "PROVIDER_FAILURE"),
         ("timeout", "TIMEOUT"),
         ("transport", "TRANSPORT_FAILURE"),
         ("runtime", "RUNTIME_FAILURE"),
@@ -1028,6 +1086,35 @@ def test_provider_failures_persist_unobserved_rows_with_null_endpoints(
         assert row["failure_class"] == expected
         assert isinstance(row["error"], str) and row["error"]
         assert all(row[field] is None for field in confirmatory._ENDPOINT_FIELDS)
+
+
+@pytest.mark.parametrize(
+    "model_failure",
+    ["invalid_tool_call", "invalid_action_format", "invalid_json"],
+)
+def test_model_output_protocol_failures_remain_observed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    model_failure: str,
+) -> None:
+    run = _synthetic_run(tmp_path, monkeypatch)
+    _install_snapshot_capture(run, monkeypatch)
+    factory = RecordingFactory(
+        run.output,
+        failure_class=model_failure,
+        provider_failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+    )
+    _run(run, factory)
+    rows = _rows(run)
+    assert len(rows) == len(factory.providers) == 4
+    for row in rows:
+        assert len(row) == 27
+        assert set(row) == set(EXECUTION_ROW_KEYS)
+        assert row["observation_status"] == "OBSERVED"
+        assert row["failure_class"] == "NONE"
+        assert row["error"] is None
+        assert all(row[field] is False for field in confirmatory._ENDPOINT_FIELDS[:4])
+        assert all(row[field] is None for field in confirmatory._ENDPOINT_FIELDS[4:])
 
 
 @pytest.mark.parametrize("outcome", ["model_refusal", "no_action"])
@@ -1080,6 +1167,32 @@ def test_valid_no_action_model_outcomes_remain_observed(
         assert all(row[field] is False for field in confirmatory._ENDPOINT_FIELDS[:4])
 
 
+def test_gateway_failure_after_valid_provider_response_is_runtime_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = _synthetic_run(tmp_path, monkeypatch)
+    _install_snapshot_capture(run, monkeypatch)
+
+    def fail_gateway(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("synthetic gateway failure")
+
+    monkeypatch.setattr(
+        "iqa_soa.experiment.runner.ServiceGateway.execute", fail_gateway
+    )
+    factory = RecordingFactory(run.output)
+    _run(run, factory)
+    rows = _rows(run)
+    assert len(rows) == len(factory.providers) == 4
+    assert all(provider.seeds for provider in factory.providers)
+    for row in rows:
+        assert len(row) == 27
+        assert set(row) == set(EXECUTION_ROW_KEYS)
+        assert row["observation_status"] == "UNOBSERVED_INFRASTRUCTURE"
+        assert row["failure_class"] == "RUNTIME_FAILURE"
+        assert row["error"] == "execution runtime failed"
+        assert all(row[field] is None for field in confirmatory._ENDPOINT_FIELDS)
+
+
 def test_instrumentation_failure_after_dispatch_is_persisted_without_redispatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1093,6 +1206,8 @@ def test_instrumentation_failure_after_dispatch_is_persisted_without_redispatch(
     _run(run, factory)
     assert all(provider.seeds for provider in factory.providers)
     for row in _rows(run):
+        assert len(row) == 27
+        assert set(row) == set(EXECUTION_ROW_KEYS)
         assert row["observation_status"] == "UNOBSERVED_INSTRUMENTATION"
         assert row["failure_class"] == "INSTRUMENTATION_FAILURE"
         assert row["error"] == "execution instrumentation failed"

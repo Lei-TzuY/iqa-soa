@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from enum import Enum
 import hashlib
 import json
 from pathlib import Path
@@ -55,12 +56,23 @@ class ExperimentConfigError(ValueError):
     """Experiment configuration is invalid before any run begins."""
 
 
+class PositionFailureOrigin(str, Enum):
+    """Structured failure stage for the additive one-position hook."""
+
+    PRE_DISPATCH = "PRE_DISPATCH"
+    RUNTIME_FAILURE = "RUNTIME_FAILURE"
+    INSTRUMENTATION_FAILURE = "INSTRUMENTATION_FAILURE"
+
+
 class PositionExecutionError(RuntimeError):
     """A generic one-position hook failed outside the legacy row path."""
 
-    def __init__(self, *, dispatch_may_have_occurred: bool) -> None:
+    def __init__(self, *, failure_origin: PositionFailureOrigin) -> None:
         super().__init__("single-position execution hook failed")
-        self.dispatch_may_have_occurred = dispatch_may_have_occurred
+        self.failure_origin = failure_origin
+        self.dispatch_may_have_occurred = (
+            failure_origin is not PositionFailureOrigin.PRE_DISPATCH
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -461,11 +473,15 @@ class ExperimentRunner:
         boundary from failures after that boundary may have been crossed.
         """
 
-        dispatch_may_have_occurred = False
+        failure_origin = PositionFailureOrigin.PRE_DISPATCH
 
         def mark_dispatch_boundary() -> None:
-            nonlocal dispatch_may_have_occurred
-            dispatch_may_have_occurred = True
+            nonlocal failure_origin
+            failure_origin = PositionFailureOrigin.RUNTIME_FAILURE
+
+        def mark_instrumentation_boundary() -> None:
+            nonlocal failure_origin
+            failure_origin = PositionFailureOrigin.INSTRUMENTATION_FAILURE
 
         try:
             return self._run_one(
@@ -483,11 +499,10 @@ class ExperimentRunner:
                 experiment_kind=experiment_kind,
                 resource_budget_policy_id=None,
                 before_provider_dispatch=mark_dispatch_boundary,
+                before_instrumentation=mark_instrumentation_boundary,
             )
         except Exception as error:
-            raise PositionExecutionError(
-                dispatch_may_have_occurred=dispatch_may_have_occurred
-            ) from error
+            raise PositionExecutionError(failure_origin=failure_origin) from error
 
     def _run_one(
         self,
@@ -506,6 +521,7 @@ class ExperimentRunner:
         experiment_kind: str,
         resource_budget_policy_id: str | None,
         before_provider_dispatch: Callable[[], None] | None = None,
+        before_instrumentation: Callable[[], None] | None = None,
     ) -> dict[str, Any]:
         run_id = f"{case.id}-r{repetition:03d}-{treatment.name}-{uuid4().hex[:12]}"
         evidence_path = evidence_root / f"{run_id}.jsonl"
@@ -601,6 +617,8 @@ class ExperimentRunner:
                 error=f"{type(exc).__name__}: execution failed",
                 failure_class="qa_failure",
             )
+        if before_instrumentation is not None:
+            before_instrumentation()
         if not agent_run.outcomes:
             # QA-IUM represents lifecycle observations, not only tool actions.
             # Preserve a structured terminal fragment for zero-action/provider-
@@ -1170,6 +1188,7 @@ __all__ = [
     "ExperimentConfigError",
     "ExperimentRunner",
     "PositionExecutionError",
+    "PositionFailureOrigin",
     "append_raw_record",
     "create_experiment_directory",
     "controlled_input_digest",

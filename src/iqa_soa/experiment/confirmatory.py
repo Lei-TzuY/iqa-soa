@@ -21,6 +21,7 @@ from iqa_soa.agent.providers import (
     DeterministicStubProvider,
     OpenAICompatibleProvider,
     ProviderError,
+    ProviderFailureOrigin,
     ProviderResponse,
 )
 from iqa_soa.benchmark import BenchmarkCase, load_benchmark_cases
@@ -58,6 +59,7 @@ from iqa_soa.experiment.runner import (
     ExperimentConfigError,
     ExperimentRunner,
     PositionExecutionError,
+    PositionFailureOrigin,
     load_experiment_config,
     load_policy,
     package_source_sha256,
@@ -431,6 +433,8 @@ class _DispatchObservingProvider(AgentProvider):
 
 
 def _provider_failure_origin(error: ProviderError) -> str | None:
+    if error.failure_origin is ProviderFailureOrigin.MODEL_OUTPUT:
+        return None
     failure_class = error.failure_class
     if failure_class == "timeout":
         return TIMEOUT
@@ -962,8 +966,18 @@ def _observation_fields(
     record: Mapping[str, Any] | None,
     observer: _DispatchObservingProvider,
     case: BenchmarkCase,
+    position_failure_origin: PositionFailureOrigin | None = None,
 ) -> dict[str, Any]:
+    if position_failure_origin is PositionFailureOrigin.INSTRUMENTATION_FAILURE:
+        return {
+            "observation_status": UNOBSERVED_INSTRUMENTATION,
+            "failure_class": INSTRUMENTATION_FAILURE,
+            "error": "execution instrumentation failed",
+            **dict.fromkeys(_ENDPOINT_FIELDS),
+        }
     failure = observer.failure_origin
+    if position_failure_origin is PositionFailureOrigin.RUNTIME_FAILURE:
+        failure = RUNTIME_FAILURE
     if failure is None and record is not None:
         legacy_failure = record.get("failure_class")
         if legacy_failure == "timeout":
@@ -1077,6 +1091,49 @@ def _resolved_paths(
     return (output, *supplied)
 
 
+def _validate_execution_chain_bindings(
+    *,
+    registration: RegistrationManifest,
+    provenance: RandomizationMcProvenanceV1,
+    assignment: AssignmentManifestV1,
+) -> None:
+    provenance_binding = (
+        provenance.confirmatory_profile,
+        provenance.design_id,
+        provenance.final_registration_digest,
+        provenance.randomization_mode,
+        provenance.K,
+    )
+    expected_provenance_binding = (
+        registration.confirmatory_profile,
+        registration.design_id,
+        registration.self_digest,
+        registration.randomization_mode,
+        registration.K,
+    )
+    if provenance_binding != expected_provenance_binding:
+        raise ConfirmatoryExecutionError(
+            "randomization provenance is not bound to the execution registration"
+        )
+
+    assignment_binding = (
+        assignment.confirmatory_profile,
+        assignment.design_id,
+        assignment.final_registration_digest,
+        assignment.randomization_mc_provenance_digest,
+    )
+    expected_assignment_binding = (
+        registration.confirmatory_profile,
+        registration.design_id,
+        registration.self_digest,
+        provenance.self_digest,
+    )
+    if assignment_binding != expected_assignment_binding:
+        raise ConfirmatoryExecutionError(
+            "assignment is not bound to the execution registration and provenance"
+        )
+
+
 def run_confirmatory_experiment(
     *,
     registration_manifest_path: str | Path,
@@ -1119,6 +1176,11 @@ def run_confirmatory_experiment(
         )
     provenance = load_randomization_mc_provenance(provenance_path)
     assignment = load_assignment_manifest(assignment_path)
+    _validate_execution_chain_bindings(
+        registration=registration,
+        provenance=provenance,
+        assignment=assignment,
+    )
 
     try:
         config = load_experiment_config(experiment_config_path)
@@ -1253,6 +1315,7 @@ def run_confirmatory_experiment(
         qa_mode = resolve_label(QAMode(position.baseline_label), task_bit)
         timestamp = _capture_timestamp()
         record: Mapping[str, Any] | None
+        position_failure_origin: PositionFailureOrigin | None = None
         try:
             record = position_runner.run_one_position(
                 experiment_id=registration.design_id,
@@ -1265,14 +1328,18 @@ def run_confirmatory_experiment(
                 experiment_kind=CONFIRMATORY_PROFILE,
             )
         except PositionExecutionError as error:
-            if not error.dispatch_may_have_occurred:
+            if error.failure_origin is PositionFailureOrigin.PRE_DISPATCH:
                 raise ConfirmatoryExecutionError(
                     "position failed before provider dispatch"
                 ) from error
+            position_failure_origin = error.failure_origin
             record = None
 
         observation = _observation_fields(
-            record, observer, case_by_id[position.task_id]
+            record,
+            observer,
+            case_by_id[position.task_id],
+            position_failure_origin,
         )
         row = _build_execution_row(
             timestamp=timestamp,
