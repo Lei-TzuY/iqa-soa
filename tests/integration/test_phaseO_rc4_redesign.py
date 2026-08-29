@@ -95,6 +95,17 @@ RC4_ROOT = PROJECT_ROOT / "benchmark" / "pilot-v7-rc4"
 RC3_ROOT = PROJECT_ROOT / "benchmark" / "pilot-v7-rc3"
 PHASE_O_PARENT_COMMIT = "0cc3b05ab79559acdd4f50675ed7937199dc4dbe"
 
+#: The commit at which Phase O STOPPED being the approved head: the parent of the
+#: POST_PHASEP_CONFIRMATORY revision that superseded it.  Phase O's own claims --
+#: what it changed, to what bytes, and what its record said -- are historical
+#: facts about the window ``PHASE_O_PARENT_COMMIT .. PHASE_O_SUCCESSOR_COMMIT``,
+#: and every test below that asks such a question asks it over that window rather
+#: than against today's tree.  Asserting a superseded phase's claims against the
+#: live tree is the "prove A by checking B" conflation ``instrument_revision``
+#: exists to remove; it would make Phase O permanently false the moment a later
+#: approved revision existed, which is the opposite of preserving it.
+PHASE_O_SUCCESSOR_COMMIT = "bc9d0a1234ab229d6433dbd4e54df1e17823806c"
+
 
 @pytest.fixture(scope="module")
 def cases() -> Any:
@@ -1658,15 +1669,34 @@ def test_the_supersession_is_exactly_bounded() -> None:
 
 
 def test_the_instrument_is_the_head_of_an_approved_revision_chain() -> None:
+    """The complete approved chain, and every custody link in it.
+
+    Phase O is no longer the head: the prospective post-Phase-P confirmatory
+    implementation legitimately changed ``src/iqa_soa`` and appended a third
+    approved link. That is the chain working as designed, so this test requires
+    the whole chain and both hand-offs rather than the two-link prefix it
+    required while Phase O was current. Phase O's own record is untouched and
+    still describes the tree it actually approved.
+    """
+
     assert instrument_revision.check_instrument_provenance() == []
     chain = instrument_revision.load_revision_chain()
-    assert [link["phase"] for link in chain] == ["M", "O"]
+    assert [link["phase"] for link in chain] == ["M", "O", "POST_PHASEP_CONFIRMATORY"]
+    # Custody link 1: Phase M's result is Phase O's parent.
     assert chain[0]["current_instrument"]["src_iqa_soa_tree"] == (
         chain[1]["previous_instrument"]["src_iqa_soa_tree"]
     )
+    # Custody link 2: Phase O's result is the new head's parent.  The new record
+    # binds the EXISTING Phase-O head; it does not restate a recomputed digest.
     assert chain[1]["current_instrument"]["src_iqa_soa_tree"] == (
+        chain[2]["previous_instrument"]["src_iqa_soa_tree"]
+    )
+    # And only the HEAD link is asserted against the live working tree.
+    assert chain[2]["current_instrument"]["src_iqa_soa_tree"] == (
         instrument_revision.tree_digest("src/iqa_soa")
     )
+    assert chain[2]["parent_commit"] == PHASE_O_SUCCESSOR_COMMIT
+    assert instrument_revision.REVISION_PATH == instrument_revision.REVISION_CHAIN[-1]
 
 
 def test_the_phase_m_record_is_byte_identical() -> None:
@@ -1678,15 +1708,45 @@ def test_the_phase_m_record_is_byte_identical() -> None:
     assert (PROJECT_ROOT / "docs" / "phaseM_instrument_revision.json").read_bytes() == committed
 
 
-def test_the_phase_o_revision_record_is_reproducible() -> None:
-    expected = json.dumps(revision_writer.build_record(), indent=2, sort_keys=True) + "\n"
-    actual = (PROJECT_ROOT / "docs" / "phaseO_instrument_revision.json").read_text(
-        encoding="utf-8"
-    )
-    assert actual == expected
+def test_the_phase_o_revision_record_was_never_rewritten() -> None:
+    """The committed Phase-O record is byte-identical to the superseded version.
+
+    While Phase O was the head, this test regenerated the record with
+    ``revision_writer.build_record()`` and required the committed bytes to match.
+    Running that writer now would hash the LIVE post-Phase-P tree and demand a
+    Phase-O record describing work Phase O did not do -- which is exactly the
+    in-place rewrite of a superseded revision the whole mechanism forbids.
+
+    The question a superseded record has to answer instead is "were you left
+    alone?", and it is answered from immutable bytes: the working-tree record
+    must equal the version committed at the commit its successor started from.
+    The writer is still bound here, by its declared parent, so a Phase-O record
+    that was regenerated against some other parent could not pass silently.
+    """
+
+    committed = subprocess.run(
+        ["git", "cat-file", "blob",
+         f"{PHASE_O_SUCCESSOR_COMMIT}:docs/phaseO_instrument_revision.json"],
+        cwd=PROJECT_ROOT, capture_output=True, check=True,
+    ).stdout
+    assert (
+        PROJECT_ROOT / "docs" / "phaseO_instrument_revision.json"
+    ).read_bytes() == committed
+    assert revision_writer.PARENT_COMMIT == PHASE_O_PARENT_COMMIT
+    record = json.loads(committed.decode("utf-8"))
+    assert record["phase"] == "O"
+    assert record["parent_commit"] == PHASE_O_PARENT_COMMIT
 
 
 def test_every_changed_instrument_file_carries_a_reason_and_a_hash() -> None:
+    """Phase O's per-file claims, proved where they are true: in history.
+
+    The declared set and every declared hash are compared against COMMITTED bytes
+    over Phase O's own window -- from its parent commit to the last commit at
+    which it was the approved head -- not against today's tree, which a later
+    approved revision has legitimately moved past.
+    """
+
     record = json.loads(
         (PROJECT_ROOT / "docs" / "phaseO_instrument_revision.json").read_text(
             encoding="utf-8"
@@ -1694,12 +1754,15 @@ def test_every_changed_instrument_file_carries_a_reason_and_a_hash() -> None:
     )
     changed = record["changed_files"]
     observed = subprocess.run(
-        ["git", "diff", "--name-only", PHASE_O_PARENT_COMMIT, "--", "src/iqa_soa"],
+        ["git", "diff", "--name-only", PHASE_O_PARENT_COMMIT,
+         PHASE_O_SUCCESSOR_COMMIT, "--", "src/iqa_soa"],
         cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
     ).stdout.split()
     assert set(changed) == set(observed)
     for name, entry in changed.items():
-        assert entry["sha256"] == instrument_revision.sha256_of(PROJECT_ROOT / name), name
+        assert entry["sha256"] == instrument_revision.sha256_of_blob_at_commit(
+            PHASE_O_SUCCESSOR_COMMIT, name
+        ), name
         assert len(entry["reason"].strip()) >= 20, name
 
 
@@ -1811,13 +1874,23 @@ def test_phase_o_modifies_exactly_the_declared_set_and_nothing_else() -> None:
     MODIFICATION is enumerated here and reviewable in one place. This is the same
     technique Phase M applied to itself, and its absence is what let a frozen
     input be edited silently before Phase M.1.
+
+    The question is HISTORICAL: "what had Phase O modified by the last commit at
+    which Phase O was the approved head?" -- not "what differs between Phase O's
+    parent and today's branch?". Those were the same question only while Phase O
+    was current. Now that an approved successor exists, the second question also
+    returns the successor's own work, and answering it with this list would
+    either fail or, if the list were widened to absorb them, falsely attribute
+    later work to Phase O. So the window is closed at
+    ``PHASE_O_SUCCESSOR_COMMIT`` and the declared set is left exactly as Phase O
+    reviewed it.
     """
 
     modified = {
         line
         for line in subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=MDRT",
-             PHASE_O_PARENT_COMMIT, "--"],
+             PHASE_O_PARENT_COMMIT, PHASE_O_SUCCESSOR_COMMIT, "--"],
             cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
         ).stdout.splitlines()
         if line.strip()

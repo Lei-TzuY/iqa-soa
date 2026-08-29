@@ -1,0 +1,121 @@
+{
+  "additive_to": "docs/phaseO_instrument_revision.json",
+  "authorizes_confirmatory_execution": false,
+  "benchmark_bytes_unchanged": {
+    "note": "No rc3 or rc4 task YAML, manifest byte, contract byte, freeze record or scoring threshold was touched. The WU1-WU6 implementation creates no benchmark byte.",
+    "pilot-v7-rc3_freeze_record_sha256": "853e1b9d0bc343fe1c780454cd4d1e24c389d7e16b7536c446ae3d695454d8da",
+    "pilot-v7-rc3_manifest_sha256": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+    "pilot-v7-rc4_audit_sha256": "4b0321012d43b6c2d8d7e31b472b5034893e8ecc7c771ce84781a4fe4c655dc8",
+    "pilot-v7-rc4_freeze_record_sha256": "c988a94114dca1470324504adb85c4061ed849808383cb50c4ea512800a8396f",
+    "pilot-v7-rc4_manifest_sha256": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
+    "pilot-v7-rc4_provenance_sha256": "0486df32c46285615e46c859728f09b0b8f83528f9a3a0fa4de7cbbf1302bf24",
+    "pilot-v7-rc4_qualification_contract_sha256": "ac600e6d84be5aa46f9c39d51311b0da6c68847a2083a57bdb901c38e45433cc",
+    "qa_policy_default_xml_sha256": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5"
+  },
+  "benchmark_freeze_records_overwritten": false,
+  "changed_files": {
+    "src/iqa_soa/agent/__init__.py": {
+      "reason": "Additive export only. ProviderFailureOrigin joins the package's public surface beside ProviderError, so the frozen WU5 confirmatory execution boundary binds the structured provider failure-origin vocabulary from iqa_soa.agent instead of reaching into iqa_soa.agent.providers internals -- a distinction the frozen WU5 observation taxonomy has to record per attempt and must therefore import from a stable name. The change is one import line and one __all__ entry: no existing export is removed, renamed or rebound, no symbol changes identity, and no legacy importer observes any difference.",
+      "sha256": "4e2b8845a6d74bdd712bf9b874cb6612e3a7a83f722021299c0e48ba48575af5"
+    },
+    "src/iqa_soa/agent/providers.py": {
+      "reason": "Adds ProviderFailureOrigin (PROVIDER_INFRASTRUCTURE, MODEL_OUTPUT) and stamps it on every ProviderError raised while PARSING a provider message, so a failed provider-boundary observation carries whether the defect was in the MODEL'S OUTPUT or in the PROVIDER/INFRASTRUCTURE path. The frozen WU5 observation taxonomy requires exactly that separation and cannot derive it after the fact: a transport fault, an exhausted retry and a syntactically invalid model action are not distinguishable from failure_class alone, and an infrastructure fault silently counted as a model observation would corrupt a prospective confirmatory position before any analysis saw it. LEGACY BEHAVIOUR IS PRESERVED EXACTLY: the constructor argument is keyword-only and defaults to PROVIDER_INFRASTRUCTURE, so every pre-existing raise site keeps its previous meaning; no failure_class value, message string, retryability rule, tool-call counting rule or ProviderError.provenance() field changes; and no request payload, prompt, tool schema, argument contract, temperature, seed or sampling parameter changes. NATIVE_TOOL_ADAPTER_VERSION and TOOL_ARGUMENT_CONTRACT_VERSION therefore do not move, and no committed row is reclassified.",
+      "sha256": "714047eb495bc258d6a245d125ab737e8db367b0ae0c8777c0e01ff79d371442"
+    },
+    "src/iqa_soa/experiment/confirmatory.py": {
+      "reason": "NEW. The frozen Work Unit 5 post-Phase-P confirmatory EXECUTION BOUNDARY. It owns run_confirmatory_experiment, the runtime-identity capture and refusal path (capture_runtime_snapshot_v1, RuntimeIdentityRefused), the closed EXECUTION_ROW_KEYS row schema with its content and snapshot-binding validation, and crash-safe single-position execution built on the CONFIRMATORY_POSITION_EXECUTION_RESERVED_V1 reservation marker, so a position is either durably recorded exactly once or left unclaimed -- never half-written and never silently re-executed. It re-validates the runtime it actually ran under against the identity the frozen registration chain fixed, and refuses rather than repairing any divergence. It takes the address of a design only, reloads the frozen registration/eligibility/assignment chain from disk, and reaches no legacy scheduling, seed-derivation or scoring path. Nothing here authorizes an execution: the confirmatory lifecycle gate is upstream of every entry point in it.",
+      "sha256": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad"
+    },
+    "src/iqa_soa/experiment/confirmatory_assignment.py": {
+      "reason": "NEW. The frozen Work Unit 4 prospective Monte-Carlo randomization provenance and assignment persistence. It produces randomization_mc_provenance.json in its exact ten-key exact-enumeration or nineteen-key Monte-Carlo tagged shape, and assignment_manifest.json carrying one production bit per registered task, from a validated FINAL_REGISTRATION_FROZEN chain and nothing else. Randomness is drawn internally, never accepted from a caller, and is returned only AFTER it is durably published: staging, no-clobber publication, directory-metadata sync and pending-file removal are ordered so a crash cannot leave an assignment that was used but not recorded, or recorded twice with different bits. It reuses the Work Unit 1 canonical-JSON and self_digest helpers rather than forking a second digest algorithm, so the frozen prospective MC provenance is bound to the same registration digests the rest of the chain is bound to.",
+      "sha256": "f3bca0eb6bbb59f8546962fda9befe868962f8b7507f2d900339e0b2e5fabaf1"
+    },
+    "src/iqa_soa/experiment/confirmatory_eligibility.py": {
+      "reason": "NEW. The frozen Stage-B PRE-OUTCOME confirmatory eligibility freeze: the EligibilityManifestV1 schema, the total disposition derivation, the infrastructure-symmetry derivation, the twenty-six fail-closed rules E1-E26 executed in numbered order against the RAW parsed artifact, and immutable eligibility_manifest.json persistence bound to the Stage-A draft's self_digest. Eligibility is frozen strictly BEFORE any outcome exists, which is what makes it a prospective criterion rather than a post-hoc filter: nothing here reads a result, dereferences an evidence locator, opens a socket, contacts a provider, draws randomness or creates a design_id, and every provider and runtime configured in the repository remains CURRENT_PROVIDER_ELIGIBILITY: UNASSESSED. Nothing is normalized or repaired; a malformed artifact is refused, never fixed up on the caller's behalf.",
+      "sha256": "17089be78ca6fb46cec0d2ddc99684856ca26d6d420bccb10150570dae83515b"
+    },
+    "src/iqa_soa/experiment/confirmatory_registration.py": {
+      "reason": "NEW. The frozen Stage-A REGISTRATION_DRAFT schema, the canonical JSON profile and the self_digest construction/verification procedure the whole confirmatory chain shares, and the Stage-C FINAL_REGISTRATION_FROZEN RegistrationManifestV1 schema with its deterministic partition of the Stage-A matrix by the frozen Stage-B dispositions, position_id, K, randomization_mode, the five-key matrix_digest preimage and the thirty-nine fail-closed rules F1-F39. It also fixes the runtime-identity schema the execution boundary later re-validates against. One artifact stores exactly one digest of itself, canonicalization has a single authorized serializer, and the persisted bytes are canonical JSON plus exactly one trailing LF that is never part of any digest. A draft records a PROPOSED design only: it selects no real task, provider, model, repetition, seed or design_id, and authorizes no eligibility assessment, randomization, assignment or execution.",
+      "sha256": "ec052e68b01424fb3ad0c7f69631f5a8f56233d74fbe4f660d94a81ad4c1f539"
+    },
+    "src/iqa_soa/experiment/runner.py": {
+      "reason": "Adds one minimal ADDITIVE confirmatory hook, run_one_position, which runs a single caller-selected position through the existing _run_one machinery, plus the structured failure-stage signal the frozen WU5 boundary needs: PositionExecutionError carries PRE_DISPATCH, RUNTIME_FAILURE or INSTRUMENTATION_FAILURE, so a confirmatory position can distinguish a failure BEFORE the provider-dispatch-capable boundary (nothing was consumed) from one after it (dispatch may already have occurred and must not be silently retried as if unused). It also exposes package_source_sha256, which reuses the existing package-tree digest algorithm rather than introducing a second one. LEGACY ExperimentRunner.run SEMANTICS ARE UNCHANGED: the two new _run_one callbacks are keyword-only and default to None, and the legacy path passes neither, so the row contents, the exception-to-row fallback, the schedule, the seed derivation, the treatment definitions, the prompts, the policy, the tool dispatch, the evidence handling and every persisted field remain exactly what instrument 4 / raw schema 5 already wrote. The hook performs no scheduling, no seed derivation, no provider construction, no persistence and no confirmatory interpretation of its own.",
+      "sha256": "94dd48a77002fd936f1a1b5c8ce7acba978fec4d5b5660a2a57260d3edd4356f"
+    },
+    "src/iqa_soa/metrics/confirmatory.py": {
+      "reason": "NEW. The frozen Work Unit 6 confirmatory randomization analyzer and its immutable terminal artifact. It owns exactly one production entry point, analyze_confirmatory_randomization, and publishes final_analysis_manifest.json under the same reserve-then-publish discipline the execution boundary uses, so the terminal analysis is written once, durably, and can never be silently regenerated over. It accepts no loaded object, provider, capturer, clock, seed or p-value from a caller, dispatches no provider inference and generates no new entropy: the randomization distribution it tests against is the one the frozen WU4 provenance already recorded. It re-validates every execution row and runtime snapshot through the WU5 validators before any statistic is computed and fails closed with ConfirmatoryAnalysisIntegrityError rather than analysing partial or unbound evidence. The legacy paired analyzer in iqa_soa.metrics.statistics is untouched and uncalled; the legacy flat task-cluster helper is retained only as a test-time equivalence oracle on a balanced matrix, never as production aggregation.",
+      "sha256": "019dcc2da505ed8a489b8904a00bfbd59631bc37344f8dfbc77cad519cfd3d36"
+    }
+  },
+  "confirmatory_lifecycle_authorization": {
+    "governed_by": [
+      "docs/post_phaseP_prospective_redesign_decision.md",
+      "docs/post_phaseP_qualification_methodology_decision.md",
+      "docs/post_phaseP_analysis_contract_decision.md",
+      "docs/post_phaseP_confirmatory_randomization_design_decision.md",
+      "docs/post_phaseP_confirmatory_randomization_implementation_design.md",
+      "docs/post_phaseP_confirmatory_randomization_code_implementation_authorization.md"
+    ],
+    "note": "Work-Unit authorization remains governed by the separately frozen prospective confirmatory lifecycle recorded in the documents above. This instrument revision authenticates the implementation tree; it grants no execution, opens no gate, selects no design_id, assesses no provider eligibility and consumes no seed."
+  },
+  "current_instrument": {
+    "adapter_unchanged": true,
+    "instrument_version": "4",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "raw_schema_version": 5,
+    "src_iqa_soa_tree": "c43f8f162f22faff2f956c8e080b422f4e011ca4301de188c8dd4e0583b29c75",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "frozen_historical_inputs": "This revision changes no prospectively frozen scientific input. Every path -> SHA-256 binding in every committed provenance record still matches the working tree, audited by scripts/phaseM_frozen_input_audit.py. The Phase-L and Phase-P src/iqa_soa TREE digests are a separate matter and are handled under superseded_live_assertions.",
+  "frozen_input_audit": "scripts/phaseM_frozen_input_audit.py",
+  "historical_analysis_compatibility": "scripts/phaseM_historical_analysis.py",
+  "historical_rows": "Committed Phase-D, Phase-F, Phase-I, Phase-L and Phase-P raw rows are neither rewritten nor re-run. They remain readable under the schema they were written with, via RAW_FIELDS_BY_SCHEMA_VERSION, and under the instrument version their own phase ran under. Their frozen analyzers are NOT edited: scripts/phaseM_historical_analysis.py still executes each from the commit that froze it. Because no instrument, schema, adapter or contract version moves in this revision, that mechanism absorbs it unchanged.",
+  "historical_rows_rescored": false,
+  "instrument_revisions_overwritten": false,
+  "instrument_versions_unchanged": "INSTRUMENT_VERSION, RAW_SCHEMA_VERSION, NATIVE_TOOL_ADAPTER_VERSION and TOOL_ARGUMENT_CONTRACT_VERSION are recorded at the values the code ACTUALLY declares, and none of them moves. No boundary is bumped merely because the tree changed. WU1-WU6 was frozen to preserve legacy experiment semantics: five of the eight approved paths are new modules no legacy path imports, and the three edits to existing modules are additive and default-preserving. The request payload the model receives, the advertised and enforced tool argument contract, the treatment definitions, the prompts, the policy, the seed derivation, the tool dispatch, the failure taxonomy and every persisted raw field are what instrument 4 / raw schema 5 already produced, so a row written under this revision and a row written under Phase O measure the same quantity in the same way. Bumping a boundary constant here would assert an incomparability that does not exist and would retroactively invalidate committed Phase-P artifacts.",
+  "model_inference_performed": false,
+  "observation_only": true,
+  "offline_tests": "tests/integration/test_post_phaseP_instrument_revision.py",
+  "offline_validator": "scripts/instrument_revision.py",
+  "offline_writer": "scripts/post_phaseP_write_instrument_revision.py",
+  "overwrites_nothing": "No existing instrument revision is overwritten and no historical hash in any of them is updated in place. Neither benchmark/pilot-v7-rc3/freeze-record.json, benchmark/pilot-v7-rc4/freeze-record.json, docs/phaseM_instrument_revision.json nor docs/phaseO_instrument_revision.json is edited. The rc3 freeze record's src_iqa_soa_tree pin still describes the Phase-K freeze commit and is still proved there from git history; the Phase-M record's pins are still proved from committed bytes at 0cc3b05ab79559acdd4f50675ed7937199dc4dbe; and the Phase-O record's pins are now proved from committed bytes at bc9d0a1234ab229d6433dbd4e54df1e17823806c, the last commit at which Phase O was the approved head. scripts/instrument_revision.py verifies the chain link by link.",
+  "parent_commit": "bc9d0a1234ab229d6433dbd4e54df1e17823806c",
+  "parent_commit_basis": "The origin/main merge-base from which the prospective WU1-WU6 implementation branch diverged.",
+  "phase": "POST_PHASEP_CONFIRMATORY",
+  "phase_p_evidence_untouched": "The official Phase-P evidence root results/phaseP-rc4-qualification/ is not read, enumerated, traversed, hashed, regenerated, resumed, repaired, replaced or modified by this revision or by scripts/post_phaseP_write_instrument_revision.py, and no value in this record is derived from it.",
+  "phase_p_execution_rerun": false,
+  "phase_p_rc4_hold": {
+    "benchmark_version": "pilot-v7-rc4",
+    "diagnosis_record": "docs/phaseP_rc4_hold_forensic_diagnosis.json",
+    "note": "The completed official Phase-P qualification of pilot-v7-rc4 ended SCHEDULE_COMPLETE_VERDICT_HOLD and pilot-v7-rc4 remains UNQUALIFIED. That verdict stands, and is neither retracted, revisited, reinterpreted nor rescored by this revision. No Phase-P cell is rerun, no Phase-P row is reclassified, and the official Phase-P evidence root is not read, enumerated, hashed, regenerated or modified by this revision or by the script that produces it.",
+    "phase": "P",
+    "phase_p_cells_rerun": 0,
+    "phase_p_rows_rescored": 0,
+    "qualification_status": "UNQUALIFIED",
+    "report": "docs/phaseP_rc4_hold_forensic_diagnosis.md",
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "verdict": "HOLD"
+  },
+  "phase_p_result_reinterpreted": false,
+  "post_phaseP_confirmatory_execution_authorized": false,
+  "previous_instrument": {
+    "instrument_version": "4",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "parent_commit": "0cc3b05ab79559acdd4f50675ed7937199dc4dbe",
+    "phase": "O",
+    "raw_schema_version": 5,
+    "record": "docs/phaseO_instrument_revision.json",
+    "src_iqa_soa_tree": "8d569696e51162acf8a0b8612f7d91398c7544cd0502cbaa59af92e35795b938",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "prospective_implementation_only": "This record documents a PROSPECTIVE post-Phase-P implementation only. No model inference is performed by it or by the script that produces it; no provider is contacted and no socket is opened. No Phase-P execution is rerun, resumed, repaired, replaced or reinterpreted. No historical Phase-D, Phase-F, Phase-I, Phase-L or Phase-P row is modified, reclassified or rescored. No benchmark freeze record is overwritten. No existing instrument revision is overwritten. This revision authorizes no real confirmatory execution by itself.",
+  "qa_off_treatment_invariant": "treatment_for('off').detailed_evidence remains False and the evidence guard remains disabled under QA OFF. This revision persists no new field on any legacy raw row: the structured provider failure origin and the position failure stage are in-process signals consumed by the prospective confirmatory boundary, and ProviderError.provenance() is unchanged, so no tool output, sentinel payload, protected value, argument VALUE, SandboxState.operation_log or AgentRun.outcomes block reaches disk that did not before.",
+  "record_kind": "instrument_revision",
+  "superseded_live_assertions": {
+    "scripts/phaseL_protocol.py": "Already superseded by Phase O on its stated terms, and superseded again here only in the sense that the digest its one false tree assertion reports is now the post-Phase-P confirmatory tree rather than the Phase-O tree. scripts/phaseO_frozen_input_supersession.py composes the expected text from the approved HEAD of the revision chain rather than pasting it, so it consumes this new head automatically and nothing in it needed editing. Its bytes are NOT edited, the Phase-L freeze is still proved from COMMITTED bytes at the Phase-L-B execution commit, and the residual live set is still required to be EXACTLY the enumerated supersession.",
+    "scripts/phaseP_protocol.py": "check_frozen_inputs() and check_instrument_pins() assert docs/phaseP_frozen_execution_inputs.json and the approved Phase-O revision against the LIVE working tree, and both pin src/iqa_soa to the Phase-O instrument 8d569696... . Those assertions bound the completed Phase-P run and remain true at bc9d0a1234ab229d6433dbd4e54df1e17823806c, the last commit at which Phase O was the approved head; they are now false live because an approved successor revision exists. Neither scripts/phaseP_protocol.py nor docs/phaseP_frozen_execution_inputs.json is edited, FROZEN_ARTIFACT_MISMATCH is not weakened, and no Phase-P preflight is relaxed: the frozen Phase-P protocol still refuses to execute on this tree, which is the correct behaviour for a frozen protocol whose instrument has moved. The claim is proved where it is actually true -- from committed bytes at that commit -- in tests/integration/test_phaseP_execution_protocol.py.",
+    "scripts/validate_pilot_v7_rc2.py": "Already superseded by Phase M and again by Phase O on the same terms, and superseded again here only in the sense that the digest its one false assertion reports is now the post-Phase-P confirmatory tree. scripts/phaseM_historical_analysis.py composes that expected string from the approved head of the revision chain, so it follows the chain automatically and nothing in it needed editing."
+  },
+  "title": "Prospective post-Phase-P confirmatory randomization implementation (Work Units 1-6)",
+  "why_observation_only": "Phase O could not claim this, because its request payload and its sandbox refusals genuinely changed. This revision can. Nothing the model sees and nothing the sandbox does is different: ProviderFailureOrigin is a keyword-only, default-preserving annotation on failures that were already raised with the same failure_class, message and provenance, and run_one_position is a new entry point whose two _run_one callbacks default to None on the legacy path. The new confirmatory modules are imported by no legacy execution path. Pooling across this boundary therefore needs no new argument."
+}

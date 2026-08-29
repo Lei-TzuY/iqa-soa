@@ -63,6 +63,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 #: statement of what Phase M actually changed, which is the mistake this whole
 #: module exists to prevent.
 #:
+#: (Post-Phase-P amendment.)  The prospective post-Phase-P confirmatory
+#: randomization implementation (Work Units 1-6) legitimately changed
+#: ``src/iqa_soa``, so a THIRD link is appended on exactly the same terms.  The
+#: Phase-O record is not edited to describe the new tree; it keeps describing the
+#: tree it actually approved, and is from now on proved from COMMITTED bytes at
+#: the commit its successor started from.
+#:
 #: The chain is verified link by link (see :func:`check_approved_instrument_revision`):
 #: each link's parent digest must equal its predecessor's current digest, each
 #: non-head link's claims are proved from COMMITTED bytes at the commit its
@@ -71,6 +78,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REVISION_CHAIN: tuple[Path, ...] = (
     REPO_ROOT / "docs" / "phaseM_instrument_revision.json",
     REPO_ROOT / "docs" / "phaseO_instrument_revision.json",
+    REPO_ROOT / "docs" / "post_phaseP_confirmatory_instrument_revision.json",
 )
 
 #: The HEAD of the chain: the revision the CURRENT working tree must match.
