@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from email.message import Message
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 from urllib import error as urlerror
 
 import pytest
@@ -12,6 +13,7 @@ from iqa_soa.agent.providers import (
     DeterministicStubProvider,
     OpenAICompatibleProvider,
     ProviderError,
+    ProviderFailureOrigin,
     _parse_action_object,
 )
 from iqa_soa.agent.agent import ExperimentalAgent
@@ -46,12 +48,108 @@ def test_stub_proposals_and_usage_are_byte_deterministic() -> None:
 
 
 def test_strict_action_json_rejects_unknown_and_missing_keys() -> None:
-    with pytest.raises(ProviderError, match="unknown keys"):
+    with pytest.raises(ProviderError, match="unknown keys") as unknown:
         _parse_action_object(
             {"action_id": "a", "tool": "file.read", "resource": "x", "arguments": {}, "extra": 1}
         )
-    with pytest.raises(ProviderError, match="missing keys"):
+    with pytest.raises(ProviderError, match="missing keys") as missing:
         _parse_action_object({"action_id": "a", "tool": "file.read", "resource": "x"})
+    assert unknown.value.failure_origin is ProviderFailureOrigin.MODEL_OUTPUT
+    assert missing.value.failure_origin is ProviderFailureOrigin.MODEL_OUTPUT
+
+
+@pytest.mark.parametrize(
+    ("raw_response", "protocol", "expected_failure_class", "expected_origin"),
+    [
+        (
+            json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "tool_calls": [
+                                    {
+                                        "type": "function",
+                                        "function": {
+                                            "name": "sandbox_action",
+                                            "arguments": "{not-valid-json",
+                                        },
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                }
+            ).encode("utf-8"),
+            "native_tools",
+            "invalid_tool_call",
+            ProviderFailureOrigin.MODEL_OUTPUT,
+        ),
+        (
+            json.dumps(
+                {
+                    "choices": [{"message": {"content": "{not-valid-json"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                }
+            ).encode("utf-8"),
+            "json_object",
+            "invalid_json",
+            ProviderFailureOrigin.MODEL_OUTPUT,
+        ),
+        (
+            b"{not-a-provider-envelope",
+            "native_tools",
+            "invalid_json",
+            ProviderFailureOrigin.PROVIDER_INFRASTRUCTURE,
+        ),
+    ],
+)
+def test_provider_failure_origin_distinguishes_model_output_from_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_response: bytes,
+    protocol: str,
+    expected_failure_class: str,
+    expected_origin: ProviderFailureOrigin,
+) -> None:
+    class FakeHTTPResponse:
+        def __enter__(self) -> "FakeHTTPResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def getheader(self, name: str) -> str | None:
+            del name
+            return None
+
+        def read(self) -> bytes:
+            return raw_response
+
+    monkeypatch.setenv("SYNTHETIC_TEST_KEY", "test-only")
+    monkeypatch.setattr(
+        "iqa_soa.agent.providers.request.urlopen",
+        lambda request, timeout: FakeHTTPResponse(),
+    )
+    provider = OpenAICompatibleProvider(
+        endpoint="https://example.invalid/v1/chat/completions",
+        model="synthetic-model",
+        api_key_env="SYNTHETIC_TEST_KEY",
+        protocol=protocol,
+    )
+    with pytest.raises(ProviderError) as captured:
+        provider.generate_action(
+            system_prompt="system",
+            user_prompt="user",
+            scripted_actions=(),
+            step=0,
+            seed=1,
+        )
+    assert captured.value.failure_origin is expected_origin
+    assert "failure_origin" not in captured.value.provenance(
+        model=provider.model, latency_ms=0.0
+    )
+    assert captured.value.failure_class == expected_failure_class
 
 
 def test_provider_security_self_claims_are_ignored_before_validation() -> None:
@@ -148,7 +246,7 @@ def test_failed_provider_attempt_is_counted_without_inventing_tokens() -> None:
         name = "failing_test_provider"
         model = "failing-model"
 
-        def generate_action(self, **_: Any):
+        def generate_action(self, **_: Any) -> NoReturn:
             raise ProviderError("synthetic provider failure")
 
     class MustNotExecute:
@@ -401,13 +499,15 @@ def test_http_rate_limit_is_classified_without_leaking_credentials(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("SYNTHETIC_TEST_KEY", "secret-rate-limit-test")
+    headers = Message()
+    headers["x-request-id"] = "req-rate-limit"
 
     def fail(*_: Any, **__: Any) -> Any:
         raise urlerror.HTTPError(
             "https://example.invalid/v1/chat/completions",
             429,
             "body-must-not-be-recorded",
-            {"x-request-id": "req-rate-limit"},
+            headers,
             None,
         )
 

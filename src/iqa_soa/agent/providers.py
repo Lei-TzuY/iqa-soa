@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
+from enum import Enum
 from itertools import groupby
 import hashlib
 import json
@@ -102,6 +103,13 @@ def _argument_contract_statement() -> str:
     return "\n".join([header, model_visible_contract_text(SANDBOX_TOOL_NAMES)])
 
 
+class ProviderFailureOrigin(str, Enum):
+    """Structured origin of a failed provider-boundary observation."""
+
+    PROVIDER_INFRASTRUCTURE = "PROVIDER_INFRASTRUCTURE"
+    MODEL_OUTPUT = "MODEL_OUTPUT"
+
+
 class ProviderError(RuntimeError):
     """A provider attempt failed with a safe, machine-readable classification."""
 
@@ -115,6 +123,9 @@ class ProviderError(RuntimeError):
         retryable: bool = False,
         tool_call_count: int = 0,
         tool_contract_refreshed: bool = False,
+        failure_origin: ProviderFailureOrigin = (
+            ProviderFailureOrigin.PROVIDER_INFRASTRUCTURE
+        ),
     ) -> None:
         super().__init__(message)
         self.failure_class = failure_class
@@ -123,6 +134,7 @@ class ProviderError(RuntimeError):
         self.retryable = retryable
         self.tool_call_count = tool_call_count
         self.tool_contract_refreshed = tool_contract_refreshed
+        self.failure_origin = failure_origin
 
     def provenance(self, *, model: str, latency_ms: float) -> dict[str, Any]:
         """Return failure metadata without response bodies, URLs, or credentials."""
@@ -737,6 +749,7 @@ class OpenAICompatibleProvider(AgentProvider):
                 raise ProviderError(
                     "native tool_calls must be a list",
                     failure_class="invalid_tool_call",
+                    failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                 )
             parsed_calls: list[Mapping[str, Any]] = []
             raw_arguments: list[str] = []
@@ -747,6 +760,7 @@ class OpenAICompatibleProvider(AgentProvider):
                         "native tool call must be a function call",
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
+                        failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                     )
                 function = call.get("function")
                 if (
@@ -757,6 +771,7 @@ class OpenAICompatibleProvider(AgentProvider):
                         "native tool call has an unexpected function",
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
+                        failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                     )
                 arguments = function.get("arguments")
                 if not isinstance(arguments, str):
@@ -764,6 +779,7 @@ class OpenAICompatibleProvider(AgentProvider):
                         "native tool-call arguments must be JSON text",
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
+                        failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                     )
                 try:
                     parsed = json.loads(arguments)
@@ -772,12 +788,14 @@ class OpenAICompatibleProvider(AgentProvider):
                         "native tool-call arguments are invalid JSON",
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
+                        failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                     ) from exc
                 if not isinstance(parsed, Mapping):
                     raise ProviderError(
                         "native tool-call arguments must decode to an object",
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
+                        failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                     )
                 parsed_calls.append(parsed)
                 raw_arguments.append(arguments)
@@ -805,6 +823,7 @@ class OpenAICompatibleProvider(AgentProvider):
                 raise ProviderError(
                     "provider native terminal content must be text or null",
                     failure_class="invalid_tool_call",
+                    failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                 )
             try:
                 parsed = json.loads(content)
@@ -816,12 +835,14 @@ class OpenAICompatibleProvider(AgentProvider):
                 raise ProviderError(
                     "native-tools protocol requires an actual tool call for actions",
                     failure_class="invalid_tool_call",
+                    failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
                 )
             return [], content, [], []
         if not isinstance(content, str):
             raise ProviderError(
                 "provider message contains neither a usable action nor text",
                 failure_class="invalid_json",
+                failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
             )
         try:
             parsed = json.loads(content)
@@ -829,11 +850,13 @@ class OpenAICompatibleProvider(AgentProvider):
             raise ProviderError(
                 "provider action content is invalid JSON",
                 failure_class="invalid_json",
+                failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
             ) from exc
         if not isinstance(parsed, Mapping):
             raise ProviderError(
                 "provider action content must be an object",
                 failure_class="invalid_action_format",
+                failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
             )
         return [parsed], content, [content], [""]
 
@@ -850,22 +873,26 @@ def _parse_action_object(value: Mapping[str, Any]) -> Action:
         raise ProviderError(
             f"action JSON missing keys: {sorted(missing)}",
             failure_class="invalid_action_format",
+            failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
         )
     if unknown:
         raise ProviderError(
             f"action JSON has unknown keys: {sorted(unknown)}",
             failure_class="invalid_action_format",
+            failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
         )
     if not isinstance(value["arguments"], dict):
         raise ProviderError(
             "action arguments must be a JSON object",
             failure_class="invalid_action_format",
+            failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
         )
     for key in ("action_id", "tool", "resource"):
         if not isinstance(value[key], str) or not value[key]:
             raise ProviderError(
                 f"action {key} must be a non-empty string",
                 failure_class="invalid_action_format",
+                failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
             )
     return Action(
         action_id=value["action_id"],

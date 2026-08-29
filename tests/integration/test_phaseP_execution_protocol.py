@@ -58,9 +58,11 @@ for _root in (SRC_ROOT, SCRIPTS_ROOT):
         sys.path.insert(0, str(_root))
 
 import analyze_phaseP_rc4_qualification as analyzer  # noqa: E402
+import instrument_revision  # noqa: E402
 import phaseP_derive_seeds as seeds  # noqa: E402
 import phaseP_protocol as protocol  # noqa: E402
 import phaseP_write_frozen_inputs as freezer  # noqa: E402
+import post_phaseP_seed_provenance_supersession as seed_supersession  # noqa: E402
 import qualification_harness_v2 as harness  # noqa: E402
 import run_phaseP_rc4_qualification as driver  # noqa: E402
 from iqa_soa.experiment.failure_events import (  # noqa: E402
@@ -72,6 +74,43 @@ from iqa_soa.metrics.definitions import PILOT_RAW_FIELDS_V5  # noqa: E402
 CANONICAL_BASE_COMMIT = "f65ee4980813b465431c5f7d75a0d00db87785b6"
 PHASE_O_PARENT_COMMIT = "0cc3b05ab79559acdd4f50675ed7937199dc4dbe"
 PHASE_L_B_ARCHIVE_COMMIT = "693f81be666ec138def100dc7e920bd020080cd9"
+
+#: The commit at which the approved Phase-O revision STOPPED being the head of
+#: the instrument-revision chain: the parent of the POST_PHASEP_CONFIRMATORY
+#: revision that supersedes it.  The prospective post-Phase-P confirmatory
+#: implementation legitimately changed ``src/iqa_soa``, so an approved successor
+#: link now exists and this frozen protocol -- which is pinned to the Phase-O
+#: head, and whose bytes are a frozen Phase-P input that may not be edited --
+#: reports that difference.  That is a frozen protocol behaving correctly, not a
+#: defect: it still refuses to execute on this tree.  The assertions below that
+#: used to read "Phase O is the current head" are therefore asked at the commit
+#: where they are actually true, from COMMITTED bytes, exactly as
+#: ``scripts/instrument_revision.py`` proves a superseded link.
+POST_PHASEP_REVISION_PARENT_COMMIT = "bc9d0a1234ab229d6433dbd4e54df1e17823806c"
+
+#: The approved successor link this protocol has been superseded by.
+POST_PHASEP_REVISION_RELATIVE = (
+    "docs/post_phaseP_confirmatory_instrument_revision.json"
+)
+
+#: The commit that froze this protocol, and where its PROSPECTIVE seed selection
+#: actually bound.  See ``scripts/post_phaseP_seed_provenance_supersession.py``.
+PHASE_P_FREEZE_COMMIT = seed_supersession.PHASE_P_FREEZE_COMMIT
+
+#: The frozen triple, captured AT IMPORT, before any test can monkeypatch it.
+#: The historicalization seam below is keyed on it: a test that substitutes a
+#: poisoned triple is not running the frozen protocol's history and must still be
+#: judged by the frozen protocol.
+CANONICAL_FROZEN_SEEDS: tuple[int, ...] = tuple(protocol.SEEDS)
+
+#: The frozen checks, bound before any substitution, so a seam always calls the
+#: REAL frozen function and never itself.  Nothing in this file ever replaces the
+#: production functions themselves -- only the module attributes, and only inside
+#: the module-scoped fixtures below.
+_REAL_CHECK_SEED_PROVENANCE = protocol.check_seed_provenance
+_REAL_CHECK_INSTRUMENT_PINS = protocol.check_instrument_pins
+_REAL_CHECK_FROZEN_INPUTS = protocol.check_frozen_inputs
+
 RC4_MANIFEST = PROJECT_ROOT / "benchmark" / "pilot-v7-rc4" / "manifest.json"
 RC4_CONTRACT = (
     PROJECT_ROOT / "benchmark" / "pilot-v7-rc4" / "qualification-contract.json"
@@ -146,6 +185,340 @@ def _cached_historical_input_audit() -> Iterator[None]:
         yield
     finally:
         patch.undo()
+
+
+# --------------------------------------------------------------------------
+# (Post-Phase-P amendment 1 of 2.)  The TEMPORAL seed-history historicalization
+# --------------------------------------------------------------------------
+#
+# ``check_seed_provenance`` re-runs the frozen committed-history seed scan and
+# asserts it against the LIVE tree.  Before execution that was the right
+# question: a Phase-P seed appearing anywhere outside Phase P's own three
+# seed-selection artifacts would have meant the value was visible in the
+# repository before it was chosen.
+#
+# Phase P then executed and terminated SCHEDULE_COMPLETE_VERDICT_HOLD, and commit
+# 69d1efc legitimately committed ``docs/phaseP_rc4_hold_forensic_diagnosis.json``
+# -- a DERIVATIVE post-run audit ledger which, because it documents cells that
+# actually ran, necessarily records the seeds those cells used.  The live scan
+# therefore finds the triple in a fourth file.
+#
+# That is NOT a seed collision and NOT a defect in the selection.  It is the
+# "assert A by checking B" conflation again: the historical PROSPECTIVE claim is
+# a closed fact about the freeze commit, and the present-state restatement of it
+# was only ever valid while Phase P was unexecuted.
+#
+# ``scripts/post_phaseP_seed_provenance_supersession.py`` proves both halves --
+# the prospective claim from COMMITTED bytes at the freeze commit, and the bound
+# that today's ONLY extra source is that one enumerated post-run ledger.  It is
+# asserted here IN FULL before anything is substituted, so a repository in which
+# it fails makes this fixture fail rather than silently weakening every test
+# below.
+#
+# What is substituted is EXACTLY ONE THING: the temporal seed-history scan.  The
+# frozen ``check_seed_provenance`` itself still runs in full -- the record
+# checks, the base commit, the domain separator, the three denials, the
+# forbidden-seed overlap, the Phase-L consumption, uniqueness, count,
+# positivity and the declared-by-own-artifacts rule are all re-proved live,
+# against whatever ``protocol.SEEDS`` currently is.  No frozen-input hash, no
+# instrument pin, no benchmark check, no schedule, no model pin, no human gate,
+# no execution authorization and no canonical-path or evidence-root binding is
+# touched by this seam.
+#
+# AND A POISONED TRIPLE IS NOT HISTORICALIZED AT ALL: if ``protocol.SEEDS`` is
+# not the canonical frozen tuple captured at import, the seam hands the call
+# straight to the unmodified live frozen check, so every adversarial
+# old/duplicate/reordered triple is refused exactly as before.
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _historicalized_seed_provenance() -> Iterator[None]:
+    """Historicalize ONLY the temporal seed-history scan, and prove it first.
+
+    Module-scoped rather than session-scoped so the substitution is torn down
+    with this module and can never reach another test file.
+    """
+
+    observed = seed_supersession.run_all()
+    assert observed == [], (
+        "the post-Phase-P seed-provenance supersession does not hold on this tree, "
+        f"so no historicalization is justified: {observed}"
+    )
+
+    historical = seed_supersession.scan_seeds_at_commit(PHASE_P_FREEZE_COMMIT)
+    assert historical, "the historical seed scan found no committed seed at all"
+    # The prospective claim, restated here so the substitution cannot be read as
+    # an assumption: at the freeze, no frozen seed appeared outside Phase P's own
+    # declared seed-selection artifacts.
+    assert set(CANONICAL_FROZEN_SEEDS) & set(seeds.prior_phase_seeds(historical)) == set()
+
+    def _historicalized_check_seed_provenance() -> list[str]:
+        if tuple(protocol.SEEDS) != CANONICAL_FROZEN_SEEDS:
+            # Not the frozen selection: there is no history in which this triple
+            # was prospectively approved, so it is judged by the LIVE frozen check.
+            return _REAL_CHECK_SEED_PROVENANCE()
+        real_scan = seeds.scan_committed_seeds
+        seeds.scan_committed_seeds = lambda *_a, **_k: {
+            seed: list(sources) for seed, sources in historical.items()
+        }
+        try:
+            return _REAL_CHECK_SEED_PROVENANCE()
+        finally:
+            seeds.scan_committed_seeds = real_scan
+
+    patch = pytest.MonkeyPatch()
+    patch.setattr(
+        protocol, "check_seed_provenance", _historicalized_check_seed_provenance
+    )
+    try:
+        yield
+    finally:
+        patch.undo()
+
+
+# --------------------------------------------------------------------------
+# (Post-Phase-P amendment 2 of 2.)  The INSTRUMENT-HEAD historicalization
+# --------------------------------------------------------------------------
+#
+# A SECOND, SEPARATE temporal supersession, proved independently of the seed one
+# and installed independently of it.  The two are deliberately not merged: each
+# names its own closed set, and each refuses to historicalize unless the frozen
+# protocol reports EXACTLY that set.
+#
+# Phase P froze against the then-current Phase-O instrument.  The prospective
+# post-Phase-P confirmatory implementation legitimately changed ``src/iqa_soa``
+# and appended an approved POST_PHASEP_CONFIRMATORY link to the revision chain,
+# so the frozen protocol -- whose bytes are themselves a frozen Phase-P input and
+# may not be edited -- reports that difference and refuses to execute on this
+# tree.  THAT REFUSAL IS CORRECT AND IS NOT REMOVED: section 8 proves the real,
+# unpatched ``check_instrument_pins`` still reports it, and the real, unpatched
+# ``offline_preflight`` is still non-empty.  Phase P stays permanently closed.
+#
+# The substitution exists only so the tests that exercise the frozen driver's
+# schedule, ledger, identity and stop semantics -- none of which has anything to
+# do with the instrument pin -- can still reach the machinery they are about.
+#
+# ANTI-BROADENING.  The expected superseded set is composed from authoritative
+# records and digests, and is FROZEN at fixture setup, before any test can
+# tamper.  At every call the seam compares what the frozen protocol actually
+# reports against that frozen set; if one expected failure disappears, or one
+# additional failure appears, it REFUSES to historicalize and returns the real
+# failures instead.  So an adversarial test that moves a digest, a pin or a
+# version still sees the frozen protocol refuse, exactly as before.
+
+_REAL_OFFLINE_PREFLIGHT = protocol.offline_preflight
+
+
+def superseded_offline_preflight_assertions() -> tuple[str, ...]:
+    """The EXACT live preflight claims the approved successor revision supersedes.
+
+    Composed from the authoritative digests -- the Phase-P frozen-input record's
+    own pin, the Phase-O revision's pins and the live tree -- rather than pasted,
+    so it cannot drift and cannot be widened by hand.  An unapproved byte under
+    ``src/iqa_soa`` changes the live digest, so the observed set stops matching
+    this one AND ``instrument_revision.check_approved_instrument_revision`` fails.
+    """
+
+    return (superseded_frozen_input_tree_pin(), *superseded_instrument_pins())
+
+
+def superseded_frozen_input_tree_pin() -> str:
+    """The ONE ``check_frozen_inputs`` claim the approved successor supersedes.
+
+    The Phase-P frozen-input record pins ``src/iqa_soa`` to the Phase-O
+    instrument, so it states the SAME instrument-head claim that
+    ``check_instrument_pins`` states from the Phase-O revision record -- to the
+    same digest, ``8d569696...``, from a second record. An approved successor
+    revision makes both false live, together, for one reason.
+
+    It is composed from the record's own pin and the live tree, never pasted.
+    Everything else ``check_frozen_inputs`` proves -- all fifteen per-file
+    hashes, the ``benchmark/pilot-v7-rc4`` tree, the seeds, the arm order, the
+    planned cells, the qa mode, every version and contract digest, the results
+    namespace -- is untouched and stays a live guarantee.
+    """
+
+    frozen = json.loads(
+        (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8")
+    )
+    live_tree = protocol.tree_digest("src/iqa_soa")
+    return (
+        f"FROZEN_ARTIFACT_MISMATCH: tree src/iqa_soa "
+        f"recorded={frozen['trees']['src/iqa_soa']} actual={live_tree}"
+    )
+
+
+@contextmanager
+def unpatched_protocol_checks() -> Iterator[None]:
+    """Restore BOTH historicalized components, for the live-closure regressions.
+
+    The seams replace module attributes, and ``offline_preflight`` resolves those
+    attributes at call time, so this is what lets a test observe the frozen
+    protocol exactly as production sees it today.
+    """
+
+    patch = pytest.MonkeyPatch()
+    patch.setattr(protocol, "check_seed_provenance", _REAL_CHECK_SEED_PROVENANCE)
+    patch.setattr(protocol, "check_instrument_pins", _REAL_CHECK_INSTRUMENT_PINS)
+    patch.setattr(protocol, "check_frozen_inputs", _REAL_CHECK_FROZEN_INPUTS)
+    try:
+        yield
+    finally:
+        patch.undo()
+
+
+def live_preflight_supersession() -> tuple[str, ...]:
+    """Every live preflight failure the two temporal supersessions account for.
+
+    The instrument half is composed from authoritative records; the seed half is
+    whatever the frozen seed check itself reports, which
+    ``scripts/post_phaseP_seed_provenance_supersession.py`` has independently
+    bounded to exactly one declared post-run derivative source.  Neither half is
+    pasted.
+    """
+
+    with unpatched_protocol_checks():
+        seed_failures = tuple(_REAL_CHECK_SEED_PROVENANCE())
+    return (*superseded_offline_preflight_assertions(), *seed_failures)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _historicalized_instrument_head(
+    _historicalized_seed_provenance: None,
+) -> Iterator[None]:
+    """Historicalize ONLY ``check_instrument_pins``, and prove the bound first."""
+
+    # (B2) The approved chain is proved in full -- not merely "some new revision
+    # exists" -- before anything is substituted.
+    assert instrument_revision.check_instrument_provenance() == []
+    chain = instrument_revision.load_revision_chain()
+    assert [link["phase"] for link in chain] == ["M", "O", "POST_PHASEP_CONFIRMATORY"]
+    assert chain[1]["current_instrument"]["src_iqa_soa_tree"] == (
+        chain[2]["previous_instrument"]["src_iqa_soa_tree"]
+    )
+    assert chain[2]["current_instrument"]["src_iqa_soa_tree"] == (
+        instrument_revision.tree_digest("src/iqa_soa")
+    )
+    assert chain[2]["parent_commit"] == POST_PHASEP_REVISION_PARENT_COMMIT
+
+    # (B3) The exact expected live failure set, frozen HERE, before any test can
+    # move a digest, a hash or a version out from under it.
+    expected = frozenset(superseded_instrument_pins())
+    assert expected, "a supersession that names nothing proves nothing"
+    observed = frozenset(_REAL_CHECK_INSTRUMENT_PINS())
+    assert observed == expected, {
+        "unexpected": sorted(observed - expected),
+        "absent": sorted(expected - observed),
+    }
+
+    def _historicalized_check_instrument_pins() -> list[str]:
+        current = frozenset(_REAL_CHECK_INSTRUMENT_PINS())
+        if current != expected:
+            # One expected failure vanished, or a new one appeared.  There is no
+            # proved history for THIS state, so the frozen protocol answers.
+            return _REAL_CHECK_INSTRUMENT_PINS()
+        return []
+
+    # The SAME instrument-head claim is stated a second time, by the Phase-P
+    # frozen-input record's own ``src/iqa_soa`` tree pin, which names the very
+    # same Phase-O digest.  Exactly that ONE line is subtracted -- by value, not
+    # by pattern -- and every other claim ``check_frozen_inputs`` makes stays a
+    # live guarantee and still stops the driver.
+    frozen_tree_pin = superseded_frozen_input_tree_pin()
+    assert frozen_tree_pin in set(_REAL_CHECK_FROZEN_INPUTS())
+
+    def _historicalized_check_frozen_inputs() -> list[str]:
+        observed = _REAL_CHECK_FROZEN_INPUTS()
+        if frozen_tree_pin not in observed:
+            # The claim this seam historicalizes is not the one being reported.
+            return observed
+        return [item for item in observed if item != frozen_tree_pin]
+
+    patch = pytest.MonkeyPatch()
+    patch.setattr(
+        protocol, "check_instrument_pins", _historicalized_check_instrument_pins
+    )
+    patch.setattr(
+        protocol, "check_frozen_inputs", _historicalized_check_frozen_inputs
+    )
+    try:
+        yield
+    finally:
+        patch.undo()
+
+
+# --------------------------------------------------------------------------
+# (Post-Phase-P amendment 3 of 3.)  The RESULTS NAMESPACE
+# --------------------------------------------------------------------------
+#
+# Many tests below end with ``assert not protocol.canonical_results_root().exists()``.
+# That assertion is an ANTI-SIDE-EFFECT check -- "the code under test refused
+# without creating any output" -- and it is exactly as important as it ever was.
+#
+# What changed is that Phase P ACTUALLY EXECUTED.  Its official evidence root
+# exists locally, untracked, so the assertion now reads a directory whose
+# presence says nothing whatsoever about the code under test.  Deleting the
+# assertion would discard a real guarantee; asserting it against the real path
+# would be asserting a fact about a completed run.
+#
+# So the CANONICAL NAMESPACE IS RELOCATED, per test, to a fresh temporary
+# directory that starts absent -- through ``protocol.canonical_results_root``,
+# the single source of that notion, which ``is_canonical_results_root``,
+# ``require_canonical_results_root``, the driver and the analyzer all reach.  The
+# assertion then means what it always meant, and the real evidence root is never
+# opened, listed, traversed or hashed.
+#
+# Two tests opt out by requesting ``real_results_namespace``: the one that proves
+# the PRODUCTION binding really is ``results/phaseP-rc4-qualification``, and the
+# one that watches the production CLI bind it.  Neither touches the directory's
+# contents; both only compare paths.
+
+
+@pytest.fixture
+def real_results_namespace() -> None:
+    """Opt out of the relocation: this test needs the PRODUCTION binding.
+
+    Requesting it is how a test says "my claim is about the frozen namespace's
+    identity, not about whether something was written".  No test that requests it
+    may inspect the directory's contents.
+    """
+
+    return None
+
+
+@pytest.fixture(autouse=True)
+def _relocated_canonical_results_namespace(
+    request: pytest.FixtureRequest, tmp_path: Path
+) -> Iterator[None]:
+    """Point the canonical namespace at a fresh, absent temporary directory."""
+
+    if "real_results_namespace" in request.fixturenames:
+        yield
+        return
+    relocated = (tmp_path / "canonical-namespace" / "phaseP-rc4-qualification").resolve()
+    assert not relocated.exists(), "the relocated namespace must start absent"
+    patch = pytest.MonkeyPatch()
+    patch.setattr(protocol, "canonical_results_root", lambda: relocated)
+    try:
+        yield
+    finally:
+        patch.undo()
+
+
+def path_exists_in_committed_tree(commit: str, relative: str) -> bool:
+    """Whether ``relative`` exists in the COMMITTED tree at ``commit``.
+
+    Pure git metadata.  It answers a question about history without touching --
+    or even stat-ing -- anything on the local filesystem, which is the only way
+    the "did this exist yet?" question can honestly be asked about a namespace a
+    completed run has since populated.
+    """
+
+    out = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", commit, "--", relative],
+        cwd=PROJECT_ROOT, capture_output=True, text=True, check=True,
+    ).stdout
+    return bool(out.strip())
 
 
 @pytest.fixture(scope="module")
@@ -636,11 +1009,11 @@ def qualifying_phase_p_run(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def official_namespace(root: Path) -> Iterator[Path]:
     """Relocate the FROZEN Phase-P results namespace to *root* for the duration.
 
-    Tests I / J / K / L need a run that IS in the canonical namespace, and this
-    repository must never contain ``results/phaseP-rc4-qualification`` -- Phase P
-    has not executed and will not execute here.  Rather than write into the
-    repository, the notion of "the canonical namespace" is relocated to a
-    temporary directory.
+    Tests I / J / K / L need a run that IS in the canonical namespace, and no
+    test may write into ``results/phaseP-rc4-qualification`` -- which now holds
+    the completed official Phase-P run and is never opened, listed, traversed or
+    hashed here.  Rather than write into the repository, the notion of "the
+    canonical namespace" is relocated to a temporary directory.
 
     ``protocol.canonical_results_root`` is the single source of that notion:
     ``is_canonical_results_root`` and ``require_canonical_results_root`` both call
@@ -651,6 +1024,11 @@ def official_namespace(root: Path) -> Iterator[Path]:
     """
 
     resolved = Path(root).resolve()
+    # Restored to whatever was ambient on entry -- which, under the per-test
+    # relocation above, is the test's own fresh temporary namespace rather than
+    # the production one.  Asserting the production path here would make this
+    # helper depend on NOT being nested, which it now always is.
+    ambient = protocol.canonical_results_root()
     patch = pytest.MonkeyPatch()
     patch.setattr(protocol, "canonical_results_root", lambda: resolved)
     try:
@@ -658,9 +1036,7 @@ def official_namespace(root: Path) -> Iterator[Path]:
         yield resolved
     finally:
         patch.undo()
-    assert protocol.canonical_results_root() == (
-        PROJECT_ROOT / protocol.RESULTS_NAMESPACE
-    ).resolve()
+    assert protocol.canonical_results_root() == ambient
 
 
 def as_official_run(
@@ -826,7 +1202,18 @@ def test_the_accepted_rc4_benchmark_is_untouched_by_phase_p() -> None:
 
 
 def test_no_historical_artifact_is_modified_by_phase_p() -> None:
-    """The whole historically immutable surface is byte-identical to canonical."""
+    """The whole historically immutable surface is byte-identical to canonical.
+
+    (C) The question is HISTORICAL and its endpoint is the Phase-P FREEZE, not
+    today's tree: "what did Phase P's prospective protocol-freeze work change
+    between its canonical base and the commit that froze it?"  Those were the
+    same question only while Phase P was the newest work in the repository.
+    Asking it of today's tree now also returns the approved post-Phase-P
+    confirmatory implementation, which would attribute later work to Phase P --
+    and widening the allowed set to absorb those files would write that false
+    attribution down.  So the window is closed at ``PHASE_P_FREEZE_COMMIT`` and
+    the protected list is left exactly as Phase P reviewed it, ``src/`` included.
+    """
 
     protected = (
         "results/",
@@ -847,23 +1234,37 @@ def test_no_historical_artifact_is_modified_by_phase_p() -> None:
     )
     changed = [
         line
-        for line in _git("diff", "--name-only", CANONICAL_BASE_COMMIT).splitlines()
+        for line in _git(
+            "diff", "--name-only", CANONICAL_BASE_COMMIT, PHASE_P_FREEZE_COMMIT
+        ).splitlines()
         if line.strip()
     ]
+    assert changed, "the Phase-P freeze changed nothing, so this proves nothing"
     offenders = [
         name for name in changed if any(name.startswith(item) for item in protected)
     ]
     assert offenders == [], f"Phase P modified accepted artifacts: {offenders}"
+    # Stated positively as well: Phase-P protocol-freeze work touched no
+    # instrument byte at all, which is why it could be frozen against Phase O.
+    assert not [name for name in changed if name.startswith("src/iqa_soa")]
 
 
 def test_phase_p_is_additive_only() -> None:
-    """Every file Phase P touches is new and lives in the phase-p namespace."""
+    """Every file Phase P touches is new and lives in the phase-p namespace.
+
+    (C) Bounded at the Phase-P freeze commit for the same reason as the test
+    above: a later approved revision's files are not Phase-P work, and must not
+    be admitted into Phase P's allowed-change set to make this pass.
+    """
 
     changed = [
         line
-        for line in _git("diff", "--name-only", CANONICAL_BASE_COMMIT).splitlines()
+        for line in _git(
+            "diff", "--name-only", CANONICAL_BASE_COMMIT, PHASE_P_FREEZE_COMMIT
+        ).splitlines()
         if line.strip()
     ]
+    assert changed, "the Phase-P freeze changed nothing, so this proves nothing"
     for name in changed:
         base = Path(name).name
         assert "phaseP" in base or "phase_p" in base or "phaseP" in name, (
@@ -896,14 +1297,40 @@ def test_the_seed_triple_is_exactly_what_the_derivation_recorded() -> None:
 
 
 def test_the_derivation_is_a_pure_function_of_the_base_commit() -> None:
-    """Recomputing from the SHA alone reproduces the record byte for byte."""
+    """Recomputing from the SHA alone reproduces the record byte for byte.
 
-    recomputed = seeds.render(seeds.build_record())
+    The record embeds a ``collision_checks`` block whose
+    ``committed_seeds_discovered`` table is a scan of committed history AS IT
+    STOOD WHEN THE SELECTION WAS FROZEN.  Rebuilding it against TODAY's tree
+    would compare the frozen prospective record to a post-run repository that
+    now also contains a derivative HOLD ledger of the completed run -- a
+    different question, and one the record never claimed to answer.  So the
+    rebuild is fed the historical scan through the frozen ``scanned=`` seam the
+    derivation already exposes, and the derivation itself is untouched.
+
+    The purity claim is unchanged and is still proved: the triple is a function
+    of the canonical base SHA alone, and the committed record is byte-identical
+    to the version committed at the freeze.
+    """
+
+    historical = seed_supersession.scan_seeds_at_commit(PHASE_P_FREEZE_COMMIT)
+    recomputed = seeds.render(seeds.build_record(scanned=historical))
     committed = (PROJECT_ROOT / protocol.SEED_RECORD_RELATIVE).read_text(
         encoding="utf-8"
     )
     assert recomputed == committed
-    assert seeds.main(["--check"]) == 0
+    # The seeds themselves depend on nothing but the base commit, so THAT half
+    # needs no historicalization at all.
+    assert seeds.build_record()["seeds"] == seeds.build_record(scanned=historical)[
+        "seeds"
+    ] == list(protocol.SEEDS)
+    # And the committed record was never rewritten after the freeze.
+    frozen_bytes = seed_supersession.blob_at_commit(
+        PHASE_P_FREEZE_COMMIT, protocol.SEED_RECORD_RELATIVE
+    )
+    assert frozen_bytes is not None
+    assert (PROJECT_ROOT / protocol.SEED_RECORD_RELATIVE).read_bytes() == frozen_bytes
+    assert seed_supersession.check_historical_seed_freeze() == []
 
 
 def test_the_domain_separator_names_the_phase_benchmark_and_treatment() -> None:
@@ -934,14 +1361,30 @@ def test_no_historical_seed_is_reused() -> None:
 
 
 def test_the_forbidden_set_covers_every_seed_the_repository_records() -> None:
-    """The exclusion list is PROVED complete, not asserted."""
+    """The exclusion list is PROVED complete, not asserted.
 
-    prior = seeds.prior_phase_seeds()
-    assert set(prior) <= protocol.FORBIDDEN_HISTORICAL_SEEDS, (
-        f"the committed history records uncovered seeds: "
-        f"{sorted(set(prior) - protocol.FORBIDDEN_HISTORICAL_SEEDS)}"
+    Asked where the completeness claim bound -- at the Phase-P freeze -- and then
+    re-asserted for today, with the frozen triple excluded because today's tree
+    additionally contains the post-run derivative HOLD ledger of cells that used
+    it.  That one occurrence is bounded separately and exactly by
+    ``test_the_only_post_freeze_phase_p_seed_source_is_the_forensic_diagnosis``;
+    it is not swept into the forbidden set, which would be a category error.
+    """
+
+    historical = seeds.prior_phase_seeds(
+        seed_supersession.scan_seeds_at_commit(PHASE_P_FREEZE_COMMIT)
     )
-    assert set(prior) == {1729, 2718, 3141, 5772, 8119, *protocol.PHASE_L_SEEDS}
+    assert set(historical) <= protocol.FORBIDDEN_HISTORICAL_SEEDS, (
+        f"the committed history at the freeze records uncovered seeds: "
+        f"{sorted(set(historical) - protocol.FORBIDDEN_HISTORICAL_SEEDS)}"
+    )
+    assert set(historical) == {1729, 2718, 3141, 5772, 8119, *protocol.PHASE_L_SEEDS}
+
+    # Still true LIVE for every seed that is not the frozen Phase-P triple: a
+    # future phase leaking an uncovered seed still fails here.
+    live = seeds.prior_phase_seeds()
+    assert set(live) - set(protocol.SEEDS) == set(historical)
+    assert set(live) - set(protocol.SEEDS) <= protocol.FORBIDDEN_HISTORICAL_SEEDS
 
 
 def test_the_history_scan_reads_committed_bytes_not_the_working_tree(
@@ -1014,11 +1457,127 @@ def test_the_derivation_record_is_reproducible_from_a_clean_checkout(
 
 
 def test_no_phase_p_seed_leaks_outside_the_declared_phase_p_artifacts() -> None:
-    prior = seeds.prior_phase_seeds()
+    """THE PROSPECTIVE CLAIM, asked at the commit where it actually bound.
+
+    At the moment the triple was frozen, none of the three values appeared
+    anywhere under the scan roots except in Phase P's own three declared
+    seed-selection artifacts.  That is a closed fact about ``f4a085f`` and stays
+    provable forever from committed bytes.
+
+    Asserting it against today's tree instead would be asking a different and
+    strictly later question -- "has anything recorded these seeds SINCE the run
+    executed?" -- to which the answer is legitimately yes, and is bounded by the
+    present-state test immediately below.
+    """
+
+    historical = seed_supersession.scan_seeds_at_commit(PHASE_P_FREEZE_COMMIT)
+    prior = seeds.prior_phase_seeds(historical)
     assert set(protocol.SEEDS) & set(prior) == set()
-    scanned = seeds.scan_committed_seeds()
     for seed in protocol.SEEDS:
-        assert set(scanned[seed]) <= seeds.PHASE_P_ARTIFACTS
+        assert set(historical[seed]) <= seeds.PHASE_P_ARTIFACTS
+    assert seed_supersession.check_historical_seed_freeze() == []
+
+
+def test_the_only_post_freeze_phase_p_seed_source_is_the_forensic_diagnosis() -> None:
+    """THE PRESENT-STATE CLAIM, stated as an exact bound rather than an exemption.
+
+    Today the frozen triple may appear in Phase P's own declared artifacts and in
+    exactly ONE further enumerated path: the POST-RUN DERIVATIVE ledger of the
+    completed, permanently-HOLD run.  Not a prefix, not a glob, not "anything
+    named phaseP".  Any other source is a hard failure, so a future config,
+    result row or JSON leaking a Phase-P seed is still refused.
+    """
+
+    scanned = seeds.scan_committed_seeds()
+    extra = seed_supersession.extra_seed_sources(scanned, protocol.SEEDS)
+    assert set(extra) == set(protocol.SEEDS)
+    for seed, sources in extra.items():
+        assert sources == set(seed_supersession.POST_RUN_DERIVATIVE_SEED_SOURCES), seed
+        # And it is still DECLARED by Phase P's own artifacts -- the post-run
+        # ledger supplements the declaration, it never replaces it.
+        assert set(scanned[seed]) & seeds.PHASE_P_ARTIFACTS
+    assert seed_supersession.POST_RUN_DERIVATIVE_SEED_SOURCES == frozenset(
+        {"docs/phaseP_rc4_hold_forensic_diagnosis.json"}
+    )
+    assert seeds.PHASE_P_ARTIFACTS == frozenset(
+        {
+            "configs/phaseP-qualification.yaml",
+            "docs/phaseP_rc4_prospective_seed_derivation.json",
+            "docs/phaseP_frozen_execution_inputs.json",
+        }
+    ), "the post-run ledger must NEVER be promoted into the prospective artifacts"
+    assert seed_supersession.check_live_postrun_seed_supersession() == []
+
+
+def test_the_live_phase_p_seed_preflight_remains_closed() -> None:
+    """The REAL, unpatched frozen check still reports the post-run mismatch.
+
+    Phase P is completed and permanently HOLD.  Nothing here makes its real
+    execution path executable again, and the production code is not changed to
+    make today's Phase-P preflight green.  The historicalized seam used by the
+    synthetic driver tests exists only to exercise the frozen protocol as it
+    behaved while Phase P was prospectively executable; the protocol itself still
+    refuses on this tree, and this test is what proves that refusal survives.
+    """
+
+    failures = _REAL_CHECK_SEED_PROVENANCE()
+    assert failures, (
+        "the live frozen seed check no longer reports the post-run temporal "
+        "mismatch; production code must not be relaxed to make Phase P green"
+    )
+    blob = json.dumps(failures)
+    assert "docs/phaseP_rc4_hold_forensic_diagnosis.json" in blob
+    for seed in protocol.SEEDS:
+        assert str(seed) in blob
+    # The unpatched full preflight is closed too, for the same reason plus the
+    # approved instrument revision.  ``offline_preflight`` resolves both
+    # historicalized components at call time, so they are restored for it.
+    with unpatched_protocol_checks():
+        assert _REAL_OFFLINE_PREFLIGHT()
+
+
+def test_the_live_phase_p_instrument_check_remains_closed() -> None:
+    """(B1/B5) The REAL, unpatched instrument pin check still refuses today.
+
+    Phase P froze against the then-current Phase-O instrument and cannot be
+    silently rerun under the POST_PHASEP_CONFIRMATORY tree.  The failure below is
+    EXPECTED, and it is required to be exactly the approved supersession -- no
+    more and no less -- so neither a relaxation nor an unapproved edit can hide
+    inside it.
+    """
+
+    observed = _REAL_CHECK_INSTRUMENT_PINS()
+    assert observed, (
+        "the live frozen instrument check no longer reports the approved "
+        "post-Phase-P supersession; production code must not be relaxed to make "
+        "Phase P green"
+    )
+    assert set(observed) == set(superseded_instrument_pins())
+    blob = json.dumps(observed)
+    assert "src/iqa_soa" in blob
+    assert POST_PHASEP_REVISION_RELATIVE in blob
+    # And what was called is the frozen protocol's own function, not a stand-in.
+    assert _REAL_CHECK_INSTRUMENT_PINS.__module__ == "phaseP_protocol"
+    assert _REAL_CHECK_INSTRUMENT_PINS.__name__ == "check_instrument_pins"
+
+
+def test_the_live_phase_p_offline_preflight_remains_closed() -> None:
+    """Both temporal supersessions, and nothing else, keep Phase P closed today.
+
+    The live failure set must be EXACTLY the union of the two proved
+    supersessions.  An additional failure -- a moved config, a moved benchmark
+    byte, a broken sidecar, an unapproved instrument edit -- fails this test, and
+    a missing one fails it too.
+    """
+
+    with unpatched_protocol_checks():
+        observed = _REAL_OFFLINE_PREFLIGHT()
+    assert observed, "today's Phase-P production preflight must NOT pass"
+    expected = set(live_preflight_supersession())
+    assert set(observed) == expected, {
+        "unexpected": sorted(set(observed) - expected),
+        "absent": sorted(expected - set(observed)),
+    }
 
 
 def test_the_config_declares_exactly_the_frozen_seeds_in_order() -> None:
@@ -1578,7 +2137,7 @@ def test_verify_frozen_inputs_needs_no_gate_and_creates_nothing(
     assert seam.touched == []
     assert attempts == []
     assert sorted(p.name for p in tmp_path.iterdir()) == before
-    assert not (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).exists()
+    assert not protocol.canonical_results_root().exists()
 
 
 # ==========================================================================
@@ -1782,7 +2341,19 @@ def test_both_gates_mint_the_capability_and_nothing_else_happens(
     monkeypatch.setattr(driver, "execute_authorized_real_run", capture)
     open_the_process_gate(monkeypatch)
     with no_network() as attempts:
-        code = driver.main(["--execute-real-model"])
+        # The canonical namespace is relocated for this test (see the module
+        # fixture), so it is named explicitly rather than taken from the CLI
+        # default -- which is the production path and is bound, unrelocated, by
+        # test_the_production_cli_binds_exactly_the_canonical_inputs_it_will_read.
+        # require_canonical_results_root still runs for real and still refuses
+        # anything that is not the canonical namespace.
+        code = driver.main(
+            [
+                "--execute-real-model",
+                "--output-root",
+                str(protocol.canonical_results_root()),
+            ]
+        )
 
     assert code == protocol.EXIT_OK
     assert attempts == []
@@ -2563,18 +3134,81 @@ def test_the_frozen_modules_phase_p_executes_are_bound_here_too() -> None:
         )
 
 
-def test_the_offline_preflight_passes_on_the_frozen_tree() -> None:
+def test_the_offline_preflight_holds_apart_from_the_two_supersessions() -> None:
+    """Everything except the two enumerated, separately proved supersessions.
+
+    The frozen preflight is run IN FULL and UNPATCHED, and every failure it
+    reports must be accounted for by one of the two temporal supersessions.  Any
+    additional failure fails this test, so every other claim the frozen protocol
+    makes is still checked live and still holds.
+
+    Both superseded halves are proved where they are true rather than waived:
+    the seed half by ``scripts/post_phaseP_seed_provenance_supersession.py`` at
+    the Phase-P freeze commit, and the instrument half from committed bytes at
+    the approved successor revision's parent commit.
+
+    NOTE what this does NOT say.  It does not claim today's production Phase-P
+    preflight passes -- it does not, and
+    ``test_the_live_phase_p_offline_preflight_remains_closed`` requires it not to.
+    """
+
+    assert seed_supersession.run_all() == []
+    assert instrument_revision.check_instrument_provenance() == []
+    with unpatched_protocol_checks():
+        observed = set(_REAL_OFFLINE_PREFLIGHT())
+    assert observed - set(live_preflight_supersession()) == set()
+    # Under the two seams the residual really is nothing, which is what lets the
+    # synthetic driver tests reach the machinery they are about.
     assert protocol.offline_preflight() == []
 
 
 def test_the_frozen_input_record_is_deterministic_and_committed() -> None:
-    assert freezer.main(["--check"]) == 0
-    recomputed = freezer.render_record()
-    committed = (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(
-        encoding="utf-8"
-    )
-    assert recomputed == committed
-    assert freezer.render_record() == recomputed
+    """Determinism live; the one superseded pin proved where the record is true.
+
+    ``freezer.render_record()`` recomputes the record from the LIVE tree, so it
+    necessarily disagrees with the committed bytes once an approved successor
+    revision has moved ``src/iqa_soa`` -- on that one tree digest and nothing
+    else. The claim the record makes is that the inputs it bound were those bytes
+    when it bound them, and that is checked against committed bytes at the
+    commit at which its instrument was last the approved head. The record itself
+    is proved byte-unedited first, so this cannot be satisfied by rewriting it.
+    """
+
+    committed_bytes = subprocess.run(
+        ["git", "cat-file", "blob",
+         f"{POST_PHASEP_REVISION_PARENT_COMMIT}:{protocol.FROZEN_INPUTS_RELATIVE}"],
+        cwd=PROJECT_ROOT, capture_output=True, check=True,
+    ).stdout
+    record_path = PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE
+    assert record_path.read_bytes() == committed_bytes
+
+    # Still deterministic: two renders of the same tree are byte-identical.
+    assert freezer.render_record() == freezer.render_record()
+
+    recomputed = protocol.compute_frozen_inputs()
+    committed = json.loads(record_path.read_text(encoding="utf-8"))
+    # Every non-tree field and every per-FILE pin is still a LIVE guarantee.
+    assert recomputed["files"] == committed["files"]
+    assert {
+        key: value for key, value in recomputed.items() if key not in {"files", "trees"}
+    } == {
+        key: value for key, value in committed.items() if key not in {"files", "trees"}
+    }
+    assert set(recomputed["trees"]) == set(committed["trees"])
+    differing = {
+        root
+        for root, digest in recomputed["trees"].items()
+        if digest != committed["trees"][root]
+    }
+    assert differing == {"src/iqa_soa"}, differing
+    # And the one that moved moved to exactly the APPROVED successor tree.
+    assert recomputed["trees"]["src/iqa_soa"] == json.loads(
+        (PROJECT_ROOT / POST_PHASEP_REVISION_RELATIVE).read_text(encoding="utf-8")
+    )["current_instrument"]["src_iqa_soa_tree"]
+    # The record's own pin is still true where it bound the run.
+    assert instrument_revision.tree_digest_at_commit(
+        POST_PHASEP_REVISION_PARENT_COMMIT, "src/iqa_soa"
+    ) == committed["trees"]["src/iqa_soa"]
 
 
 def test_the_plan_matches_its_sha256_sidecar() -> None:
@@ -2594,6 +3228,17 @@ def test_every_declared_execution_input_is_hashed() -> None:
     for relative, digest in record["files"].items():
         assert protocol.sha256_file(relative) == digest
     for root, digest in record["trees"].items():
+        if root == "src/iqa_soa":
+            # The one pin an approved successor revision supersedes. It is
+            # verified from COMMITTED bytes at the commit at which the instrument
+            # it names was last the approved head, and the live tree still has to
+            # be the approved successor -- so an unapproved edit fails here just
+            # as it did before.
+            assert instrument_revision.tree_digest_at_commit(
+                POST_PHASEP_REVISION_PARENT_COMMIT, root
+            ) == digest
+            assert instrument_revision.check_approved_instrument_revision() == []
+            continue
         assert protocol.tree_digest(root) == digest
 
 
@@ -3005,6 +3650,7 @@ def test_a_noncanonical_manifest_refuses_the_production_cli(
 
 def test_the_production_cli_binds_exactly_the_canonical_inputs_it_will_read(
     monkeypatch: pytest.MonkeyPatch,
+    real_results_namespace: None,
 ) -> None:
     """The CLI's own binding is proved without executing, probing or creating anything.
 
@@ -3050,7 +3696,15 @@ def test_the_production_cli_binds_exactly_the_canonical_inputs_it_will_read(
             str(PROJECT_ROOT / protocol.RESULTS_NAMESPACE),
         ),
     ]
-    assert not protocol.canonical_results_root().exists()
+    # This test runs against the PRODUCTION binding (``real_results_namespace``),
+    # because what it proves is that the CLI binds the frozen namespace by
+    # default rather than accepting one. That identity is a path comparison; the
+    # directory is never opened, listed or hashed. The anti-side-effect half is
+    # carried by the stub above -- ``execute_authorized_real_run`` is replaced, so
+    # nothing downstream of the binding can create anything at all.
+    assert protocol.canonical_results_root() == (
+        PROJECT_ROOT / protocol.RESULTS_NAMESPACE
+    ).resolve()
 
 
 def test_the_production_cli_refuses_a_noncanonical_input_before_the_preflight(
@@ -3223,7 +3877,16 @@ def test_an_alternate_output_root_is_refused_by_the_production_cli(
 
 def test_the_results_namespace_binding_names_the_frozen_namespace(
     tmp_path: Path,
+    real_results_namespace: None,
 ) -> None:
+    """The PRODUCTION identity of the frozen namespace, proved unrelocated.
+
+    Every other test in this module runs with the canonical namespace relocated
+    to a fresh temporary directory, so this is the one that pins what the
+    production binding actually is. It compares paths and raises; it never opens,
+    lists, traverses or hashes the directory.
+    """
+
     assert protocol.require_canonical_results_root() == (
         PROJECT_ROOT / protocol.RESULTS_NAMESPACE
     ).resolve()
@@ -3963,7 +4626,66 @@ def test_a_wrong_arm_policy_pin_is_reported(monkeypatch: pytest.MonkeyPatch) -> 
 # ==========================================================================
 
 
+def _phase_o_revision() -> Mapping[str, Any]:
+    """The approved Phase-O revision record, read by name from the working tree."""
+
+    parsed: Mapping[str, Any] = json.loads(
+        (PROJECT_ROOT / protocol.PHASE_O_REVISION_RELATIVE).read_text(encoding="utf-8")
+    )
+    return parsed
+
+
+def superseded_instrument_pins() -> tuple[str, ...]:
+    """The EXACT live ``check_instrument_pins`` claims the successor supersedes.
+
+    Composed from the authoritative sources rather than pasted: the Phase-O
+    record's own pins, the live tree, and the live revision chain. An unapproved
+    byte under ``src/iqa_soa`` changes the live digest, so the observed set stops
+    matching this one AND
+    ``instrument_revision.check_approved_instrument_revision`` fails. The
+    supersession therefore admits exactly one instrument: the approved one.
+
+    Nothing here is subtracted from the protocol. ``check_instrument_pins`` is
+    still run in full, and any failure it reports that is not in this tuple is a
+    genuine failure that the tests below still surface.
+    """
+
+    revision = _phase_o_revision()
+    approved_tree = str(revision["current_instrument"]["src_iqa_soa_tree"])
+    live_tree = protocol.tree_digest("src/iqa_soa")
+    per_file = tuple(
+        f"FROZEN_ARTIFACT_MISMATCH: approved Phase-O instrument file {relative} "
+        f"recorded={entry['sha256']} actual={protocol.sha256_file(relative)}"
+        for relative, entry in sorted(revision["changed_files"].items())
+        if protocol.sha256_file(relative) != entry["sha256"]
+    )
+    chain = [
+        path.relative_to(instrument_revision.REPO_ROOT).as_posix()
+        for path in instrument_revision.REVISION_CHAIN
+    ]
+    return (
+        f"FROZEN_ARTIFACT_MISMATCH: src/iqa_soa digests to {live_tree}, the "
+        f"approved Phase-O revision is {approved_tree}",
+        *per_file,
+        "FROZEN_ARTIFACT_MISMATCH: the approved revision chain is "
+        f"{chain}, this protocol is frozen against "
+        f"{list(protocol.REVISION_CHAIN_RELATIVE)}",
+    )
+
+
 def test_the_pins_are_what_the_code_declares() -> None:
+    """Every version pin still holds LIVE; only the head-of-chain claim moved.
+
+    The instrument, raw-schema, adapter and argument-contract constants are
+    unchanged by the prospective post-Phase-P implementation, and they are still
+    asserted against the live code exactly as before -- that half of this test is
+    untouched. What moved is ``check_instrument_pins()``'s present-state claim
+    that Phase O is the approved head, which an approved successor makes false.
+    The frozen protocol is not edited and its failure is not suppressed: it is
+    run in full and its live failure set must be EXACTLY the enumerated
+    supersession, so any OTHER instrument-pin failure still fails this test.
+    """
+
     from iqa_soa.instrument import (
         INSTRUMENT_VERSION,
         NATIVE_TOOL_ADAPTER_VERSION,
@@ -3983,28 +4705,95 @@ def test_the_pins_are_what_the_code_declares() -> None:
         == protocol.EXPECTED_NATIVE_TOOL_ADAPTER_VERSION
         == "native-tools-adapter-3"
     )
-    assert protocol.check_instrument_pins() == []
+    assert set(_REAL_CHECK_INSTRUMENT_PINS()) == set(superseded_instrument_pins())
+    # And the live instrument is still an APPROVED, hash-pinned revision -- the
+    # supersession is not a licence to edit src/iqa_soa freely.
+    assert instrument_revision.check_instrument_provenance() == []
 
 
-def test_the_instrument_revision_chain_is_the_accepted_one() -> None:
-    import instrument_revision
+def test_the_phase_o_instrument_pins_hold_where_they_bound_phase_p() -> None:
+    """(A) The superseded pins, proved from COMMITTED bytes where they are true.
+
+    Phase P was frozen against the Phase-O instrument, and it was: at the commit
+    at which Phase O was last the approved head, ``src/iqa_soa`` digests to
+    exactly the tree the Phase-O revision records, and every file that revision
+    approves hashes to exactly its approved SHA-256. Those bytes are immutable,
+    so this stays provable after every later phase.
+    """
+
+    revision = _phase_o_revision()
+    approved_tree = str(revision["current_instrument"]["src_iqa_soa_tree"])
+    assert instrument_revision.tree_digest_at_commit(
+        POST_PHASEP_REVISION_PARENT_COMMIT, "src/iqa_soa"
+    ) == approved_tree
+    frozen = json.loads(
+        (PROJECT_ROOT / protocol.FROZEN_INPUTS_RELATIVE).read_text(encoding="utf-8")
+    )
+    assert frozen["trees"]["src/iqa_soa"] == approved_tree
+    # The record itself was not rewritten to describe the later tree.
+    committed = subprocess.run(
+        ["git", "cat-file", "blob",
+         f"{POST_PHASEP_REVISION_PARENT_COMMIT}:{protocol.PHASE_O_REVISION_RELATIVE}"],
+        cwd=PROJECT_ROOT, capture_output=True, check=True,
+    ).stdout
+    assert (PROJECT_ROOT / protocol.PHASE_O_REVISION_RELATIVE).read_bytes() == committed
+
+
+def test_the_instrument_revision_chain_is_the_accepted_one_extended_additively() -> None:
+    """The frozen Phase-P chain is a PREFIX of the live chain, never a rewrite.
+
+    Phase P appended nothing to the chain and still does not. What it pinned was
+    a two-link chain ending at Phase O, and that prefix is still exactly the
+    first two links, in the same order, with the same bytes. The only difference
+    is an approved successor appended behind them -- which is what an additive
+    revision chain is for. A chain that had been reordered, truncated, or had a
+    link rewritten would fail this test just as it did before.
+    """
 
     chain = [
         path.relative_to(instrument_revision.REPO_ROOT).as_posix()
         for path in instrument_revision.REVISION_CHAIN
     ]
-    assert chain == list(protocol.REVISION_CHAIN_RELATIVE)
-    assert chain[-1] == "docs/phaseO_instrument_revision.json"
+    frozen_prefix = list(protocol.REVISION_CHAIN_RELATIVE)
+    assert chain[: len(frozen_prefix)] == frozen_prefix
+    assert chain[len(frozen_prefix) :] == [POST_PHASEP_REVISION_RELATIVE]
+    assert instrument_revision.REVISION_PATH == instrument_revision.REVISION_CHAIN[-1]
     assert instrument_revision.check_instrument_provenance() == []
+    # Every link the frozen protocol pinned is byte-identical to the version
+    # committed at the successor's parent, so none of them was rewritten.
+    for relative in frozen_prefix:
+        committed = subprocess.run(
+            ["git", "cat-file", "blob",
+             f"{POST_PHASEP_REVISION_PARENT_COMMIT}:{relative}"],
+            cwd=PROJECT_ROOT, capture_output=True, check=True,
+        ).stdout
+        assert (PROJECT_ROOT / relative).read_bytes() == committed, relative
+    # And the successor binds the Phase-O head it was appended behind.
+    successor = json.loads(
+        (PROJECT_ROOT / POST_PHASEP_REVISION_RELATIVE).read_text(encoding="utf-8")
+    )
+    assert successor["parent_commit"] == POST_PHASEP_REVISION_PARENT_COMMIT
+    assert successor["previous_instrument"]["src_iqa_soa_tree"] == (
+        _phase_o_revision()["current_instrument"]["src_iqa_soa_tree"]
+    )
 
 
 def test_every_recorded_phase_o_instrument_file_matches_its_own_hash() -> None:
-    revision = json.loads(
-        (PROJECT_ROOT / protocol.PHASE_O_REVISION_RELATIVE).read_text(encoding="utf-8")
-    )
+    """Phase O's per-file pins, asked at the commit where Phase O was the head.
+
+    Comparing them to today's tree would assert a superseded revision against a
+    tree a later approved revision has legitimately moved past -- the "prove A by
+    checking B" conflation ``scripts/instrument_revision.py`` exists to remove.
+    The committed bytes at the successor's parent are immutable, so the claim
+    stays checkable forever and cannot be satisfied by editing anything.
+    """
+
+    revision = _phase_o_revision()
     assert revision["changed_files"]
     for relative, entry in revision["changed_files"].items():
-        assert protocol.sha256_file(relative) == entry["sha256"], relative
+        assert instrument_revision.sha256_of_blob_at_commit(
+            POST_PHASEP_REVISION_PARENT_COMMIT, relative
+        ) == entry["sha256"], relative
 
 
 @pytest.mark.parametrize(
@@ -4583,11 +5372,59 @@ def test_the_closed_taxonomy_and_its_dispositions_are_unchanged() -> None:
 # ==========================================================================
 
 
-def test_phase_p_creates_no_results_namespace() -> None:
+def test_the_official_namespace_did_not_exist_at_the_phase_p_freeze() -> None:
+    """(A1) The HISTORICAL half of the old "creates no results namespace" claim.
+
+    When the Phase-P protocol was frozen, the official results namespace did not
+    yet exist: the freeze created a protocol, not an empirical result. That is a
+    closed fact about ``f4a085f``, provable forever from git tree metadata.
+
+    The claim it replaces -- "the namespace is absent TODAY" -- is obsolete, and
+    deliberately not restated. Phase P subsequently executed and terminated
+    SCHEDULE_COMPLETE_VERDICT_HOLD, so an official evidence root exists locally.
+    Nothing here opens, lists, traverses, hashes or stats it; the question is
+    asked of the committed freeze tree instead.
+    """
+
     assert protocol.RESULTS_NAMESPACE == "results/phaseP-rc4-qualification"
-    assert not (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).exists(), (
-        "Phase P must create no empirical result"
+    assert not path_exists_in_committed_tree(
+        PHASE_P_FREEZE_COMMIT, protocol.RESULTS_NAMESPACE
+    ), "the Phase-P freeze commit already carried an official results namespace"
+    # And the freeze really did commit the protocol it froze, so the absence
+    # above is the absence of a RESULT, not of the whole phase.
+    assert path_exists_in_committed_tree(
+        PHASE_P_FREEZE_COMMIT, "docs/phaseP_frozen_execution_inputs.json"
     )
+    assert path_exists_in_committed_tree(
+        PHASE_P_FREEZE_COMMIT, "scripts/phaseP_protocol.py"
+    )
+
+
+def test_a_refused_offline_run_creates_no_canonical_namespace(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """(A3) The SYNTHETIC half: the code under test still creates nothing.
+
+    The canonical namespace is relocated to a fresh temporary directory that
+    starts absent, a refused path is driven, and the namespace must still be
+    absent afterwards. That is the anti-side-effect guarantee the old assertion
+    carried, restated so it measures the code under test rather than the state of
+    a completed run.
+    """
+
+    relocated = protocol.canonical_results_root()
+    assert not relocated.exists(), "the relocated namespace must start absent"
+    monkeypatch.setattr(protocol, "SEEDS", (929260329, 1904689056, 1133353488))
+    executed: list[Any] = []
+    code = drive_bound(
+        tmp_path / "out",
+        probe=_stub_probe,
+        execute_cell=executed.append,
+    )
+    assert code == protocol.EXIT_PREFLIGHT_STOP
+    assert executed == []
+    assert not (tmp_path / "out").exists()
+    assert not relocated.exists()
 
 
 @pytest.mark.parametrize(

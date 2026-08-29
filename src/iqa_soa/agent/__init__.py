@@ -6,6 +6,7 @@ from iqa_soa.agent.providers import (
     DeterministicStubProvider,
     OpenAICompatibleProvider,
     ProviderError,
+    ProviderFailureOrigin,
     ProviderResponse,
 )
 
@@ -16,5 +17,6 @@ __all__ = [
     "ExperimentalAgent",
     "OpenAICompatibleProvider",
     "ProviderError",
+    "ProviderFailureOrigin",
     "ProviderResponse",
 ]
