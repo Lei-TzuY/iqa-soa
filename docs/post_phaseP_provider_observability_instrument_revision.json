@@ -1,0 +1,121 @@
+{
+  "additive_to": "docs/post_phaseP_confirmatory_instrument_revision.json",
+  "authorizes_confirmatory_execution": false,
+  "ben_003_rehabilitated": false,
+  "benchmark_bytes_unchanged": {
+    "note": "No rc3 or rc4 task YAML, manifest byte, contract byte, freeze record or scoring threshold was touched. C3 creates no benchmark byte and changes no benchmark reachability, task semantic, canonical exposure setting or QA treatment.",
+    "pilot-v7-rc3_freeze_record_sha256": "853e1b9d0bc343fe1c780454cd4d1e24c389d7e16b7536c446ae3d695454d8da",
+    "pilot-v7-rc3_manifest_sha256": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+    "pilot-v7-rc4_audit_sha256": "4b0321012d43b6c2d8d7e31b472b5034893e8ecc7c771ce84781a4fe4c655dc8",
+    "pilot-v7-rc4_freeze_record_sha256": "c988a94114dca1470324504adb85c4061ed849808383cb50c4ea512800a8396f",
+    "pilot-v7-rc4_manifest_sha256": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
+    "pilot-v7-rc4_provenance_sha256": "0486df32c46285615e46c859728f09b0b8f83528f9a3a0fa4de7cbbf1302bf24",
+    "pilot-v7-rc4_qualification_contract_sha256": "ac600e6d84be5aa46f9c39d51311b0da6c68847a2083a57bdb901c38e45433cc",
+    "qa_policy_default_xml_sha256": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5"
+  },
+  "benchmark_freeze_records_overwritten": false,
+  "changed_files": {
+    "src/iqa_soa/agent/__init__.py": {
+      "reason": "Additive export only. NativeToolCallState, ProviderCaptureStage, ProviderCaptureState, ProviderEnvelopeCapture and ProviderFailureBranch join the package's public surface beside ProviderError and ProviderFailureOrigin, so a reader or analyzer binds the C3 failure vocabulary from the stable iqa_soa.agent name rather than reaching into iqa_soa.agent.providers internals. No existing export is removed, renamed or rebound, no symbol changes identity, and no legacy importer observes any difference.",
+      "sha256": "ef66c0b3e8daf2a3795199bb02123354068a39369b9c2c9b18fcbf403967bb2a"
+    },
+    "src/iqa_soa/agent/providers.py": {
+      "reason": "The whole of C3. Adds four closed instrument-authored vocabularies -- ProviderCaptureState (SUPPLIED / NOT_SUPPLIED / UNOBSERVED), ProviderCaptureStage, ProviderFailureBranch (one member per raise site plus an UNSPECIFIED legacy default) and NativeToolCallState -- plus the frozen ProviderEnvelopeCapture carrier, and labels all 23 raise ProviderError sites with the branch they are. ProviderError.provenance() previously hard-coded response_id, effective_model, finish_reason, system_fingerprint, input_tokens and output_tokens to a literal None at EVERY one of those sites, so a persisted None could not be distinguished from a value the provider omitted, nor from one that was never reachable: three facts collapsed into one byte. Those six values are now captured where they are in scope and each is paired with an explicit presence state, and the record additionally carries failure_branch, protocol, effective_seed and a typed native_tool_call_state. THE ACCEPT/REFUSE DECISION FUNCTION IS PRESERVED EXACTLY: every predicate, every failure_class, every failure_origin, every message string, every retryability rule and the entire request payload are byte-identical, the three new constructor parameters are keyword-only and default-safe so every legacy caller keeps its meaning, ProviderResponse and ProviderResponse.provenance() are untouched, and no committed row is reclassified. No assistant text, prompt, raw body, header, credential, tool argument or resource value is persisted.",
+      "sha256": "d861406412e9202d01a754da5725fd89f9523d6b57b3d5c6b689184f93586f33"
+    },
+    "src/iqa_soa/experiment/runner.py": {
+      "reason": "ONE LINE OF BEHAVIOUR. The writer selects PILOT_RAW_FIELDS_V6 instead of PILOT_RAW_FIELDS_V5, so the tuple it writes is named for the schema the manifest declares. The two tuples are EQUAL, so not one persisted column changes name, position, type or presence. Nothing else in the file moves: the row projection at effective_provider_seed, provider_response_id, effective_model, finish_reason and system_fingerprint already reads those keys from the final provider attempt with .get() and needed no edit to start carrying real values on a failure row. ExperimentRunner.run semantics, the schedule, the seed derivation, the treatment definitions, the prompts, the policy, the tool dispatch and the evidence handling are unchanged.",
+      "sha256": "6c8007e6a746823b497745b25e4277208e25e2b8277352a89ff1004cc8a287f2"
+    },
+    "src/iqa_soa/instrument.py": {
+      "reason": "Moves the two boundary aliases and names the new constants permanently. PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_VERSION = '5' and PROVIDER_FAILURE_TELEMETRY_RAW_SCHEMA_VERSION = 6 are added, INSTRUMENT_VERSION and RAW_SCHEMA_VERSION are re-aliased to them, and 6 is appended to both READABLE tuples so schemas 1-5 stay readable forever and no historical row is rewritten. TOOL_CONTRACT_INSTRUMENT_VERSION = '4' and FAILURE_EVENT_RAW_SCHEMA_VERSION = 5 keep their values as the permanent names of the instrument and schema every frozen Phase-P artifact was written under. NATIVE_TOOL_ADAPTER_VERSION deliberately does NOT move: Phase M is the controlling precedent, the adapter's request payload and response-side accept/refuse function are byte-identical, and bumping it would assert an adapter difference that does not exist. PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_BOUNDARY declares the new boundary explicitly, in the form the frozen rc4_instrument_boundary uses and without weakening or replacing it, so no analyst pools instrument-5 and instrument-4 rows by default.",
+      "sha256": "976b93e4c58c1aeb067c817031b39db9079b0eae4e3d8ec2723357f50289f415"
+    },
+    "src/iqa_soa/metrics/definitions.py": {
+      "reason": "Adds the schema-6 raw-field definition and the read contract it needs. PILOT_RAW_FIELDS_V6 is EQUAL to PILOT_RAW_FIELDS_V5 -- schema 6 adds no column, because all eleven accepted telemetry fields live inside the already-persisted provider_attempts column -- and RAW_FIELDS_BY_SCHEMA_VERSION gains its permanent entry 6. Unlike schemas 3, 4 and 5 this revision cannot claim to be strictly additive: provider_response_id, effective_model, finish_reason, system_fingerprint and effective_provider_seed keep their name and type but change their FAILURE-ROW CONTENT CONTRACT from 'null by construction' to 'captured where the failure boundary made it available'. failure_row_projection_contract states both semantics explicitly per schema version so a schema-5 row is read under schema-5 semantics and is never silently reinterpreted, and provider_failure_attempt_required_keys returns an empty tuple for every historical schema so no frozen artifact is retroactively required to carry telemetry its instrument could not produce.",
+      "sha256": "640f6052ad65bb01751e9e56369ee1f7cd607b71d7b5e6b66059a21916e3d799"
+    },
+    "src/iqa_soa/metrics/pilot.py": {
+      "reason": "ENFORCEMENT ONLY. The schema-6 per-attempt failure-telemetry contract was DECLARED in metrics/definitions.py but was exercised nowhere in the production reader, so a raw_schema_version 6 bundle carrying malformed or absent C3 provider_attempts telemetry would have been read, classified and analyzed as though its telemetry were sound. _validate_pilot_manifest -- the ONE existing raw-row validation boundary, already the place a reader selects a row's field set by the schema it was WRITTEN under -- now also selects the attempt contract there, via provider_failure_attempt_required_keys, and refuses any attempt that provider_failure_attempt_violations rejects. No second validator is introduced and no rule is restated: the decision function is the one definitions.py already owned. SCHEMAS 1-5 ARE UNTOUCHED, and structurally so rather than by assertion: provider_failure_attempt_required_keys returns an empty tuple below schema 6, so a schema 1-5 bundle never enters the new branch at all and its attempt telemetry -- including a non-object or absent entry that the pre-existing row contract already permitted -- keeps exactly the meaning it was written with. A schema-5 row is therefore never read under schema-6 attempt semantics. The refusal is raised BEFORE _classified_failure_row and _validate_failure, so malformed schema-6 telemetry fails closed as instrument/evidence corruption rather than becoming a scientific observation; nothing is normalized, repaired, inferred, default-filled or silently dropped, and the bundle is refused whole. The existing provider_attempts checks -- list shape, provider_attempt_count agreement, and at-least-one-attempt -- are unchanged, no attempt is invented where none is required, no frozen Phase-P artifact is reinterpreted, and no analyzer, metric, pairing rule or failure classification is altered.",
+      "sha256": "05b9a003097e6ef33ca87a9bd0e5e6074a06727b9c3d2dc36c9bd9e61e275681"
+    }
+  },
+  "current_instrument": {
+    "adapter_unchanged": true,
+    "instrument_version": "5",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "raw_schema_version": 6,
+    "src_iqa_soa_tree": "1d0f1371099536322a4988334ea9d6ac9445c2feec85bc0b3df26d8ada1184ac",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "frozen_historical_inputs": "This revision changes no prospectively frozen scientific input. Every path -> SHA-256 binding in every committed provenance record still matches the working tree, audited by scripts/phaseM_frozen_input_audit.py. The Phase-L and Phase-P src/iqa_soa TREE digests are a separate matter and are handled under superseded_live_assertions.",
+  "frozen_input_audit": "scripts/phaseM_frozen_input_audit.py",
+  "governed_by": [
+    "docs/post_phaseP_prospective_redesign_decision.md",
+    "docs/post_phaseP_provider_observability_design.md"
+  ],
+  "historical_analysis_compatibility": "scripts/phaseM_historical_analysis.py",
+  "historical_rows": "Committed Phase-D, Phase-F, Phase-I, Phase-L and Phase-P raw rows are neither rewritten nor re-run. They remain readable under the schema they were written with, via RAW_FIELDS_BY_SCHEMA_VERSION, which gains entry 6 and loses nothing, and under the instrument version their own phase ran under, which is still the permanently named constant that phase pinned. On a schema 2-5 failure row the five projected columns keep NULL_BY_CONSTRUCTION semantics, stated explicitly by iqa_soa.metrics.definitions.failure_row_projection_contract, so no historical null is reinterpreted as an observation about a provider.",
+  "historical_rows_rescored": false,
+  "instrument_boundary_declaration": "Rows written under instrument 5 / raw schema 6 / native-tools-adapter-3 and rows written under instrument 4 / raw schema 5 / native-tools-adapter-3 are separated by an observation-only change on the provider failure path: the failure record now carries the accepted minimum provider failure telemetry, and five existing row-level columns that were null on every failure row by construction now carry captured values. The DEFAULT IS SEPARATION. Measurements carrying different instrument_version or raw_schema_version values MUST NOT be merged, pooled, averaged or compared as though they were generated under identical instrumentation; an analyst who wishes to pool across this boundary must say so explicitly and justify it. The native-tools adapter version is IDENTICAL on both sides of the boundary, and that is informative rather than accidental: it is the machine-checkable record that the request payload and the accept/refuse decision function did not move.",
+  "instrument_revisions_overwritten": false,
+  "instrument_versions_moved": "INSTRUMENT_VERSION moves '4' -> '5' and RAW_SCHEMA_VERSION moves 5 -> 6. Both are required. The instrument bump follows the rule this repository already states for Phase M: the harness that produced a post-C3 row is not the harness that produced a Phase-B..P row, and the constant exists so that difference is machine-checkable rather than argued from memory. The raw-schema bump is required for a reason no earlier bump had: five EXISTING columns change their content contract on failure rows, so a schema-5 failure row pooled with a schema-6 failure row would attribute an instrument change to the provider. NATIVE_TOOL_ADAPTER_VERSION and TOOL_ARGUMENT_CONTRACT_VERSION do NOT move, and holding them is a positive claim: the request payload is byte-identical and the accept/refuse decision function is byte-identical, so the model was asked the same question under the same rules on both sides of the boundary.",
+  "model_inference_performed": false,
+  "observation_only": true,
+  "offline_tests": "tests/unit/test_provider_failure_telemetry.py, tests/integration/test_post_phaseP_provider_observability.py",
+  "offline_validator": "scripts/instrument_revision.py",
+  "offline_writer": "scripts/post_phaseP_write_provider_observability_revision.py",
+  "overwrites_nothing": "No existing instrument revision is overwritten and no historical hash in any of them is updated in place. Neither benchmark/pilot-v7-rc3/freeze-record.json, benchmark/pilot-v7-rc4/freeze-record.json, benchmark/pilot-v7-rc4/qualification-contract.json, docs/phaseM_instrument_revision.json, docs/phaseO_instrument_revision.json nor docs/post_phaseP_confirmatory_instrument_revision.json is edited. Each predecessor's pins are still proved from committed bytes at the commit its own successor started from; this link's predecessor is proved at 883c425daf2e6462877f0626f5fce0664ac85ca9, the last commit at which it was the approved head. scripts/instrument_revision.py verifies the chain link by link.",
+  "parent_commit": "883c425daf2e6462877f0626f5fce0664ac85ca9",
+  "parent_commit_basis": "The last commit at which the post-Phase-P confirmatory revision was the approved head, and the commit this C3 implementation started from.",
+  "phase": "POST_PHASEP_PROVIDER_OBSERVABILITY",
+  "phase_p_evidence_untouched": "The official Phase-P evidence root results/phaseP-rc4-qualification/ is not read, enumerated, traversed, hashed, regenerated, resumed, repaired, replaced or modified by this revision or by scripts/post_phaseP_write_provider_observability_revision.py, and no value in this record, and no telemetry field, name, size or default in the change it documents, is derived from it.",
+  "phase_p_execution_rerun": false,
+  "phase_p_rc4_hold": {
+    "benchmark_version": "pilot-v7-rc4",
+    "diagnosis_record": "docs/phaseP_rc4_hold_forensic_diagnosis.json",
+    "note": "The completed official Phase-P qualification of pilot-v7-rc4 ended SCHEDULE_COMPLETE_VERDICT_HOLD and pilot-v7-rc4 remains UNQUALIFIED. That verdict stands, and is neither retracted, revisited, reinterpreted nor rescored by this revision. C3 is PROSPECTIVE: it improves the attribution of provider and model-protocol failures that have not happened yet, and it cannot act on a frozen row. The preserved invalidated cell mistral | BEN-003 | 1133353488 remains MODEL_PROTOCOL_INVALID, the BEN-003 task status remains MATRIX_INVALID, and the forensic attribution remains MODEL_PROTOCOL_FAILURE. The envelope and token values that cell's response carried were never persisted and are UNKNOWABLE; no telemetry design can recover them and this one does not attempt to.",
+    "phase": "P",
+    "phase_p_cells_rerun": 0,
+    "phase_p_rows_rescored": 0,
+    "qualification_status": "UNQUALIFIED",
+    "report": "docs/phaseP_rc4_hold_forensic_diagnosis.md",
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "verdict": "HOLD"
+  },
+  "phase_p_result_reinterpreted": false,
+  "post_phaseP_confirmatory_execution_authorized": false,
+  "predecessor_custody": {
+    "authoritative_src_iqa_soa_tree": "966869a4506f403db23ed545785821c98f8c8c01796426b47254d4a10769ebaa",
+    "committed_src_iqa_soa_tree_at_parent_commit": "966869a4506f403db23ed545785821c98f8c8c01796426b47254d4a10769ebaa",
+    "corrected_record": "docs/post_phaseP_confirmatory_instrument_revision.json",
+    "corrected_record_edited_by_this_revision": false,
+    "corrected_record_sha256": "927c0c3b662990500304214506e6413bf71e9ad4cebe9436c8a2bff2fb21d59a",
+    "correction_record": "docs/post_phaseP_confirmatory_instrument_revision_correction.json",
+    "correction_record_sha256": "6a99ab145fd240bee1e9a2f9ac6b9686ff88227d633bd4de70e1268c3cd0f4c3",
+    "note": "REPAIRED ADDITIVELY, and not caused by this revision. instrument_revision.sha256_of hashes raw WORKING-TREE bytes and never normalizes, so a head record is pinned to a working-tree digest, while a SUPERSEDED link is proved against COMMITTED blobs by _check_historical_link. The two agree only while the working tree is byte-identical to its commit. This repository declares '* text=auto eol=lf', so git normalizes on commit and reports a CRLF working-tree file as unchanged while it hashes differently. The predecessor's pin, and one of its per-file digests, were computed over such a tree before C3 existed, so no commit can reproduce them. The defective record is PRESERVED BYTE-FOR-BYTE and is NOT edited, regenerated or overwritten by this revision; the corrected, committed-byte-provable custody state lives in the separate additive correction record named above, which instrument_revision.verify_custody_correction re-derives from committed bytes and proves by reconstructing the defective digests in both directions before admitting it. THIS REVISION BINDS THE CORRECTED DIGEST, because that is the one a later reader can prove from history. scripts/instrument_revision.py is not weakened: the correction is pinned to one record's bytes, one phase and one commit, and any predecessor mismatch it has not reproduced still fails closed.",
+    "predecessor_declared_pin_is_reproducible_from_history": false,
+    "predecessor_declared_src_iqa_soa_tree": "c43f8f162f22faff2f956c8e080b422f4e011ca4301de188c8dd4e0583b29c75"
+  },
+  "previous_instrument": {
+    "instrument_version": "4",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "parent_commit": "bc9d0a1234ab229d6433dbd4e54df1e17823806c",
+    "phase": "POST_PHASEP_CONFIRMATORY",
+    "raw_schema_version": 5,
+    "record": "docs/post_phaseP_confirmatory_instrument_revision.json",
+    "src_iqa_soa_tree": "966869a4506f403db23ed545785821c98f8c8c01796426b47254d4a10769ebaa",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "prospective_implementation_only": "This record documents a PROSPECTIVE post-Phase-P implementation only. No model inference is performed by it or by the script that produces it; no provider is contacted and no socket is opened. No Phase-P execution is rerun, resumed, repaired, replaced or reinterpreted. No historical Phase-D, Phase-F, Phase-I, Phase-L or Phase-P row is modified, reclassified or rescored. No benchmark freeze record is overwritten. No existing instrument revision is overwritten. This revision authorizes no real confirmatory execution, creates no successor candidate and names no phase.",
+  "qa_off_treatment_invariant": "treatment_for('off').detailed_evidence remains False and the evidence guard remains disabled under QA OFF. The eleven fields C3 persists are instrument-authored closed enums, provider-generated short identifiers already persisted on the SUCCESS record, and integers already persisted in existing usage telemetry. No assistant text, prompt echo, chain-of-thought, tool ARGUMENT value, resource value from refused content, response hash, content length, raw header, endpoint URL, credential or response body reaches disk that did not before.",
+  "record_kind": "instrument_revision",
+  "successor_candidate_created": false,
+  "superseded_live_assertions": {
+    "scripts/phaseL_protocol.py": "Already superseded by Phase O and again by the post-Phase-P confirmatory link on their stated terms, and superseded again here only in the sense that the digest its one false tree assertion reports is now the post-C3 tree. scripts/phaseO_frozen_input_supersession.py composes the expected text from the approved HEAD of the revision chain rather than pasting it, so it consumes this new head automatically and nothing in it needed editing.",
+    "scripts/phaseP_protocol.py": "check_instrument_pins() pins EXPECTED_INSTRUMENT_VERSION = '4' and EXPECTED_RAW_SCHEMA_VERSION = 5 as literals, and check_frozen_inputs() pins the Phase-O src/iqa_soa tree. Both are now false live, and THAT IS THE DESIRED BEHAVIOUR AND MUST NOT BE REPAIRED: the frozen Phase-P protocol refuses to run under an instrument it was not frozen against, which is the mechanism that binds any future successor to the post-C3 instrument ONLY and prevents a retroactive reinterpretation of Phase-P rows. scripts/phaseP_protocol.py is NOT edited, FROZEN_ARTIFACT_MISMATCH is not weakened, no preflight is relaxed, and the claims are proved where they are true -- from committed bytes at 883c425daf2e6462877f0626f5fce0664ac85ca9 -- in tests/integration/test_phaseP_execution_protocol.py. Note that TOOL_CONTRACT_INSTRUMENT_VERSION and FAILURE_EVENT_RAW_SCHEMA_VERSION, which that module also pins, still match: only the two aliases moved.",
+    "scripts/validate_pilot_v7_rc2.py": "Already superseded by Phase M, Phase O and the post-Phase-P confirmatory link on the same terms, and superseded again here only in the sense that the digest its one false assertion reports is now the post-C3 tree. scripts/phaseM_historical_analysis.py composes that expected string from the approved head of the revision chain, so it follows the chain automatically."
+  },
+  "title": "Post-Phase-P provider failure-path observability repair (change C3, minimum telemetry set only)",
+  "why_observation_only": "Nothing the model sees and nothing the sandbox does is different. The request payload, the tool definition, the advertised and enforced argument contract, the prompts, the treatments, the policy, the seed derivation and the tool dispatch are byte-identical, so controlled_input_digest, system_prompt_sha256 and user_prompt_sha256 are unaffected. Every accept/refuse predicate, every failure_class, every failure_origin and every retryability rule is byte-identical, so every response accepted before C3 is still accepted and every response refused is still refused with the same class. C3 changes only what the adapter RECORDS while raising."
+}

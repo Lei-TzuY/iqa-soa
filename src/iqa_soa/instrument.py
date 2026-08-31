@@ -29,6 +29,28 @@ precisely so that such a difference is machine-checkable rather than argued
 from memory.  A future analyst who wants to pool across the boundary must say so
 explicitly and justify it; the default is separation.
 
+(C3) A THIRD boundary is added on exactly the Phase-M terms.  The provider
+failure path used to write a literal ``None`` for ``response_id``,
+``effective_model``, ``finish_reason``, ``system_fingerprint``, ``input_tokens``
+and ``output_tokens`` at every one of its raise sites, unconditionally, so a
+persisted ``None`` on a failure row could not be distinguished from a value the
+provider genuinely omitted, nor from one that was never reachable.  The adapter
+now captures those values where they are in scope and pairs each with an
+explicit presence state, and it records the raising branch, the protocol, the
+effective seed and a typed native-tool-call state.  That is an additive
+observation change: it alters no prompt, no request payload, no tool definition,
+no accept/refuse predicate, no ``failure_class``, no retry rule and no metric, so
+the model is asked exactly the same question and answers it under exactly the
+same rules.  The version is nevertheless bumped, for the reason this module
+exists and for one more: five EXISTING row-level columns
+(``provider_response_id``, ``effective_model``, ``finish_reason``,
+``system_fingerprint``, ``effective_provider_seed``) were null on every failure
+row by construction and now carry real values, so their CONTENT CONTRACT on
+failure rows changed even though their name and type did not.  Pooling a schema-5
+failure row with a schema-6 failure row would attribute an instrument change to
+the provider.  See ``PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_BOUNDARY`` below,
+which declares the boundary explicitly so no analyst pools across it by default.
+
 Every version below is a NAMED, PERMANENT constant.  Historical phases pin the
 constant they were executed under rather than whichever value happens to be
 current, so a later revision can never silently retroactively invalidate a
@@ -73,8 +95,20 @@ FAULT_PROVENANCE_INSTRUMENT_VERSION = "3"
 # exists to prevent.
 TOOL_CONTRACT_INSTRUMENT_VERSION = "4"
 
+# (C3) Post-Phase-P instrument: the provider failure path carries the accepted
+# minimum failure telemetry -- the raising branch, the six envelope/token values
+# each paired with an explicit presence state, the protocol, the effective seed
+# and a typed native-tool-call state -- inside every ``provider_attempts[]``
+# failure entry.  Observation only, on the Phase-M terms: no prompt, request
+# payload, tool definition, accept/refuse predicate, failure class, retry rule or
+# metric moves, and the native-tools adapter deliberately does NOT move with it
+# (see ``NATIVE_TOOL_ADAPTER_VERSION``).  ``TOOL_CONTRACT_INSTRUMENT_VERSION``
+# remains the permanent name of the instrument every frozen Phase-P artifact was
+# written under, and is not re-pointed here.
+PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_VERSION = "5"
+
 #: What the instrument writes today.
-INSTRUMENT_VERSION = TOOL_CONTRACT_INSTRUMENT_VERSION
+INSTRUMENT_VERSION = PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_VERSION
 
 # Identifies the native-tools request/response adapter specifically, so a later
 # adapter change is distinguishable from an unrelated instrument change.  Phase
@@ -91,6 +125,17 @@ INSTRUMENT_VERSION = TOOL_CONTRACT_INSTRUMENT_VERSION
 PRE_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-2"
 TRUTHFUL_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-3"
 
+# (C3) This deliberately does NOT move, and Phase M is the controlling
+# precedent.  The constant identifies the native-tools request/response ADAPTER,
+# and C3 changes neither half of it: the request payload is byte-identical
+# (``_native_action_tool``, ``tool_choice``, ``parallel_tool_calls``, the
+# function description and the argument schema are untouched) and the
+# response-side accept/refuse function is byte-identical (every predicate, every
+# ``failure_class`` and every ``failure_origin`` is unchanged).  C3 changes only
+# what the adapter RECORDS while raising.  Bumping it here would assert that a
+# Phase-P row and a post-C3 row were produced by different native-tools adapters,
+# which is false, and would collapse the independence between the two boundaries
+# that Phase M established.
 NATIVE_TOOL_ADAPTER_VERSION = TRUTHFUL_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION
 
 
@@ -122,8 +167,20 @@ FAULT_PROVENANCE_RAW_SCHEMA_VERSION = 4
 # schema-5 row correctly.
 FAILURE_EVENT_RAW_SCHEMA_VERSION = 5
 
+# (C3) Schema 6 adds no column.  All eleven accepted telemetry fields live inside
+# ``provider_attempts[]``, which is already a persisted column, so
+# ``PILOT_RAW_FIELDS_V6`` equals ``PILOT_RAW_FIELDS_V5`` exactly.  Unlike schemas
+# 3, 4 and 5 this revision cannot claim to be strictly additive: five schema-5
+# columns keep their name and type but change their CONTENT CONTRACT on failure
+# rows, from "null by construction" to "the captured value where the failure
+# boundary made it available".  Schema-5 rows are never rewritten and never
+# reinterpreted -- they are read under schema-5 semantics, which
+# ``iqa_soa.metrics.definitions.failure_row_projection_contract`` states
+# explicitly for both versions.
+PROVIDER_FAILURE_TELEMETRY_RAW_SCHEMA_VERSION = 6
+
 #: What the instrument writes today.
-RAW_SCHEMA_VERSION = FAILURE_EVENT_RAW_SCHEMA_VERSION
+RAW_SCHEMA_VERSION = PROVIDER_FAILURE_TELEMETRY_RAW_SCHEMA_VERSION
 
 #: Every raw schema an analyzer must still be able to read.  Schema 1 is the
 #: non-pilot deterministic record; 2, 3 and 4 are the pilot records.  Adding a
@@ -134,6 +191,7 @@ READABLE_RAW_SCHEMA_VERSIONS: tuple[int, ...] = (
     PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
     FAULT_PROVENANCE_RAW_SCHEMA_VERSION,
     FAILURE_EVENT_RAW_SCHEMA_VERSION,
+    PROVIDER_FAILURE_TELEMETRY_RAW_SCHEMA_VERSION,
 )
 
 #: Pilot raw schemas only, in ascending order.
@@ -142,11 +200,39 @@ READABLE_PILOT_RAW_SCHEMA_VERSIONS: tuple[int, ...] = (
     PROTOCOL_TELEMETRY_RAW_SCHEMA_VERSION,
     FAULT_PROVENANCE_RAW_SCHEMA_VERSION,
     FAILURE_EVENT_RAW_SCHEMA_VERSION,
+    PROVIDER_FAILURE_TELEMETRY_RAW_SCHEMA_VERSION,
+)
+
+
+#: The C3 instrument boundary, declared explicitly and in the same form as the
+#: frozen ``rc4_instrument_boundary`` in
+#: ``benchmark/pilot-v7-rc4/qualification-contract.json``, which it neither
+#: weakens nor replaces.  It is stated here, on the instrument itself, because
+#: the boundary is a property of the instrument rather than of any candidate: no
+#: successor candidate exists, and none is created by naming this.
+PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_BOUNDARY = (
+    "Rows written under instrument 5 / raw schema 6 / native-tools-adapter-3 "
+    "and rows written under instrument 4 / raw schema 5 / "
+    "native-tools-adapter-3 are separated by an observation-only change on the "
+    "provider failure path: the failure record now carries the accepted minimum "
+    "provider failure telemetry, and five existing row-level columns that were "
+    "null on every failure row by construction now carry captured values. The "
+    "DEFAULT IS SEPARATION. Measurements carrying different instrument_version "
+    "or raw_schema_version values MUST NOT be merged, pooled, averaged or "
+    "compared as though they were generated under identical instrumentation; an "
+    "analyst who wishes to pool across this boundary must say so explicitly and "
+    "justify it. The native-tools adapter version is IDENTICAL on both sides of "
+    "the boundary, and that is informative rather than accidental: it is the "
+    "machine-checkable record that the request payload and the accept/refuse "
+    "decision function did not move."
 )
 
 
 __all__ = [
     "FAILURE_EVENT_RAW_SCHEMA_VERSION",
+    "PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_BOUNDARY",
+    "PROVIDER_FAILURE_TELEMETRY_INSTRUMENT_VERSION",
+    "PROVIDER_FAILURE_TELEMETRY_RAW_SCHEMA_VERSION",
     "FAULT_PROVENANCE_INSTRUMENT_VERSION",
     "FAULT_PROVENANCE_RAW_SCHEMA_VERSION",
     "INSTRUMENT_VERSION",

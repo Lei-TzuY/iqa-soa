@@ -45,7 +45,7 @@ from iqa_soa.instrument import (
     RAW_SCHEMA_VERSION,
 )
 from iqa_soa.metrics.definitions import (
-    PILOT_RAW_FIELDS_V5,
+    PILOT_RAW_FIELDS_V6,
     REQUIRED_RAW_FIELDS,
 )
 from iqa_soa.tools import SandboxState, ToolRegistry
@@ -308,7 +308,11 @@ class ExperimentRunner:
                 "a deterministic provider cannot be labeled as a real-model experiment"
             )
         pilot_schema = frozen_benchmark is not None
-        raw_fields = PILOT_RAW_FIELDS_V5 if pilot_schema else REQUIRED_RAW_FIELDS
+        # (C3) The writer selects the tuple NAMED for the schema it declares in
+        # the manifest.  PILOT_RAW_FIELDS_V6 is equal to PILOT_RAW_FIELDS_V5, so
+        # not one persisted column changes; the name is what keeps the writer and
+        # RAW_SCHEMA_VERSION from drifting apart.
+        raw_fields = PILOT_RAW_FIELDS_V6 if pilot_schema else REQUIRED_RAW_FIELDS
 
         experiment_id, experiment_dir = create_experiment_directory(self.config.output_root)
         jsonl_path = experiment_dir / self.config.raw_jsonl
