@@ -1673,26 +1673,42 @@ def test_the_instrument_is_the_head_of_an_approved_revision_chain() -> None:
 
     Phase O is no longer the head: the prospective post-Phase-P confirmatory
     implementation legitimately changed ``src/iqa_soa`` and appended a third
-    approved link. That is the chain working as designed, so this test requires
-    the whole chain and both hand-offs rather than the two-link prefix it
-    required while Phase O was current. Phase O's own record is untouched and
-    still describes the tree it actually approved.
+    approved link, and the accepted C3 provider-observability repair appended a
+    fourth. That is the chain working as designed, so this test requires the whole
+    chain and every hand-off in it rather than the two-link prefix it required
+    while Phase O was current. Phase O's own record is untouched and still
+    describes the tree it actually approved.
     """
 
     assert instrument_revision.check_instrument_provenance() == []
     chain = instrument_revision.load_revision_chain()
-    assert [link["phase"] for link in chain] == ["M", "O", "POST_PHASEP_CONFIRMATORY"]
+    assert [link["phase"] for link in chain] == [
+        "M",
+        "O",
+        "POST_PHASEP_CONFIRMATORY",
+        "POST_PHASEP_PROVIDER_OBSERVABILITY",
+    ]
     # Custody link 1: Phase M's result is Phase O's parent.
     assert chain[0]["current_instrument"]["src_iqa_soa_tree"] == (
         chain[1]["previous_instrument"]["src_iqa_soa_tree"]
     )
-    # Custody link 2: Phase O's result is the new head's parent.  The new record
+    # Custody link 2: Phase O's result is the third link's parent.  That record
     # binds the EXISTING Phase-O head; it does not restate a recomputed digest.
     assert chain[1]["current_instrument"]["src_iqa_soa_tree"] == (
         chain[2]["previous_instrument"]["src_iqa_soa_tree"]
     )
+    # Custody link 3: the third link's own pin was captured over CRLF working-tree
+    # bytes that ``* text=auto eol=lf`` guarantees no commit can hold, a defect
+    # that predates C3. That record is preserved byte-for-byte and superseded by
+    # an additive custody correction, so the digest C3 binds is the CORRECTED one
+    # -- the one provable from committed bytes at the commit C3 started from.
+    assert chain[3]["previous_instrument"]["src_iqa_soa_tree"] == (
+        instrument_revision.tree_digest_at_commit(
+            chain[3]["parent_commit"], "src/iqa_soa"
+        )
+    )
     # And only the HEAD link is asserted against the live working tree.
-    assert chain[2]["current_instrument"]["src_iqa_soa_tree"] == (
+    assert chain[3]["current_instrument"]["src_iqa_soa_tree"] == (
         instrument_revision.tree_digest("src/iqa_soa")
     )
     assert chain[2]["parent_commit"] == PHASE_O_SUCCESSOR_COMMIT
@@ -1767,10 +1783,24 @@ def test_every_changed_instrument_file_carries_a_reason_and_a_hash() -> None:
 
 
 def test_the_versions_moved_exactly_as_intended() -> None:
+    """Phase O's own constants, which are permanent and have not moved.
+
+    ``INSTRUMENT_VERSION`` and ``RAW_SCHEMA_VERSION`` are documented aliases for
+    "what the instrument writes today", and a later approved revision (the C3
+    provider-observability repair) moved both. Phase O's claim was never about
+    those aliases -- it was about the constants Phase O NAMED, which is exactly
+    why this module names them permanently. Asserting the aliases here would make
+    Phase O's record false the moment any later instrument revision existed, which
+    is the mistake ``iqa_soa.instrument`` exists to prevent.
+    """
+
     assert TOOL_CONTRACT_INSTRUMENT_VERSION == "4"
-    assert INSTRUMENT_VERSION == TOOL_CONTRACT_INSTRUMENT_VERSION
     assert FAILURE_EVENT_RAW_SCHEMA_VERSION == 5
-    assert RAW_SCHEMA_VERSION == FAILURE_EVENT_RAW_SCHEMA_VERSION
+    # The live aliases have moved past Phase O, by an approved successor.
+    assert INSTRUMENT_VERSION == "5"
+    assert RAW_SCHEMA_VERSION == 6
+    assert INSTRUMENT_VERSION != TOOL_CONTRACT_INSTRUMENT_VERSION
+    assert RAW_SCHEMA_VERSION != FAILURE_EVENT_RAW_SCHEMA_VERSION
     # The adapter DID change this time, and the pre-Phase-O name is permanent.
     assert PRE_ARGUMENT_CONTRACT_NATIVE_TOOL_ADAPTER_VERSION == "native-tools-adapter-2"
     assert NATIVE_TOOL_ADAPTER_VERSION == "native-tools-adapter-3"

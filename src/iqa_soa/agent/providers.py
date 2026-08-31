@@ -110,6 +110,305 @@ class ProviderFailureOrigin(str, Enum):
     MODEL_OUTPUT = "MODEL_OUTPUT"
 
 
+class ProviderCaptureState(str, Enum):
+    """Why a provider envelope/token field carries the value it carries.
+
+    (C3) Before this vocabulary existed, ``ProviderError.provenance()`` wrote a
+    literal ``None`` for all six envelope/token fields at every raise site, so
+    three different facts -- the provider omitted it, the provider never got the
+    chance to supply it, and the adapter had it and dropped it -- collapsed into
+    one indistinguishable byte.  These three members separate the first two.
+
+    There is deliberately NO fourth member meaning "available but dropped": a
+    self-reported *I dropped it* flag would be written by the same code that
+    dropped it, and is therefore evidence of nothing.  That case is made a test
+    failure instead, by the static capture floor in
+    :data:`PROVIDER_BRANCH_CAPTURE_STAGE`.
+    """
+
+    #: The provider supplied a usable value at a point control flow reached.
+    SUPPLIED = "SUPPLIED"
+    #: Control flow reached the point at which this field is read, and the
+    #: provider omitted it, sent ``null``, or sent a value the existing
+    #: ``_optional_string`` / ``_nonnegative_int`` readers reject.
+    NOT_SUPPLIED = "NOT_SUPPLIED"
+    #: Control flow failed BEFORE the provider could supply this field.  The
+    #: adapter never had it.
+    UNOBSERVED = "UNOBSERVED"
+
+
+class ProviderCaptureStage(str, Enum):
+    """How far ``generate_action`` had progressed when a branch raised.
+
+    The stage is a property of the raise SITE, not of the response, which is
+    what makes the capture floor checkable statically: a branch at a stage that
+    makes a field reachable may never persist ``UNOBSERVED`` for that field.
+    """
+
+    PRE_REQUEST = "PRE_REQUEST"
+    TRANSPORT = "TRANSPORT"
+    ENVELOPE_DECODE = "ENVELOPE_DECODE"
+    ENVELOPE_PARSED = "ENVELOPE_PARSED"
+    USAGE_BOUND = "USAGE_BOUND"
+    MESSAGE_PARSED = "MESSAGE_PARSED"
+
+
+class ProviderFailureBranch(str, Enum):
+    """Which ``raise ProviderError`` site produced a failed attempt.
+
+    One member per raise site reachable from ``generate_action``, plus
+    :attr:`UNSPECIFIED` for legacy and third-party ``AgentProvider``
+    implementations.  Attribution therefore never requires matching an English
+    exception string against source.
+    """
+
+    CREDENTIAL_ENV_UNSET = "CREDENTIAL_ENV_UNSET"
+    HTTP_STATUS = "HTTP_STATUS"
+    TRANSPORT_TIMEOUT = "TRANSPORT_TIMEOUT"
+    TRANSPORT_ERROR = "TRANSPORT_ERROR"
+    ENVELOPE_UNPARSABLE = "ENVELOPE_UNPARSABLE"
+    USAGE_NOT_OBJECT = "USAGE_NOT_OBJECT"
+    USAGE_FIELD_INVALID = "USAGE_FIELD_INVALID"
+    REFUSAL_TYPE_INVALID = "REFUSAL_TYPE_INVALID"
+    NATIVE_TOOL_CALLS_NOT_LIST = "NATIVE_TOOL_CALLS_NOT_LIST"
+    NATIVE_CALL_NOT_FUNCTION = "NATIVE_CALL_NOT_FUNCTION"
+    NATIVE_FUNCTION_UNEXPECTED = "NATIVE_FUNCTION_UNEXPECTED"
+    NATIVE_ARGUMENTS_NOT_TEXT = "NATIVE_ARGUMENTS_NOT_TEXT"
+    NATIVE_ARGUMENTS_INVALID_JSON = "NATIVE_ARGUMENTS_INVALID_JSON"
+    NATIVE_ARGUMENTS_NOT_OBJECT = "NATIVE_ARGUMENTS_NOT_OBJECT"
+    NATIVE_CONTENT_TYPE_INVALID = "NATIVE_CONTENT_TYPE_INVALID"
+    NATIVE_CONTENT_ACTION_WRONG_CHANNEL = "NATIVE_CONTENT_ACTION_WRONG_CHANNEL"
+    JSON_CONTENT_MISSING = "JSON_CONTENT_MISSING"
+    JSON_CONTENT_INVALID_JSON = "JSON_CONTENT_INVALID_JSON"
+    JSON_CONTENT_NOT_OBJECT = "JSON_CONTENT_NOT_OBJECT"
+    ACTION_KEYS_MISSING = "ACTION_KEYS_MISSING"
+    ACTION_KEYS_UNKNOWN = "ACTION_KEYS_UNKNOWN"
+    ACTION_ARGUMENTS_NOT_OBJECT = "ACTION_ARGUMENTS_NOT_OBJECT"
+    ACTION_FIELD_NOT_STRING = "ACTION_FIELD_NOT_STRING"
+    #: Legacy and third-party providers.  It exists so ``ProviderError("msg")``
+    #: keeps working unchanged; its use inside this module is refused by a
+    #: source-level closure test, not by a runtime check.
+    UNSPECIFIED = "UNSPECIFIED"
+
+
+class NativeToolCallState(str, Enum):
+    """The states the ``and tool_calls`` falsy guard collapses.
+
+    ``tool_call_count == 0`` cannot express the difference between a provider
+    that omitted the key, one that sent ``null``, one that sent ``[]`` and one
+    that sent something unusable.  This can, and it copies no function name, no
+    arguments string, no call id and no model text of any kind.
+    """
+
+    #: The native tool-call payload was never reached.
+    UNOBSERVED = "UNOBSERVED"
+    #: The ``json_object`` protocol was in force; there is no native payload.
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    KEY_ABSENT = "KEY_ABSENT"
+    NULL = "NULL"
+    EMPTY_LIST = "EMPTY_LIST"
+    #: Present, but not a usable list of parseable function calls.
+    PRESENT_UNUSABLE = "PRESENT_UNUSABLE"
+    #: Present and parsed into one or more action mappings.
+    PRESENT_PARSED = "PRESENT_PARSED"
+
+
+#: The six provider envelope/token fields that carry a presence state, in the
+#: order they appear in ``envelope_field_presence``.
+PROVIDER_ENVELOPE_FIELDS: tuple[str, ...] = (
+    "response_id",
+    "system_fingerprint",
+    "finish_reason",
+    "effective_model",
+    "input_tokens",
+    "output_tokens",
+)
+
+#: The accepted minimum provider failure telemetry, in its frozen order.  The
+#: set is closed: nothing is added to it because it would be convenient.
+PROVIDER_FAILURE_TELEMETRY_FIELDS: tuple[str, ...] = (
+    "failure_branch",
+    "response_id",
+    "system_fingerprint",
+    "finish_reason",
+    "effective_model",
+    "input_tokens",
+    "output_tokens",
+    "envelope_field_presence",
+    "protocol",
+    "effective_seed",
+    "native_tool_call_state",
+)
+
+#: The capture stage each branch raises at.
+PROVIDER_BRANCH_CAPTURE_STAGE: Mapping[
+    "ProviderFailureBranch", ProviderCaptureStage
+] = {
+    ProviderFailureBranch.CREDENTIAL_ENV_UNSET: ProviderCaptureStage.PRE_REQUEST,
+    ProviderFailureBranch.HTTP_STATUS: ProviderCaptureStage.TRANSPORT,
+    ProviderFailureBranch.TRANSPORT_TIMEOUT: ProviderCaptureStage.TRANSPORT,
+    ProviderFailureBranch.TRANSPORT_ERROR: ProviderCaptureStage.TRANSPORT,
+    ProviderFailureBranch.ENVELOPE_UNPARSABLE: ProviderCaptureStage.ENVELOPE_DECODE,
+    ProviderFailureBranch.USAGE_NOT_OBJECT: ProviderCaptureStage.ENVELOPE_PARSED,
+    ProviderFailureBranch.USAGE_FIELD_INVALID: ProviderCaptureStage.ENVELOPE_PARSED,
+    ProviderFailureBranch.REFUSAL_TYPE_INVALID: ProviderCaptureStage.USAGE_BOUND,
+    ProviderFailureBranch.NATIVE_TOOL_CALLS_NOT_LIST: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.NATIVE_CALL_NOT_FUNCTION: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.NATIVE_FUNCTION_UNEXPECTED: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.NATIVE_ARGUMENTS_NOT_TEXT: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.NATIVE_ARGUMENTS_INVALID_JSON: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.NATIVE_ARGUMENTS_NOT_OBJECT: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.NATIVE_CONTENT_TYPE_INVALID: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.NATIVE_CONTENT_ACTION_WRONG_CHANNEL: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.JSON_CONTENT_MISSING: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.JSON_CONTENT_INVALID_JSON: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.JSON_CONTENT_NOT_OBJECT: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.ACTION_KEYS_MISSING: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.ACTION_KEYS_UNKNOWN: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.ACTION_ARGUMENTS_NOT_OBJECT: (
+        ProviderCaptureStage.MESSAGE_PARSED
+    ),
+    ProviderFailureBranch.ACTION_FIELD_NOT_STRING: ProviderCaptureStage.MESSAGE_PARSED,
+    ProviderFailureBranch.UNSPECIFIED: ProviderCaptureStage.PRE_REQUEST,
+}
+
+#: The capture FLOOR: the fields a stage makes reachable, and which therefore
+#: may never be persisted as ``UNOBSERVED``.  ``ENVELOPE_DECODE`` carries an
+#: empty floor because the C1/C2 split is decided by the payload, not the site.
+PROVIDER_STAGE_REACHABLE_FIELDS: Mapping[ProviderCaptureStage, frozenset[str]] = {
+    ProviderCaptureStage.PRE_REQUEST: frozenset(),
+    ProviderCaptureStage.TRANSPORT: frozenset(),
+    ProviderCaptureStage.ENVELOPE_DECODE: frozenset(),
+    ProviderCaptureStage.ENVELOPE_PARSED: frozenset(
+        {"response_id", "system_fingerprint", "finish_reason", "effective_model"}
+    ),
+    ProviderCaptureStage.USAGE_BOUND: frozenset(PROVIDER_ENVELOPE_FIELDS),
+    ProviderCaptureStage.MESSAGE_PARSED: frozenset(PROVIDER_ENVELOPE_FIELDS),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderEnvelopeCapture:
+    """Provider envelope metadata captured WHERE it is in scope.
+
+    Constructed only through :meth:`unobserved` and :meth:`observed`, so the
+    presence state is always declared by the call site that knows how far
+    control flow actually got, and is never re-derived from the value at read
+    time -- that derivation is precisely the ambiguity C3 repairs.
+    """
+
+    response_id: str | None
+    system_fingerprint: str | None
+    finish_reason: str | None
+    effective_model: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    presence: Mapping[str, ProviderCaptureState]
+    protocol: str | None
+    effective_seed: int | None
+
+    @classmethod
+    def unobserved(
+        cls, *, protocol: str | None = None, effective_seed: int | None = None
+    ) -> "ProviderEnvelopeCapture":
+        """No envelope field was reachable.  All six are null and UNOBSERVED."""
+
+        return cls(
+            response_id=None,
+            system_fingerprint=None,
+            finish_reason=None,
+            effective_model=None,
+            input_tokens=None,
+            output_tokens=None,
+            presence={
+                name: ProviderCaptureState.UNOBSERVED
+                for name in PROVIDER_ENVELOPE_FIELDS
+            },
+            protocol=protocol,
+            effective_seed=effective_seed,
+        )
+
+    @classmethod
+    def observed(
+        cls,
+        *,
+        reached: Sequence[str],
+        protocol: str | None = None,
+        effective_seed: int | None = None,
+        response_id: str | None = None,
+        system_fingerprint: str | None = None,
+        finish_reason: str | None = None,
+        effective_model: str | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+    ) -> "ProviderEnvelopeCapture":
+        """Capture the fields the caller declares control flow actually reached.
+
+        ``reached`` is declared, never inferred: a reached field whose value is
+        ``None`` is ``NOT_SUPPLIED`` (the provider omitted it), and a field the
+        caller did not reach stays ``UNOBSERVED``.  Supplying a value for an
+        unreached field is a programming error and is refused rather than
+        silently recorded.
+        """
+
+        values: dict[str, Any] = {
+            "response_id": response_id,
+            "system_fingerprint": system_fingerprint,
+            "finish_reason": finish_reason,
+            "effective_model": effective_model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+        }
+        declared = set(reached)
+        unknown = declared - set(PROVIDER_ENVELOPE_FIELDS)
+        if unknown:
+            raise ValueError(f"unknown captured envelope fields: {sorted(unknown)}")
+        leaked = sorted(
+            name
+            for name, value in values.items()
+            if value is not None and name not in declared
+        )
+        if leaked:
+            raise ValueError(f"values supplied for unreached envelope fields: {leaked}")
+        return cls(
+            presence={
+                name: (
+                    (
+                        ProviderCaptureState.SUPPLIED
+                        if values[name] is not None
+                        else ProviderCaptureState.NOT_SUPPLIED
+                    )
+                    if name in declared
+                    else ProviderCaptureState.UNOBSERVED
+                )
+                for name in PROVIDER_ENVELOPE_FIELDS
+            },
+            protocol=protocol,
+            effective_seed=effective_seed,
+            **values,
+        )
+
+    def presence_provenance(self) -> dict[str, str]:
+        """The closed six-key presence object, exactly one entry per field."""
+
+        return {
+            name: ProviderCaptureState(self.presence[name]).value
+            for name in PROVIDER_ENVELOPE_FIELDS
+        }
+
+
 class ProviderError(RuntimeError):
     """A provider attempt failed with a safe, machine-readable classification."""
 
@@ -126,6 +425,13 @@ class ProviderError(RuntimeError):
         failure_origin: ProviderFailureOrigin = (
             ProviderFailureOrigin.PROVIDER_INFRASTRUCTURE
         ),
+        # (C3) The three additive failure-telemetry parameters.  All three are
+        # keyword-only with defaults that describe a caller which supplied
+        # nothing, so ``ProviderError("message")`` and every legacy raise site
+        # keep their exact previous meaning.
+        failure_branch: ProviderFailureBranch = ProviderFailureBranch.UNSPECIFIED,
+        envelope: ProviderEnvelopeCapture | None = None,
+        native_tool_call_state: NativeToolCallState = NativeToolCallState.UNOBSERVED,
     ) -> None:
         super().__init__(message)
         self.failure_class = failure_class
@@ -135,10 +441,31 @@ class ProviderError(RuntimeError):
         self.tool_call_count = tool_call_count
         self.tool_contract_refreshed = tool_contract_refreshed
         self.failure_origin = failure_origin
+        self.failure_branch = failure_branch
+        # ``None`` is the internal marker for "no capture has been attached
+        # yet", kept distinct from an all-UNOBSERVED capture so the back-fill
+        # handlers can stay idempotent with the ``if exc.X is None`` idiom this
+        # module already uses.  It renders as all-UNOBSERVED.
+        self.envelope = envelope
+        self.native_tool_call_state = native_tool_call_state
 
     def provenance(self, *, model: str, latency_ms: float) -> dict[str, Any]:
-        """Return failure metadata without response bodies, URLs, or credentials."""
+        """Return failure metadata without response bodies, URLs, or credentials.
 
+        (C3) The six envelope/token values are no longer hard-coded to ``None``:
+        they carry whatever the raise site could actually see, and
+        ``envelope_field_presence`` states, per field, whether the provider
+        supplied it, omitted it, or was never reached.  Nothing here is
+        defaulted to a placeholder, a zero or an empty string, and no assistant
+        text, prompt, raw body, header, credential, tool argument or resource
+        value is emitted -- exactly as this docstring has always promised.
+        """
+
+        capture = (
+            self.envelope
+            if self.envelope is not None
+            else ProviderEnvelopeCapture.unobserved()
+        )
         return {
             "outcome": "failure",
             "tool_call_count": self.tool_call_count,
@@ -148,15 +475,22 @@ class ProviderError(RuntimeError):
             "failure_class": self.failure_class,
             "client_request_id": self.client_request_id,
             "request_id": self.request_id,
-            "response_id": None,
+            "response_id": capture.response_id,
             "configured_model": model,
-            "effective_model": None,
-            "finish_reason": None,
-            "system_fingerprint": None,
-            "input_tokens": None,
-            "output_tokens": None,
+            "effective_model": capture.effective_model,
+            "finish_reason": capture.finish_reason,
+            "system_fingerprint": capture.system_fingerprint,
+            "input_tokens": capture.input_tokens,
+            "output_tokens": capture.output_tokens,
             "latency_ms": max(0.0, latency_ms),
             "retryable": self.retryable,
+            "failure_branch": ProviderFailureBranch(self.failure_branch).value,
+            "envelope_field_presence": capture.presence_provenance(),
+            "protocol": capture.protocol,
+            "effective_seed": capture.effective_seed,
+            "native_tool_call_state": NativeToolCallState(
+                self.native_tool_call_state
+            ).value,
         }
 
 
@@ -469,6 +803,11 @@ class OpenAICompatibleProvider(AgentProvider):
             raise ProviderError(
                 f"required credential environment variable {self.api_key_env!r} is unset",
                 failure_class="provider_error",
+                failure_branch=ProviderFailureBranch.CREDENTIAL_ENV_UNSET,
+                # Raised before the effective seed is resolved, so the seed is
+                # genuinely unknown here rather than absent; the branch code is
+                # what separates the two.
+                envelope=ProviderEnvelopeCapture.unobserved(protocol=self.protocol),
             )
         effective_seed = (self.seed if self.seed is not None else seed) if self.supports_seed else None
         terminal_instruction = (
@@ -576,6 +915,12 @@ class OpenAICompatibleProvider(AgentProvider):
                 client_request_id=client_request_id,
                 request_id=_header_mapping_value(exc.headers, "x-request-id"),
                 retryable=exc.code in {408, 429, 500, 502, 503, 504},
+                failure_branch=ProviderFailureBranch.HTTP_STATUS,
+                # The error body is still never read, so no envelope field is
+                # observable here even though an HTTP response exists.
+                envelope=ProviderEnvelopeCapture.unobserved(
+                    protocol=self.protocol, effective_seed=effective_seed
+                ),
             ) from exc
         except (TimeoutError, socket.timeout) as exc:
             raise ProviderError(
@@ -583,6 +928,10 @@ class OpenAICompatibleProvider(AgentProvider):
                 failure_class="timeout",
                 client_request_id=client_request_id,
                 retryable=True,
+                failure_branch=ProviderFailureBranch.TRANSPORT_TIMEOUT,
+                envelope=ProviderEnvelopeCapture.unobserved(
+                    protocol=self.protocol, effective_seed=effective_seed
+                ),
             ) from exc
         except urlerror.URLError as exc:
             raise ProviderError(
@@ -590,8 +939,16 @@ class OpenAICompatibleProvider(AgentProvider):
                 failure_class="provider_error",
                 client_request_id=client_request_id,
                 retryable=True,
+                failure_branch=ProviderFailureBranch.TRANSPORT_ERROR,
+                envelope=ProviderEnvelopeCapture.unobserved(
+                    protocol=self.protocol, effective_seed=effective_seed
+                ),
             ) from exc
         latency_ms = (time.perf_counter() - started) * 1000.0
+        # (C3) Bound BEFORE the try so the handler can tell a payload that never
+        # decoded (C1) from one that decoded to a mapping whose choice/message
+        # walk then failed (C2).  Only the latter can carry envelope metadata.
+        envelope: Any = None
         try:
             envelope = json.loads(raw_bytes.decode("utf-8"))
             if not isinstance(envelope, Mapping):
@@ -611,6 +968,10 @@ class OpenAICompatibleProvider(AgentProvider):
                 failure_class="invalid_json",
                 client_request_id=client_request_id,
                 request_id=request_id,
+                failure_branch=ProviderFailureBranch.ENVELOPE_UNPARSABLE,
+                envelope=self._decoded_envelope_capture(
+                    envelope, effective_seed=effective_seed
+                ),
             ) from exc
         usage = envelope.get("usage", {})
         if not isinstance(usage, Mapping):
@@ -619,6 +980,10 @@ class OpenAICompatibleProvider(AgentProvider):
                 failure_class="invalid_json",
                 client_request_id=client_request_id,
                 request_id=request_id,
+                failure_branch=ProviderFailureBranch.USAGE_NOT_OBJECT,
+                envelope=self._parsed_envelope_capture(
+                    envelope, choice, effective_seed=effective_seed
+                ),
             )
         try:
             input_tokens = _nonnegative_int(
@@ -630,6 +995,10 @@ class OpenAICompatibleProvider(AgentProvider):
         except ProviderError as exc:
             exc.client_request_id = client_request_id
             exc.request_id = request_id
+            if exc.envelope is None:
+                exc.envelope = self._parsed_envelope_capture(
+                    envelope, choice, effective_seed=effective_seed
+                )
             raise
         refusal = message.get("refusal")
         if refusal is not None and not isinstance(refusal, str):
@@ -638,6 +1007,13 @@ class OpenAICompatibleProvider(AgentProvider):
                 failure_class="invalid_json",
                 client_request_id=client_request_id,
                 request_id=request_id,
+                failure_branch=ProviderFailureBranch.REFUSAL_TYPE_INVALID,
+                # The usage object has been read by this point, so the token
+                # pair is reachable and is captured rather than reported as
+                # never observed.
+                envelope=self._parsed_envelope_capture(
+                    envelope, choice, effective_seed=effective_seed, usage=usage
+                ),
             )
         finish_reason = _optional_string(choice.get("finish_reason"))
         response_id = _optional_string(envelope.get("id"))
@@ -669,6 +1045,14 @@ class OpenAICompatibleProvider(AgentProvider):
                     exc.request_id = request_id
                 if not exc.tool_contract_refreshed:
                     exc.tool_contract_refreshed = tool_contract_refreshed
+                # (C3) All six values are live locals at this point.  The raise
+                # site owns failure_branch and native_tool_call_state; the
+                # envelope capture is only reachable here, so it is attached
+                # here, and never over a capture a raise site already set.
+                if exc.envelope is None:
+                    exc.envelope = self._parsed_envelope_capture(
+                        envelope, choice, effective_seed=effective_seed, usage=usage
+                    )
                 raise
             if not parsed_calls:
                 action = None
@@ -683,6 +1067,25 @@ class OpenAICompatibleProvider(AgentProvider):
                         exc.request_id = request_id
                         exc.tool_call_count = len(parsed_calls)
                         exc.tool_contract_refreshed = tool_contract_refreshed
+                        if exc.envelope is None:
+                            exc.envelope = self._parsed_envelope_capture(
+                                envelope,
+                                choice,
+                                effective_seed=effective_seed,
+                                usage=usage,
+                            )
+                        # ``_parse_action_object`` is protocol-agnostic and
+                        # cannot know this; reaching it at all means the calls
+                        # themselves parsed.
+                        if (
+                            exc.native_tool_call_state
+                            is NativeToolCallState.UNOBSERVED
+                        ):
+                            exc.native_tool_call_state = (
+                                NativeToolCallState.PRESENT_PARSED
+                                if self.protocol == "native_tools"
+                                else NativeToolCallState.NOT_APPLICABLE
+                            )
                         raise
                     if index == 0:
                         original_action_id = proposal.action_id
@@ -731,6 +1134,113 @@ class OpenAICompatibleProvider(AgentProvider):
             effective_seed=effective_seed,
         )
 
+    def _decoded_envelope_capture(
+        self, envelope: Any, *, effective_seed: int | None
+    ) -> ProviderEnvelopeCapture:
+        """The C1/C2 split, decided from what actually decoded.
+
+        C1 -- the payload never decoded, or decoded to something other than an
+        object -- reaches no envelope field, so every one stays ``UNOBSERVED``
+        and no sentinel from a malformed body can become a persisted value.  C2
+        -- the payload decoded to a mapping and the choice/message walk then
+        failed -- genuinely reaches ``id``, ``model`` and ``system_fingerprint``,
+        and reaches ``finish_reason`` as well whenever the first choice is a
+        mapping.  They are read through exactly the readers the success path
+        uses, so a value the provider sent in an unusable form is
+        ``NOT_SUPPLIED`` here just as it is there.
+        """
+
+        if not isinstance(envelope, Mapping):
+            return ProviderEnvelopeCapture.unobserved(
+                protocol=self.protocol, effective_seed=effective_seed
+            )
+        reached = ["response_id", "effective_model", "system_fingerprint"]
+        finish_reason: str | None = None
+        choices = envelope.get("choices")
+        if isinstance(choices, list) and choices and isinstance(choices[0], Mapping):
+            reached.append("finish_reason")
+            finish_reason = _optional_string(choices[0].get("finish_reason"))
+        return ProviderEnvelopeCapture.observed(
+            reached=reached,
+            protocol=self.protocol,
+            effective_seed=effective_seed,
+            response_id=_optional_string(envelope.get("id")),
+            effective_model=_optional_string(envelope.get("model")),
+            system_fingerprint=_optional_string(envelope.get("system_fingerprint")),
+            finish_reason=finish_reason,
+        )
+
+    def _parsed_envelope_capture(
+        self,
+        envelope: Mapping[str, Any],
+        choice: Mapping[str, Any],
+        *,
+        effective_seed: int | None,
+        usage: Mapping[str, Any] | None = None,
+    ) -> ProviderEnvelopeCapture:
+        """The capture for a branch raised after the envelope walk succeeded.
+
+        The four envelope fields are always reachable here.  The token pair is
+        reachable only once the usage object itself has been read, which is why
+        ``usage`` is passed explicitly: a failure that never reached it records
+        ``null`` with ``UNOBSERVED``.
+
+        The counts are read from the RAW usage object rather than from the
+        success path's ``usage.get(name, 0)`` locals, so that default is NOT
+        extended to the failure record: a provider that omitted a count, or sent
+        one the existing reader rejects, is recorded as ``NOT_SUPPLIED`` with a
+        null, and a zero is persisted only when the provider actually sent zero.
+        """
+
+        reached = [
+            "response_id",
+            "effective_model",
+            "system_fingerprint",
+            "finish_reason",
+        ]
+        tokens: dict[str, int | None] = {}
+        if usage is not None:
+            reached += ["input_tokens", "output_tokens"]
+            tokens = {
+                "input_tokens": _captured_nonnegative_int(usage.get("prompt_tokens")),
+                "output_tokens": _captured_nonnegative_int(
+                    usage.get("completion_tokens")
+                ),
+            }
+        return ProviderEnvelopeCapture.observed(
+            reached=reached,
+            protocol=self.protocol,
+            effective_seed=effective_seed,
+            response_id=_optional_string(envelope.get("id")),
+            effective_model=_optional_string(envelope.get("model")),
+            system_fingerprint=_optional_string(envelope.get("system_fingerprint")),
+            finish_reason=_optional_string(choice.get("finish_reason")),
+            **tokens,
+        )
+
+    def _native_tool_call_state(
+        self, message: Mapping[str, Any]
+    ) -> NativeToolCallState:
+        """The typed observation the ``and tool_calls`` falsy guard collapses.
+
+        It reports the SHAPE of ``message["tool_calls"]`` and copies nothing out
+        of it -- no function name, no arguments string, no call id, no content.
+        ``PRESENT_PARSED`` is not decided here: reaching a raise site inside the
+        native branch means the payload was present and NOT usable, and the
+        parsed case is set by the caller that saw the parse succeed.
+        """
+
+        if self.protocol != "native_tools":
+            return NativeToolCallState.NOT_APPLICABLE
+        if "tool_calls" not in message:
+            return NativeToolCallState.KEY_ABSENT
+        value = message.get("tool_calls")
+        if value is None:
+            return NativeToolCallState.NULL
+        if isinstance(value, list) and not value:
+            return NativeToolCallState.EMPTY_LIST
+        return NativeToolCallState.PRESENT_UNUSABLE
+
     def _parse_message_action(
         self, message: Mapping[str, Any]
     ) -> tuple[list[Mapping[str, Any]], str, list[str], list[str]]:
@@ -744,12 +1254,15 @@ class OpenAICompatibleProvider(AgentProvider):
         """
 
         tool_calls = message.get("tool_calls")
+        native_state = self._native_tool_call_state(message)
         if self.protocol == "native_tools" and tool_calls:
             if not isinstance(tool_calls, list):
                 raise ProviderError(
                     "native tool_calls must be a list",
                     failure_class="invalid_tool_call",
                     failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                    failure_branch=ProviderFailureBranch.NATIVE_TOOL_CALLS_NOT_LIST,
+                    native_tool_call_state=native_state,
                 )
             parsed_calls: list[Mapping[str, Any]] = []
             raw_arguments: list[str] = []
@@ -761,6 +1274,8 @@ class OpenAICompatibleProvider(AgentProvider):
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
                         failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                        failure_branch=ProviderFailureBranch.NATIVE_CALL_NOT_FUNCTION,
+                        native_tool_call_state=native_state,
                     )
                 function = call.get("function")
                 if (
@@ -772,6 +1287,8 @@ class OpenAICompatibleProvider(AgentProvider):
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
                         failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                        failure_branch=ProviderFailureBranch.NATIVE_FUNCTION_UNEXPECTED,
+                        native_tool_call_state=native_state,
                     )
                 arguments = function.get("arguments")
                 if not isinstance(arguments, str):
@@ -780,6 +1297,8 @@ class OpenAICompatibleProvider(AgentProvider):
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
                         failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                        failure_branch=ProviderFailureBranch.NATIVE_ARGUMENTS_NOT_TEXT,
+                        native_tool_call_state=native_state,
                     )
                 try:
                     parsed = json.loads(arguments)
@@ -789,6 +1308,8 @@ class OpenAICompatibleProvider(AgentProvider):
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
                         failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                        failure_branch=ProviderFailureBranch.NATIVE_ARGUMENTS_INVALID_JSON,
+                        native_tool_call_state=native_state,
                     ) from exc
                 if not isinstance(parsed, Mapping):
                     raise ProviderError(
@@ -796,6 +1317,8 @@ class OpenAICompatibleProvider(AgentProvider):
                         failure_class="invalid_tool_call",
                         tool_call_count=len(tool_calls),
                         failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                        failure_branch=ProviderFailureBranch.NATIVE_ARGUMENTS_NOT_OBJECT,
+                        native_tool_call_state=native_state,
                     )
                 parsed_calls.append(parsed)
                 raw_arguments.append(arguments)
@@ -824,6 +1347,8 @@ class OpenAICompatibleProvider(AgentProvider):
                     "provider native terminal content must be text or null",
                     failure_class="invalid_tool_call",
                     failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                    failure_branch=ProviderFailureBranch.NATIVE_CONTENT_TYPE_INVALID,
+                    native_tool_call_state=native_state,
                 )
             try:
                 parsed = json.loads(content)
@@ -836,6 +1361,8 @@ class OpenAICompatibleProvider(AgentProvider):
                     "native-tools protocol requires an actual tool call for actions",
                     failure_class="invalid_tool_call",
                     failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                    failure_branch=ProviderFailureBranch.NATIVE_CONTENT_ACTION_WRONG_CHANNEL,
+                    native_tool_call_state=native_state,
                 )
             return [], content, [], []
         if not isinstance(content, str):
@@ -843,6 +1370,8 @@ class OpenAICompatibleProvider(AgentProvider):
                 "provider message contains neither a usable action nor text",
                 failure_class="invalid_json",
                 failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                failure_branch=ProviderFailureBranch.JSON_CONTENT_MISSING,
+                native_tool_call_state=native_state,
             )
         try:
             parsed = json.loads(content)
@@ -851,12 +1380,16 @@ class OpenAICompatibleProvider(AgentProvider):
                 "provider action content is invalid JSON",
                 failure_class="invalid_json",
                 failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                failure_branch=ProviderFailureBranch.JSON_CONTENT_INVALID_JSON,
+                native_tool_call_state=native_state,
             ) from exc
         if not isinstance(parsed, Mapping):
             raise ProviderError(
                 "provider action content must be an object",
                 failure_class="invalid_action_format",
                 failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                failure_branch=ProviderFailureBranch.JSON_CONTENT_NOT_OBJECT,
+                native_tool_call_state=native_state,
             )
         return [parsed], content, [content], [""]
 
@@ -874,18 +1407,21 @@ def _parse_action_object(value: Mapping[str, Any]) -> Action:
             f"action JSON missing keys: {sorted(missing)}",
             failure_class="invalid_action_format",
             failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+            failure_branch=ProviderFailureBranch.ACTION_KEYS_MISSING,
         )
     if unknown:
         raise ProviderError(
             f"action JSON has unknown keys: {sorted(unknown)}",
             failure_class="invalid_action_format",
             failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+            failure_branch=ProviderFailureBranch.ACTION_KEYS_UNKNOWN,
         )
     if not isinstance(value["arguments"], dict):
         raise ProviderError(
             "action arguments must be a JSON object",
             failure_class="invalid_action_format",
             failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+            failure_branch=ProviderFailureBranch.ACTION_ARGUMENTS_NOT_OBJECT,
         )
     for key in ("action_id", "tool", "resource"):
         if not isinstance(value[key], str) or not value[key]:
@@ -893,6 +1429,7 @@ def _parse_action_object(value: Mapping[str, Any]) -> Action:
                 f"action {key} must be a non-empty string",
                 failure_class="invalid_action_format",
                 failure_origin=ProviderFailureOrigin.MODEL_OUTPUT,
+                failure_branch=ProviderFailureBranch.ACTION_FIELD_NOT_STRING,
             )
     return Action(
         action_id=value["action_id"],
@@ -907,11 +1444,27 @@ def _parse_action_object(value: Mapping[str, Any]) -> Action:
     )
 
 
+def _captured_nonnegative_int(value: Any) -> int | None:
+    """The failure-record reader for a usage count.
+
+    Deliberately the same predicate ``_nonnegative_int`` enforces, but returning
+    ``None`` instead of raising, so a count the provider omitted or sent in an
+    unusable form is recorded as absent rather than as a fabricated zero.  It is
+    used ONLY on the failure record; the success path keeps ``_nonnegative_int``
+    and its ``usage.get(name, 0)`` default byte-for-byte.
+    """
+
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return cast(int, value)
+
+
 def _nonnegative_int(value: Any, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         raise ProviderError(
             f"usage.{name} must be a non-negative integer",
             failure_class="invalid_json",
+            failure_branch=ProviderFailureBranch.USAGE_FIELD_INVALID,
         )
     return cast(int, value)
 

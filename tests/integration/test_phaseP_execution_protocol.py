@@ -93,6 +93,33 @@ POST_PHASEP_REVISION_RELATIVE = (
     "docs/post_phaseP_confirmatory_instrument_revision.json"
 )
 
+#: (C3 amendment.)  A SECOND approved successor now exists: the post-Phase-P
+#: provider failure-path observability repair.  It is the first revision whose
+#: version constants MOVE -- ``INSTRUMENT_VERSION`` "4" -> "5" and
+#: ``RAW_SCHEMA_VERSION`` 5 -> 6 -- so the frozen protocol's two version pins join
+#: its tree and chain pins in the enumerated supersession.  Phase P itself does
+#: NOT move: every Phase-P row remains instrument 4 / raw schema 5 /
+#: native-tools-adapter-3, and the constants it was frozen against are still
+#: named permanently by ``TOOL_CONTRACT_INSTRUMENT_VERSION`` and
+#: ``FAILURE_EVENT_RAW_SCHEMA_VERSION``, which have not moved and never will.
+#: That the frozen protocol now refuses on version grounds too is the mechanism
+#: working: it binds any future run to the post-C3 instrument ONLY and prevents a
+#: retroactive reinterpretation of a Phase-P row under schema 6.
+C3_REVISION_RELATIVE = (
+    "docs/post_phaseP_provider_observability_instrument_revision.json"
+)
+
+#: The commit at which POST_PHASEP_CONFIRMATORY stopped being the approved head:
+#: the parent C3 started from, and the commit its claims are proved at.
+C3_REVISION_PARENT_COMMIT = "883c425daf2e6462877f0626f5fce0664ac85ca9"
+
+#: The instrument and raw-schema versions Phase P actually ran under.  Named here
+#: as literals so a later revision that moves the live aliases again cannot
+#: silently move what Phase P is asserted to have used.
+PHASE_P_INSTRUMENT_VERSION = "4"
+PHASE_P_RAW_SCHEMA_VERSION = 5
+PHASE_P_NATIVE_TOOL_ADAPTER_VERSION = "native-tools-adapter-3"
+
 #: The commit that froze this protocol, and where its PROSPECTIVE seed selection
 #: actually bound.  See ``scripts/post_phaseP_seed_provenance_supersession.py``.
 PHASE_P_FREEZE_COMMIT = seed_supersession.PHASE_P_FREEZE_COMMIT
@@ -392,14 +419,29 @@ def _historicalized_instrument_head(
     # exists" -- before anything is substituted.
     assert instrument_revision.check_instrument_provenance() == []
     chain = instrument_revision.load_revision_chain()
-    assert [link["phase"] for link in chain] == ["M", "O", "POST_PHASEP_CONFIRMATORY"]
+    assert [link["phase"] for link in chain] == [
+        "M",
+        "O",
+        "POST_PHASEP_CONFIRMATORY",
+        "POST_PHASEP_PROVIDER_OBSERVABILITY",
+    ]
     assert chain[1]["current_instrument"]["src_iqa_soa_tree"] == (
         chain[2]["previous_instrument"]["src_iqa_soa_tree"]
     )
-    assert chain[2]["current_instrument"]["src_iqa_soa_tree"] == (
+    # The third link's own pin was captured over CRLF working-tree bytes that
+    # ``* text=auto eol=lf`` guarantees no commit can hold, so the digest its
+    # successor binds is the CORRECTED one, proved from committed bytes at the
+    # commit C3 started from. Neither record is edited to achieve that.
+    assert chain[3]["previous_instrument"]["src_iqa_soa_tree"] == (
+        instrument_revision.tree_digest_at_commit(
+            C3_REVISION_PARENT_COMMIT, "src/iqa_soa"
+        )
+    )
+    assert chain[3]["current_instrument"]["src_iqa_soa_tree"] == (
         instrument_revision.tree_digest("src/iqa_soa")
     )
     assert chain[2]["parent_commit"] == POST_PHASEP_REVISION_PARENT_COMMIT
+    assert chain[3]["parent_commit"] == C3_REVISION_PARENT_COMMIT
 
     # (B3) The exact expected live failure set, frozen HERE, before any test can
     # move a digest, a hash or a version out from under it.
@@ -3201,9 +3243,9 @@ def test_the_frozen_input_record_is_deterministic_and_committed() -> None:
         if digest != committed["trees"][root]
     }
     assert differing == {"src/iqa_soa"}, differing
-    # And the one that moved moved to exactly the APPROVED successor tree.
+    # And the one that moved moved to exactly the APPROVED HEAD revision's tree.
     assert recomputed["trees"]["src/iqa_soa"] == json.loads(
-        (PROJECT_ROOT / POST_PHASEP_REVISION_RELATIVE).read_text(encoding="utf-8")
+        (PROJECT_ROOT / C3_REVISION_RELATIVE).read_text(encoding="utf-8")
     )["current_instrument"]["src_iqa_soa_tree"]
     # The record's own pin is still true where it bound the run.
     assert instrument_revision.tree_digest_at_commit(
@@ -4648,7 +4690,16 @@ def superseded_instrument_pins() -> tuple[str, ...]:
     Nothing here is subtracted from the protocol. ``check_instrument_pins`` is
     still run in full, and any failure it reports that is not in this tuple is a
     genuine failure that the tests below still surface.
+
+    (C3 amendment.) The approved C3 revision MOVES the two live version aliases,
+    so ``check_instrument_pins``'s two version claims become false live as well.
+    They are composed from the live constants and the protocol's own frozen
+    expectations, so a version that moved WITHOUT an approved revision saying so
+    still fails: ``check_instrument_provenance`` is asserted empty beside this,
+    and the head revision has to declare exactly the versions the code declares.
     """
+
+    from iqa_soa.instrument import INSTRUMENT_VERSION, RAW_SCHEMA_VERSION
 
     revision = _phase_o_revision()
     approved_tree = str(revision["current_instrument"]["src_iqa_soa_tree"])
@@ -4659,11 +4710,30 @@ def superseded_instrument_pins() -> tuple[str, ...]:
         for relative, entry in sorted(revision["changed_files"].items())
         if protocol.sha256_file(relative) != entry["sha256"]
     )
+    versions = tuple(
+        item
+        for item, moved in (
+            (
+                f"FROZEN_ARTIFACT_MISMATCH: instrument version is "
+                f"{INSTRUMENT_VERSION!r}, this protocol is frozen against "
+                f"{protocol.EXPECTED_INSTRUMENT_VERSION!r}",
+                INSTRUMENT_VERSION != protocol.EXPECTED_INSTRUMENT_VERSION,
+            ),
+            (
+                f"FROZEN_ARTIFACT_MISMATCH: raw schema version is "
+                f"{RAW_SCHEMA_VERSION}, this protocol is frozen against "
+                f"{protocol.EXPECTED_RAW_SCHEMA_VERSION}",
+                RAW_SCHEMA_VERSION != protocol.EXPECTED_RAW_SCHEMA_VERSION,
+            ),
+        )
+        if moved
+    )
     chain = [
         path.relative_to(instrument_revision.REPO_ROOT).as_posix()
         for path in instrument_revision.REVISION_CHAIN
     ]
     return (
+        *versions,
         f"FROZEN_ARTIFACT_MISMATCH: src/iqa_soa digests to {live_tree}, the "
         f"approved Phase-O revision is {approved_tree}",
         *per_file,
@@ -4674,27 +4744,49 @@ def superseded_instrument_pins() -> tuple[str, ...]:
 
 
 def test_the_pins_are_what_the_code_declares() -> None:
-    """Every version pin still holds LIVE; only the head-of-chain claim moved.
+    """The pins Phase P ran under, asserted against the constants that NAME them.
 
-    The instrument, raw-schema, adapter and argument-contract constants are
-    unchanged by the prospective post-Phase-P implementation, and they are still
-    asserted against the live code exactly as before -- that half of this test is
-    untouched. What moved is ``check_instrument_pins()``'s present-state claim
-    that Phase O is the approved head, which an approved successor makes false.
-    The frozen protocol is not edited and its failure is not suppressed: it is
+    The adapter and the model-visible argument contract are unmoved by every
+    approved revision so far, so they are still asserted live, unchanged. The
+    instrument and raw-schema pins are a different question now: ``INSTRUMENT_VERSION``
+    and ``RAW_SCHEMA_VERSION`` are documented aliases for "what the instrument
+    writes today", and the approved C3 revision moved both. Phase P's claim was
+    never about the aliases -- it was about the instrument Phase P actually ran
+    under, which ``iqa_soa.instrument`` names permanently as
+    ``TOOL_CONTRACT_INSTRUMENT_VERSION`` and ``FAILURE_EVENT_RAW_SCHEMA_VERSION``.
+    Asserting the aliases here would make every frozen phase false the moment any
+    later instrument revision existed, which is the mistake those permanent names
+    exist to prevent, and would be the first step toward reading a Phase-P row as
+    schema 6.
+
+    The frozen protocol is not edited and its failures are not suppressed: it is
     run in full and its live failure set must be EXACTLY the enumerated
     supersession, so any OTHER instrument-pin failure still fails this test.
     """
 
     from iqa_soa.instrument import (
+        FAILURE_EVENT_RAW_SCHEMA_VERSION,
         INSTRUMENT_VERSION,
         NATIVE_TOOL_ADAPTER_VERSION,
         RAW_SCHEMA_VERSION,
+        TOOL_CONTRACT_INSTRUMENT_VERSION,
     )
     from iqa_soa.tools.argument_schema import TOOL_ARGUMENT_CONTRACT_VERSION
 
-    assert INSTRUMENT_VERSION == protocol.EXPECTED_INSTRUMENT_VERSION == "4"
-    assert RAW_SCHEMA_VERSION == protocol.EXPECTED_RAW_SCHEMA_VERSION == 5
+    # What Phase P ran under, named permanently and still true.
+    assert TOOL_CONTRACT_INSTRUMENT_VERSION == PHASE_P_INSTRUMENT_VERSION == "4"
+    assert FAILURE_EVENT_RAW_SCHEMA_VERSION == PHASE_P_RAW_SCHEMA_VERSION == 5
+    assert protocol.EXPECTED_INSTRUMENT_VERSION == TOOL_CONTRACT_INSTRUMENT_VERSION
+    assert protocol.EXPECTED_RAW_SCHEMA_VERSION == FAILURE_EVENT_RAW_SCHEMA_VERSION
+    # And the live aliases have moved past Phase P, by an approved revision that
+    # declares exactly those values.
+    assert INSTRUMENT_VERSION == "5"
+    assert RAW_SCHEMA_VERSION == 6
+    head = json.loads(
+        (PROJECT_ROOT / C3_REVISION_RELATIVE).read_text(encoding="utf-8")
+    )["current_instrument"]
+    assert head["instrument_version"] == INSTRUMENT_VERSION
+    assert head["raw_schema_version"] == RAW_SCHEMA_VERSION
     assert (
         TOOL_ARGUMENT_CONTRACT_VERSION
         == protocol.EXPECTED_TOOL_ARGUMENT_CONTRACT_VERSION
@@ -4703,6 +4795,7 @@ def test_the_pins_are_what_the_code_declares() -> None:
     assert (
         NATIVE_TOOL_ADAPTER_VERSION
         == protocol.EXPECTED_NATIVE_TOOL_ADAPTER_VERSION
+        == PHASE_P_NATIVE_TOOL_ADAPTER_VERSION
         == "native-tools-adapter-3"
     )
     assert set(_REAL_CHECK_INSTRUMENT_PINS()) == set(superseded_instrument_pins())
@@ -4756,7 +4849,10 @@ def test_the_instrument_revision_chain_is_the_accepted_one_extended_additively()
     ]
     frozen_prefix = list(protocol.REVISION_CHAIN_RELATIVE)
     assert chain[: len(frozen_prefix)] == frozen_prefix
-    assert chain[len(frozen_prefix) :] == [POST_PHASEP_REVISION_RELATIVE]
+    assert chain[len(frozen_prefix) :] == [
+        POST_PHASEP_REVISION_RELATIVE,
+        C3_REVISION_RELATIVE,
+    ]
     assert instrument_revision.REVISION_PATH == instrument_revision.REVISION_CHAIN[-1]
     assert instrument_revision.check_instrument_provenance() == []
     # Every link the frozen protocol pinned is byte-identical to the version

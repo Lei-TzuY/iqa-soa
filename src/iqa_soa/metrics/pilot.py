@@ -20,7 +20,11 @@ from iqa_soa.instrument import (
     PRE_REPAIR_RAW_SCHEMA_VERSION,
     READABLE_PILOT_RAW_SCHEMA_VERSIONS,
 )
-from iqa_soa.metrics.definitions import RAW_FIELDS_BY_SCHEMA_VERSION
+from iqa_soa.metrics.definitions import (
+    RAW_FIELDS_BY_SCHEMA_VERSION,
+    provider_failure_attempt_required_keys,
+    provider_failure_attempt_violations,
+)
 from iqa_soa.metrics.statistics import AnalysisError, analyze_before_after, pair_before_after
 
 
@@ -313,6 +317,13 @@ def _validate_pilot_manifest(
     # each schema demands exactly the fields it defined, never a later one's.
     post_repair = int(raw_schema) > PRE_REPAIR_RAW_SCHEMA_VERSION
     required_row_fields = set(RAW_FIELDS_BY_SCHEMA_VERSION[int(raw_schema)])
+    # (C3) The per-attempt failure-telemetry contract, selected by the schema a
+    # row was WRITTEN under exactly as its field set already is.
+    # ``provider_failure_attempt_required_keys`` is EMPTY for every schema below
+    # 6, so schemas 1-5 never enter the loop body below and their attempt
+    # telemetry keeps precisely the meaning it was written with -- a frozen
+    # schema-5 artifact is never re-read under schema-6 rules.
+    required_attempt_keys = provider_failure_attempt_required_keys(int(raw_schema))
     manifest_instrument = manifest.get("instrument_version")
     manifest_adapter = manifest.get("native_tool_adapter_version")
     if post_repair:
@@ -396,6 +407,27 @@ def _validate_pilot_manifest(
             raise AnalysisError("real-pilot provider attempt provenance is incomplete")
         if not attempts:
             raise AnalysisError("every real-pilot cell must preserve a provider attempt")
+        if required_attempt_keys:
+            # Malformed schema-6 failure telemetry is instrument corruption, and
+            # it is refused HERE -- before ``_classified_failure_row`` and
+            # ``_validate_failure`` turn a row into a scientific observation.
+            # Nothing is normalized, inferred, default-filled or dropped: the
+            # bundle is refused whole.
+            for index, attempt in enumerate(attempts):
+                if not isinstance(attempt, Mapping):
+                    raise AnalysisError(
+                        f"real-pilot provider_attempts[{index}] is not an object "
+                        f"under raw schema {int(raw_schema)}"
+                    )
+                violations = provider_failure_attempt_violations(
+                    attempt, raw_schema_version=int(raw_schema)
+                )
+                if violations:
+                    raise AnalysisError(
+                        f"real-pilot provider_attempts[{index}] violates the raw "
+                        f"schema {int(raw_schema)} provider failure telemetry "
+                        f"contract: {sorted(violations)}"
+                    )
     if seen != expected_cells:
         raise AnalysisError("real-pilot manifest is missing expected cells")
 
