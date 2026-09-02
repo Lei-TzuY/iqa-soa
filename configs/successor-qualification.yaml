@@ -1,0 +1,136 @@
+# Successor real-model QA-OFF benchmark-QUALIFICATION experiment configuration ONLY.
+#
+# THIS FILE AUTHORIZES NOTHING.  It is a prospectively frozen input to a future,
+# separately human-gated qualification of the frozen successor candidate
+# prospective-candidate-i5-m1-b76f40da2.  Loading it contacts no endpoint, runs
+# no model and writes nothing.
+#
+# OWNERSHIP.  This file belongs to the SUCCESSOR candidate and to nothing else.
+# It is an ExperimentConfig in the established repository schema
+# (iqa_soa.experiment.runner.load_experiment_config, schema_version 1) -- not a
+# parallel configuration system, and not a PilotConfig.  The generic PilotConfig
+# path (iqa_soa.experiment.pilot.load_pilot_config) intentionally requires
+# treatments == [off, full]; that safety requirement is NOT weakened, bypassed or
+# modified here.  A later authorized successor driver would drive the
+# already-validated ExperimentRunner directly, exactly as
+# scripts/run_phaseD_qualification.py, scripts/run_phaseF_qualification.py,
+# scripts/run_phaseI_requalification.py, scripts/run_phaseL_requalification.py
+# and scripts/run_phaseP_qualification.py already do.
+#
+# It is bound by scripts/successor_qualification_protocol.py as
+# CANONICAL_EXPERIMENT_CONFIG_RELATIVE and digest-bound by
+# docs/successor_frozen_execution_inputs.json.  A single changed byte fails
+# check_experiment_config and check_frozen_inputs.
+#
+# HISTORICAL ISOLATION.  models_path is the successor-owned provider config and
+# never a phase config; output_root is the successor-owned namespace and never a
+# phase namespace.  configs/phaseP-qualification.yaml and every earlier phase
+# qualification config remain byte-identical, are never loaded by the successor
+# protocol, and cannot satisfy a successor precondition: the protocol refuses
+# each of them by name.  Rows written under instrument 5 / raw schema 6 may never
+# be pooled, merged, averaged or compared with rows written under instrument 4 /
+# raw schema 5, so the namespace separation is a scientific requirement, not
+# bookkeeping.
+#
+# `treatments: ["off"]` is deliberate and is the whole point of a qualification:
+# the question is whether the frozen 17-task pilot-v7-rc4 selection's designed
+# safe paths, challenge routes, multi-step causal prerequisites, resource
+# modality, benign controls, deliberate negative control and fault opportunity
+# are behaviourally REACHABLE under real models when no guard is running.  A
+# FULL arm would answer a different (confirmatory) question and is out of scope:
+# this qualification estimates no QA effectiveness, computes no treatment
+# effect, reports no p-value, no odds ratio, no confidence interval, and ranks no
+# model.  `full`, `partial`, `ablation` and `confirmatory` are named as
+# OUT_OF_SCOPE_TREATMENTS by the protocol.
+#
+# THE INSTRUMENT PINS ARE NOT WRITTEN HERE.  Instrument 5, raw schema 6,
+# native-tools-adapter-3 and tool-arguments-1 are properties of the INSTRUMENT,
+# and the ExperimentConfig schema rejects unknown fields.  They are pinned in
+# scripts/successor_qualification_protocol.py,
+# docs/successor_frozen_execution_inputs.json and
+# docs/successor_real_model_qualification_plan.md, and this config is bound to
+# that protocol by digest, so the pins cannot drift away from it.
+#
+# ------------------------------------------------------------------------------
+# WHERE `seeds` CAME FROM -- READ BEFORE CHANGING THEM
+# ------------------------------------------------------------------------------
+#
+# The three seeds are PROSPECTIVELY DERIVED, not chosen.  Section 5C of
+# docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md
+# authorizes exactly one derivation, and
+# docs/successor_prospective_seed_derivation.json records it in full: the
+# algorithm version successor-qualification-seed-derivation-1, the canonical base
+# commit d5b5537a84cc8b57bca2195c3b3bb4cfdb857e5c, the fixed domain separator,
+# every candidate examined with its material and its SHA-256, every rejection if
+# any, and the accepted triple.  scripts/successor_derive_seeds.py recomputes the
+# whole search from the base commit alone, and --check requires the committed
+# artifact to match byte for byte.
+#
+# The base commit PREDATES every successor qualification act and no successor
+# model result exists at it, so no outcome could have informed the selection.
+# No model output, no result row, no exposure rate and no ranking is an input.
+#
+# The METHOD is reused from the historical phase-p-seed-derivation-1 algorithm.
+# No historical seed VALUE is reused: the Phase-P triple, the Phase-L triple and
+# every earlier seed are FORBIDDEN, and the derivation proves the forbidden set
+# complete by scanning the git-tracked configs, docs, benchmark and schemas --
+# never a results namespace, and never a filesystem walk.
+#
+# `repetitions: 3` describes the seed count only.  A later authorized successor
+# driver would NOT use the runner's own case x repetition loop: it would execute
+# exactly one (task, seed) cell per runner invocation under a stop controller, so
+# that an immediate-stop condition can prevent the next cell and the next arm.
+# The prospective matrix is therefore 17 tasks x 2 arms x 3 seeds = 102 cells.
+#
+# CHANGING A SEED IS A SCIENTIFIC ACT, NOT AN EDIT.  It requires a new human
+# record and a new derivation; it also changes this file's bytes, which fails the
+# frozen-input digest binding in docs/successor_frozen_execution_inputs.json
+# until that record exists and the freeze is recomputed against it.
+#
+# ------------------------------------------------------------------------------
+#
+# THIS CONFIG STILL EXECUTES NOTHING.  It now loads cleanly under
+# iqa_soa.experiment.runner.load_experiment_config, which is the point of the
+# derivation: the remaining barrier to execution is the WITHHELD execution
+# authorization, not a malformed or incomplete configuration.  Provider contact,
+# endpoint probes, model inference, qualification execution and confirmatory
+# execution all remain unauthorized, and
+# successor_qualification_protocol.require_execution_authorization refuses every
+# execution path while they are.
+#
+# max_agent_steps is 20, the value configs/experiment.yaml uses and therefore the
+# value every frozen Stage-1/Stage-2/Phase-A/Phase-D/Phase-F/Phase-I/Phase-L
+# real-model run used.  It is not tuned for this candidate.  It exceeds every
+# rc4 task's max_tool_calls (max 5) so that a genuine over-budget proposal
+# remains observable under QA OFF instead of being truncated by the harness --
+# which BUD-016, BUD-017 and BUD-018 require, since each retains a cap crossing
+# as declared telemetry.
+#
+# shuffle_treatments is false: with a single treatment there is nothing to
+# shuffle, and no production randomization is authorized by any record.
+#
+# benchmark_path is the benchmark root only so the runner can digest it; the
+# executed case set would come from the frozen pilot-v7-rc4 manifest passed to
+# the runner as frozen_benchmark, never from a directory scan.  The 17 task ids
+# are fixed by the candidate's own qualification-contract.json, whose
+# task_selection is exact and may be neither extended nor narrowed.
+#
+# The artifact names match the protocol's frozen RAW_RECORD_NAME and
+# RAW_CSV_NAME, so the ExperimentConfig and the protocol cannot name different
+# files.  Persistence is fail-closed: written exactly once, to a path that must
+# not already exist.  There is no overwrite mode, no resume mode, no merge mode.
+schema_version: 1
+benchmark_path: benchmark
+policy_path: configs/policies/default.xml
+models_path: configs/successor-models.yaml
+ablations_path: configs/ablations.yaml
+output_root: results/prospective-candidate-i5-m1-b76f40da2-qualification/raw
+repetitions: 3
+seeds: [583010984, 1723431918, 1639806953]
+max_agent_steps: 20
+shuffle_treatments: false
+treatments: ["off"]
+smoke_case_ids: [BEN-002, BEN-003]
+raw_jsonl: successor-runs.jsonl
+raw_csv: successor-runs.csv
+evidence_subdir: evidence

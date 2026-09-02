@@ -1,0 +1,512 @@
+{
+  "argument_version": "successor-pr10-offline-argument-1",
+  "authorization_record": "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md",
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_status_at_entry": "FROZEN_NOT_YET_QUALIFIED",
+  "canonical_base_commit": "d5b5537a84cc8b57bca2195c3b3bb4cfdb857e5c",
+  "confirmatory_execution_authorized": false,
+  "current_provider_eligibility": "UNASSESSED",
+  "eligibility_manifest_written": false,
+  "endpoint_probed": false,
+  "model_inference_performed": false,
+  "model_metadata_queried": false,
+  "offline_status_vocabulary": [
+    "PASS",
+    "FAIL",
+    "PENDING"
+  ],
+  "offline_to_stage_b_projection": {
+    "FAIL": "FAIL",
+    "PASS": "PASS",
+    "PENDING": "UNASSESSED"
+  },
+  "predicate_order": [
+    "POSITION_STATE_ISOLATION",
+    "INFRASTRUCTURE_SYMMETRY",
+    "TOTAL_OBSERVATION",
+    "RUNTIME_CONFIGURATION_FROZEN"
+  ],
+  "provider_contacted": false,
+  "qualification_execution_authorized": false,
+  "record_kind": "successor_pr10_offline_eligibility_argument",
+  "registration_draft_written": false,
+  "runtime_snapshot_capture_required_next": true,
+  "runtime_snapshots_captured": 0,
+  "runtime_snapshots_synthesized": 0,
+  "schema_version": 1,
+  "stage_a_status": "BLOCKED_PENDING_RUNTIME_SNAPSHOT",
+  "stage_b_entered": false,
+  "strata": [
+    {
+      "accepted_runtime_versions": [
+        "0.32.13"
+      ],
+      "captured_runtime_snapshot_count": 0,
+      "confirmatory_eligible": false,
+      "disposition": "NOT_ASSIGNED_STAGE_B_NOT_ENTERED",
+      "expected_model_digest_pin": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+      "expected_runtime_version_pin": "0.32.13",
+      "experiment_config": "configs/successor-qualification.yaml",
+      "infrastructure_symmetry_audit": {
+        "channels": [
+          {
+            "channel_id": "PROMPT_SYSTEM_MESSAGE_CONTENT",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "GATEWAY_PATH_LATENCY_SIGNATURE",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "EVIDENCE_VOLUME",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "PROVIDER_MODEL_SELECTION",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          }
+        ],
+        "derived_status": "UNASSESSED",
+        "offline_channel_findings": [
+          {
+            "channel_id": "PROMPT_SYSTEM_MESSAGE_CONTENT",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "4269ea7d89282fd73c38026df99b4a303581b93fa8aa1c05789760c89b2a7292",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/agent/agent.py"
+              },
+              {
+                "content_digest": "d861406412e9202d01a754da5725fd89f9523d6b57b3d5c6b689184f93586f33",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/agent/providers.py"
+              },
+              {
+                "content_digest": "f047eefc3d76fd1520a2ca9d1389edd7e556ceb54b1925b6d8223e4f46df06a0",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/iqa/gateway.py"
+              }
+            ],
+            "offline_observation": "Offline inspection finds no reference to qa_mode or QAMode anywhere in src/iqa_soa/agent/agent.py or src/iqa_soa/agent/providers.py, so the prompt-construction and request-serialization path is label-blind by construction. That is a necessary condition, not a sufficient one: under QA FULL the gateway can deny an action, and a denial changes what appears in the conversation history the NEXT turn sends. Deciding whether that difference stays inside the intended qa_mode semantics is the substance of this channel's audit and is not settled by the absence of a symbol.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "GATEWAY_PATH_LATENCY_SIGNATURE",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "f047eefc3d76fd1520a2ca9d1389edd7e556ceb54b1925b6d8223e4f46df06a0",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/iqa/gateway.py"
+              },
+              {
+                "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+              }
+            ],
+            "offline_observation": "Implementation design section 5.F states the difference itself: QAMode.OFF short-circuits to ALLOW without invoking the QA chain, which is an intended behavioural difference and a leak only if it also crosses a provider-side rate-limit or cache-tier boundary. Whether the local runtime has such a boundary is a provider-side fact. No committed artifact records it and no offline inspection of this repository can produce it.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "EVIDENCE_VOLUME",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+              }
+            ],
+            "offline_observation": "FULL emits richer evidence than OFF. Whether evidence writing shares I/O capacity with the provider call path in a way the serving side can observe depends on the host and on the runtime's own I/O behaviour under load. Both are live facts.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "PROVIDER_MODEL_SELECTION",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/experiment/confirmatory.py"
+              },
+              {
+                "content_digest": "171f70ac6d8e40e15e493416e0d2df824e90c5a7c69610e99404db71582601b9",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/experiment/confirmatory_registration.py"
+              },
+              {
+                "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+              }
+            ],
+            "offline_observation": "Both selected strata name one endpoint, fixed by (provider, model) in configs/successor-models.yaml, with no qa_mode-conditional branch in the configuration. The residual exposure is at the interface, not the config: the frozen ProviderFactory.create_for_position contract receives a whole ConfirmatoryPositionV1, which carries baseline_label. The realized label is deliberately absent from that record, but baseline_label is label-correlated within a task once b_k is fixed, so a caller-supplied factory could in principle condition endpoint or pool selection on it. Closing this channel requires auditing the concrete factory implementation used at execution, which does not exist yet.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          }
+        ]
+      },
+      "model": "mistral-small3.2:24b",
+      "model_inference_performed": false,
+      "predicates": [
+        {
+          "blocking_facts": [
+            "Implementation design section 5.E states outright that provider-side infrastructure which cannot be locally recreated -- routing, rate-limit buckets, shared serving infrastructure -- is outside what a fresh local context can prove, and closes with: 'This document still does not claim that any real provider passes PR-4; that remains [DEFERRED VERIFICATION].'",
+            "For a local Ollama runtime specifically, the unresolved facts are server-side: whether prefix/KV cache state, a loaded-model slot or a connection pool is reused across requests in a way that could carry information about one position's label into another position's execution. No committed artifact in this repository records any of them, and obtaining them requires runtime contact."
+          ],
+          "established_offline": "The LOCAL half is structural and already holds. Implementation design section 5.E freezes ProviderFactory.create_for_position, and src/iqa_soa/experiment/confirmatory.py obtains exactly one new AgentProvider per position and never reuses an instance across two position_id values, so sandbox, tool registry and session objects are fresh per position by construction rather than by argument.",
+          "offline_evidence_refs": [
+            {
+              "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "src/iqa_soa/experiment/confirmatory.py"
+            },
+            {
+              "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+            }
+          ],
+          "offline_status": "PENDING",
+          "predicate_id": "POSITION_STATE_ISOLATION",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        },
+        {
+          "blocking_facts": [
+            "Implementation design section 5.F declares this audit 'evidence-gathering, not architecture', explicitly 'not resolved here' and 'open by design'. The governing authorization record does not authorize closing it.",
+            "GATEWAY_PATH_LATENCY_SIGNATURE and EVIDENCE_VOLUME depend on provider-side and host-side behaviour under load, which no offline inspection of this repository can supply.",
+            "Section 10.4 permits PASS only when EVERY channel is CHECKED with no asymmetry found, so no partial close can raise this predicate above UNASSESSED."
+          ],
+          "established_offline": "All four section 5.F leak channels are enumerated and each carries a recorded offline observation, so the later audit starts from what has already been looked at. The predicate status is DERIVED from the channels by the frozen derive_infrastructure_symmetry_status, never asserted: with four NOT_CHECKED channels, section 10.4 yields UNASSESSED.",
+          "offline_evidence_refs": [],
+          "offline_status": "PENDING",
+          "predicate_id": "INFRASTRUCTURE_SYMMETRY",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        },
+        {
+          "blocking_facts": [
+            "Design decision section 12 requires the argument to hold for every admissible b in B, not merely the realized one. B is the admissible assignment set of a registered confirmatory matrix, and no registration draft exists for this candidate, so there is no B to quantify over yet.",
+            "The evidence column requires an 'offline observability design argument PER PROVIDER/RUNTIME'. No such argument exists for either selected stratum; docs/post_phaseP_provider_observability_design.md is an instrument-level record and names no provider or model.",
+            "Section 12's own failure example -- a known differential-timeout profile that is not part of the treatment mechanism -- is a live runtime property of each local model at the frozen 600-second timeout with zero retries. It is unobserved for both strata."
+          ],
+          "established_offline": "The instrument-side precondition is closed. Change C3 landed the provider failure-telemetry repair (instrument 5, raw schema 6), so every provider failure now carries structured provenance instead of collapsing into an untyped error, and implementation design section 5.H requires the collection boundary to emit observation_status and failure_class explicitly for every confirmatory row rather than inferring observability from whether an endpoint value is present. That machinery is also label-blind, which is what a schedule-invariant observability argument would rest on.",
+          "offline_evidence_refs": [
+            {
+              "content_digest": "a45df3540c0e3a2e6b283ceb7b3aefe50555f95297911bdde8d18d55835d79f7",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "docs/post_phaseP_provider_observability_design.md"
+            },
+            {
+              "content_digest": "d861406412e9202d01a754da5725fd89f9523d6b57b3d5c6b689184f93586f33",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "src/iqa_soa/agent/providers.py"
+            },
+            {
+              "content_digest": "668022ee7635f0c991ab4c9fe62e02c1c0e7b6e06f6ad9375d7c253825dd710d",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "src/iqa_soa/metrics/collector.py"
+            }
+          ],
+          "offline_status": "PENDING",
+          "predicate_id": "TOTAL_OBSERVATION",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        },
+        {
+          "blocking_facts": [
+            "Eligibility clarification section 12.3 requires one complete RuntimeSnapshotV1 per proposed stratum, and the registration-expected runtime identity for a stratum IS that snapshot's runtime_identity_digest. Neither stratum has one.",
+            "Implementation design section 5.I.5 makes the registration-expected snapshot a CAPTURE POINT, and section 5.I.3 puts live host facts (platform_system, platform_release, platform_machine, python_implementation, python_version) and the provider endpoint inside the environment_fingerprint preimage. A snapshot assembled without observing the runtime is a fabrication regardless of shape.",
+            "The model-digest and runtime-version pins are carried forward PROSPECTIVELY from committed non-outcome lineage records. Whether the live runtime still presents them is exactly the unobserved fact, and is the ENVIRONMENT_HOLD boundary rather than something this module may assume.",
+            "The governing authorization record section 5A carries a human-reported environment runtime version that is NOT the frozen pin, resolved as RESTORE_FROZEN_RUNTIME with RUNTIME_REPIN NOT_AUTHORIZED. This module probed nothing and confirms nothing about it; it records only that the environment must be restored to the pinned runtime BEFORE a capture, so a capture taken against an unrestored environment would be an ENVIRONMENT_HOLD rather than evidence for this predicate."
+          ],
+          "established_offline": "Everything this predicate compares AGAINST is frozen and citable: the model identity and digest pins, the runtime-version pin, the per-slot tool contract policy, the protocol, the endpoint and the 600-second timeout with infrastructure_retry_limit 0 all live in scripts/successor_qualification_protocol.py and configs/successor-models.yaml, and successor_qualification_protocol.verify_runtime_identity already fixes, offline, that any live disagreement is an ENVIRONMENT_HOLD rather than a repair. Both configuration digests a RuntimeSnapshotV1 carries now have a successor-owned file to digest: models_config_digest over configs/successor-models.yaml and experiment_config_digest over configs/successor-qualification.yaml, the successor ExperimentConfig, which is itself digest-bound by docs/successor_frozen_execution_inputs.json. The comparison rule is frozen; only the observation is missing.",
+          "offline_evidence_refs": [
+            {
+              "content_digest": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "configs/successor-models.yaml"
+            },
+            {
+              "content_digest": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "configs/successor-qualification.yaml"
+            },
+            {
+              "content_digest": "8ccaaf4f263c27db3ab7c613c884abad66ec56b96c87d254da89817c669d056b",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "scripts/successor_qualification_protocol.py"
+            },
+            {
+              "content_digest": "3bf34a53f8391fd974091397bad5a2d5ba931df00b97ada6336bfbfed1b620b0",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "docs/post_phaseP_confirmatory_eligibility_schema_clarification.md"
+            }
+          ],
+          "offline_status": "PENDING",
+          "predicate_id": "RUNTIME_CONFIGURATION_FROZEN",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        }
+      ],
+      "projected_disposition_is_recorded": false,
+      "projected_stage_b_disposition": "DESCRIPTIVE_ONLY_UNASSESSED",
+      "provider": "mistral_native_trailing_user",
+      "provider_contacted": false,
+      "registration_expected_runtime_identity_digest": null,
+      "runtime_identity_pin_status": "PROSPECTIVE_UNVERIFIED",
+      "runtime_repin_authorized": false,
+      "runtime_restore_required": true,
+      "runtime_version_comparison": "EXACT_STRING_EQUALITY",
+      "runtime_version_resolution": "RESTORE_FROZEN_RUNTIME",
+      "selection_basis": "PROSPECTIVE_LINEAGE_CONTINUITY",
+      "selection_establishes": "PROPOSED_STRATUM"
+    },
+    {
+      "accepted_runtime_versions": [
+        "0.32.13"
+      ],
+      "captured_runtime_snapshot_count": 0,
+      "confirmatory_eligible": false,
+      "disposition": "NOT_ASSIGNED_STAGE_B_NOT_ENTERED",
+      "expected_model_digest_pin": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e",
+      "expected_runtime_version_pin": "0.32.13",
+      "experiment_config": "configs/successor-qualification.yaml",
+      "infrastructure_symmetry_audit": {
+        "channels": [
+          {
+            "channel_id": "PROMPT_SYSTEM_MESSAGE_CONTENT",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "GATEWAY_PATH_LATENCY_SIGNATURE",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "EVIDENCE_VOLUME",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "PROVIDER_MODEL_SELECTION",
+            "check_status": "NOT_CHECKED",
+            "evidence_refs": [],
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          }
+        ],
+        "derived_status": "UNASSESSED",
+        "offline_channel_findings": [
+          {
+            "channel_id": "PROMPT_SYSTEM_MESSAGE_CONTENT",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "4269ea7d89282fd73c38026df99b4a303581b93fa8aa1c05789760c89b2a7292",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/agent/agent.py"
+              },
+              {
+                "content_digest": "d861406412e9202d01a754da5725fd89f9523d6b57b3d5c6b689184f93586f33",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/agent/providers.py"
+              },
+              {
+                "content_digest": "f047eefc3d76fd1520a2ca9d1389edd7e556ceb54b1925b6d8223e4f46df06a0",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/iqa/gateway.py"
+              }
+            ],
+            "offline_observation": "Offline inspection finds no reference to qa_mode or QAMode anywhere in src/iqa_soa/agent/agent.py or src/iqa_soa/agent/providers.py, so the prompt-construction and request-serialization path is label-blind by construction. That is a necessary condition, not a sufficient one: under QA FULL the gateway can deny an action, and a denial changes what appears in the conversation history the NEXT turn sends. Deciding whether that difference stays inside the intended qa_mode semantics is the substance of this channel's audit and is not settled by the absence of a symbol.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "GATEWAY_PATH_LATENCY_SIGNATURE",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "f047eefc3d76fd1520a2ca9d1389edd7e556ceb54b1925b6d8223e4f46df06a0",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/iqa/gateway.py"
+              },
+              {
+                "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+              }
+            ],
+            "offline_observation": "Implementation design section 5.F states the difference itself: QAMode.OFF short-circuits to ALLOW without invoking the QA chain, which is an intended behavioural difference and a leak only if it also crosses a provider-side rate-limit or cache-tier boundary. Whether the local runtime has such a boundary is a provider-side fact. No committed artifact records it and no offline inspection of this repository can produce it.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "EVIDENCE_VOLUME",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+              }
+            ],
+            "offline_observation": "FULL emits richer evidence than OFF. Whether evidence writing shares I/O capacity with the provider call path in a way the serving side can observe depends on the host and on the runtime's own I/O behaviour under load. Both are live facts.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          },
+          {
+            "channel_id": "PROVIDER_MODEL_SELECTION",
+            "check_status": "NOT_CHECKED",
+            "offline_evidence_refs": [
+              {
+                "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/experiment/confirmatory.py"
+              },
+              {
+                "content_digest": "171f70ac6d8e40e15e493416e0d2df824e90c5a7c69610e99404db71582601b9",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "src/iqa_soa/experiment/confirmatory_registration.py"
+              },
+              {
+                "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+                "evidence_kind": "REPOSITORY_PATH",
+                "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+              }
+            ],
+            "offline_observation": "Both selected strata name one endpoint, fixed by (provider, model) in configs/successor-models.yaml, with no qa_mode-conditional branch in the configuration. The residual exposure is at the interface, not the config: the frozen ProviderFactory.create_for_position contract receives a whole ConfirmatoryPositionV1, which carries baseline_label. The realized label is deliberately absent from that record, but baseline_label is label-correlated within a task once b_k is fixed, so a caller-supplied factory could in principle condition endpoint or pool selection on it. Closing this channel requires auditing the concrete factory implementation used at execution, which does not exist yet.",
+            "symmetry_result": "SYMMETRY_NOT_ASSESSED"
+          }
+        ]
+      },
+      "model": "qwen3.5:27b",
+      "model_inference_performed": false,
+      "predicates": [
+        {
+          "blocking_facts": [
+            "Implementation design section 5.E states outright that provider-side infrastructure which cannot be locally recreated -- routing, rate-limit buckets, shared serving infrastructure -- is outside what a fresh local context can prove, and closes with: 'This document still does not claim that any real provider passes PR-4; that remains [DEFERRED VERIFICATION].'",
+            "For a local Ollama runtime specifically, the unresolved facts are server-side: whether prefix/KV cache state, a loaded-model slot or a connection pool is reused across requests in a way that could carry information about one position's label into another position's execution. No committed artifact in this repository records any of them, and obtaining them requires runtime contact."
+          ],
+          "established_offline": "The LOCAL half is structural and already holds. Implementation design section 5.E freezes ProviderFactory.create_for_position, and src/iqa_soa/experiment/confirmatory.py obtains exactly one new AgentProvider per position and never reuses an instance across two position_id values, so sandbox, tool registry and session objects are fresh per position by construction rather than by argument.",
+          "offline_evidence_refs": [
+            {
+              "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "src/iqa_soa/experiment/confirmatory.py"
+            },
+            {
+              "content_digest": "3e214698a3b7ff6d74b21c3fe76f110376e6406be0f2abeb73c247ef6da3b4d7",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+            }
+          ],
+          "offline_status": "PENDING",
+          "predicate_id": "POSITION_STATE_ISOLATION",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        },
+        {
+          "blocking_facts": [
+            "Implementation design section 5.F declares this audit 'evidence-gathering, not architecture', explicitly 'not resolved here' and 'open by design'. The governing authorization record does not authorize closing it.",
+            "GATEWAY_PATH_LATENCY_SIGNATURE and EVIDENCE_VOLUME depend on provider-side and host-side behaviour under load, which no offline inspection of this repository can supply.",
+            "Section 10.4 permits PASS only when EVERY channel is CHECKED with no asymmetry found, so no partial close can raise this predicate above UNASSESSED."
+          ],
+          "established_offline": "All four section 5.F leak channels are enumerated and each carries a recorded offline observation, so the later audit starts from what has already been looked at. The predicate status is DERIVED from the channels by the frozen derive_infrastructure_symmetry_status, never asserted: with four NOT_CHECKED channels, section 10.4 yields UNASSESSED.",
+          "offline_evidence_refs": [],
+          "offline_status": "PENDING",
+          "predicate_id": "INFRASTRUCTURE_SYMMETRY",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        },
+        {
+          "blocking_facts": [
+            "Design decision section 12 requires the argument to hold for every admissible b in B, not merely the realized one. B is the admissible assignment set of a registered confirmatory matrix, and no registration draft exists for this candidate, so there is no B to quantify over yet.",
+            "The evidence column requires an 'offline observability design argument PER PROVIDER/RUNTIME'. No such argument exists for either selected stratum; docs/post_phaseP_provider_observability_design.md is an instrument-level record and names no provider or model.",
+            "Section 12's own failure example -- a known differential-timeout profile that is not part of the treatment mechanism -- is a live runtime property of each local model at the frozen 600-second timeout with zero retries. It is unobserved for both strata."
+          ],
+          "established_offline": "The instrument-side precondition is closed. Change C3 landed the provider failure-telemetry repair (instrument 5, raw schema 6), so every provider failure now carries structured provenance instead of collapsing into an untyped error, and implementation design section 5.H requires the collection boundary to emit observation_status and failure_class explicitly for every confirmatory row rather than inferring observability from whether an endpoint value is present. That machinery is also label-blind, which is what a schedule-invariant observability argument would rest on.",
+          "offline_evidence_refs": [
+            {
+              "content_digest": "a45df3540c0e3a2e6b283ceb7b3aefe50555f95297911bdde8d18d55835d79f7",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "docs/post_phaseP_provider_observability_design.md"
+            },
+            {
+              "content_digest": "d861406412e9202d01a754da5725fd89f9523d6b57b3d5c6b689184f93586f33",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "src/iqa_soa/agent/providers.py"
+            },
+            {
+              "content_digest": "668022ee7635f0c991ab4c9fe62e02c1c0e7b6e06f6ad9375d7c253825dd710d",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "src/iqa_soa/metrics/collector.py"
+            }
+          ],
+          "offline_status": "PENDING",
+          "predicate_id": "TOTAL_OBSERVATION",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        },
+        {
+          "blocking_facts": [
+            "Eligibility clarification section 12.3 requires one complete RuntimeSnapshotV1 per proposed stratum, and the registration-expected runtime identity for a stratum IS that snapshot's runtime_identity_digest. Neither stratum has one.",
+            "Implementation design section 5.I.5 makes the registration-expected snapshot a CAPTURE POINT, and section 5.I.3 puts live host facts (platform_system, platform_release, platform_machine, python_implementation, python_version) and the provider endpoint inside the environment_fingerprint preimage. A snapshot assembled without observing the runtime is a fabrication regardless of shape.",
+            "The model-digest and runtime-version pins are carried forward PROSPECTIVELY from committed non-outcome lineage records. Whether the live runtime still presents them is exactly the unobserved fact, and is the ENVIRONMENT_HOLD boundary rather than something this module may assume.",
+            "The governing authorization record section 5A carries a human-reported environment runtime version that is NOT the frozen pin, resolved as RESTORE_FROZEN_RUNTIME with RUNTIME_REPIN NOT_AUTHORIZED. This module probed nothing and confirms nothing about it; it records only that the environment must be restored to the pinned runtime BEFORE a capture, so a capture taken against an unrestored environment would be an ENVIRONMENT_HOLD rather than evidence for this predicate."
+          ],
+          "established_offline": "Everything this predicate compares AGAINST is frozen and citable: the model identity and digest pins, the runtime-version pin, the per-slot tool contract policy, the protocol, the endpoint and the 600-second timeout with infrastructure_retry_limit 0 all live in scripts/successor_qualification_protocol.py and configs/successor-models.yaml, and successor_qualification_protocol.verify_runtime_identity already fixes, offline, that any live disagreement is an ENVIRONMENT_HOLD rather than a repair. Both configuration digests a RuntimeSnapshotV1 carries now have a successor-owned file to digest: models_config_digest over configs/successor-models.yaml and experiment_config_digest over configs/successor-qualification.yaml, the successor ExperimentConfig, which is itself digest-bound by docs/successor_frozen_execution_inputs.json. The comparison rule is frozen; only the observation is missing.",
+          "offline_evidence_refs": [
+            {
+              "content_digest": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "configs/successor-models.yaml"
+            },
+            {
+              "content_digest": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "configs/successor-qualification.yaml"
+            },
+            {
+              "content_digest": "8ccaaf4f263c27db3ab7c613c884abad66ec56b96c87d254da89817c669d056b",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "scripts/successor_qualification_protocol.py"
+            },
+            {
+              "content_digest": "3bf34a53f8391fd974091397bad5a2d5ba931df00b97ada6336bfbfed1b620b0",
+              "evidence_kind": "REPOSITORY_PATH",
+              "locator": "docs/post_phaseP_confirmatory_eligibility_schema_clarification.md"
+            }
+          ],
+          "offline_status": "PENDING",
+          "predicate_id": "RUNTIME_CONFIGURATION_FROZEN",
+          "stage_b_evidence_refs_if_assessed_today": [],
+          "stage_b_status_if_assessed_today": "UNASSESSED"
+        }
+      ],
+      "projected_disposition_is_recorded": false,
+      "projected_stage_b_disposition": "DESCRIPTIVE_ONLY_UNASSESSED",
+      "provider": "qwen_native_none",
+      "provider_contacted": false,
+      "registration_expected_runtime_identity_digest": null,
+      "runtime_identity_pin_status": "PROSPECTIVE_UNVERIFIED",
+      "runtime_repin_authorized": false,
+      "runtime_restore_required": true,
+      "runtime_version_comparison": "EXACT_STRING_EQUALITY",
+      "runtime_version_resolution": "RESTORE_FROZEN_RUNTIME",
+      "selection_basis": "PROSPECTIVE_LINEAGE_CONTINUITY",
+      "selection_establishes": "PROPOSED_STRATUM"
+    }
+  ],
+  "why_the_projection_is_not_recorded": "Eligibility clarification section 15 forbids promoting a recorded DESCRIPTIVE_ONLY_* stratum to CONFIRMATORY_ELIGIBLE in place, and refused case 48 makes the consequence explicit: such a stratum can only be rescued by abandoning the design_id and recreating it. Recording today's unavoidable ignorance as a Stage-B disposition would therefore permanently exclude both selected strata from the confirmatory matrix on the strength of evidence nobody has been authorized to gather. Stage B is entered later, once, with real evidence."
+}

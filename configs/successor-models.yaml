@@ -1,0 +1,90 @@
+# Successor real-model benchmark-QUALIFICATION providers ONLY.
+#
+# THIS FILE AUTHORIZES NOTHING.  It is a prospectively frozen input to a future,
+# separately human-gated qualification of the frozen successor candidate
+# prospective-candidate-i5-m1-b76f40da2.  Loading it contacts no endpoint,
+# probes no runtime, resolves no credential and performs no inference.
+#
+# OWNERSHIP.  This file belongs to the SUCCESSOR candidate and to nothing else.
+# configs/phaseP-models.yaml remains the Phase-P historical input and is neither
+# read nor modified by the successor protocol; Phase P remains UNQUALIFIED /
+# HOLD / SCHEDULE_COMPLETE_VERDICT_HOLD and BEN-003 remains historical and
+# unrepaired.  A successor run never loads a phase config, and a phase artifact
+# never loads this one.
+#
+# WHY EXACTLY THESE TWO SLOTS.  They are named by an explicit prospective human
+# decision recorded in
+# docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md
+# on the single stated ground of CONTINUITY OF THE ESTABLISHED PROVIDER
+# QUALIFICATION LINEAGE: these are the provider slots Phase C/D qualified and
+# Phase F, Phase I and Phase L-B carried forward.  The decision was NOT based on
+# any Phase-P outcome, benchmark result, exposure rate, model ranking, observed
+# performance, credential presence, environment-variable presence, current
+# availability, seed or expected result.  Selecting them makes them PROPOSED
+# STRATA.  It does not make either one CONFIRMATORY_ELIGIBLE and it does not
+# make either one PROVIDER_QUALIFIED; both remain evidence-dependent questions
+# owned by PR-10 (docs/successor_pr10_offline_eligibility_argument.json).
+#
+# Every model identity and sampling setting is carried forward verbatim from the
+# established qualification lineage (configs/phaseL-models.yaml, itself carried
+# from configs/phaseI-models.yaml, configs/phaseF-models.yaml and the qualified
+# Phase-C/D slots).  Nothing here is newly chosen: endpoint family, protocol,
+# temperature, top_p, max_output_tokens, seed support, timeout and the per-slot
+# tool_contract_policy are the already-qualified values.  The ONLY deliberate
+# difference from the historical configs is api_key_env, which is
+# successor-specific so that a Phase-F, Phase-I, Phase-L or Phase-P credential
+# can never silently satisfy a successor precondition.
+#
+# The tool_contract_policy difference between the two slots (`none` for Qwen,
+# `trailing_user` for Mistral) is already-qualified INSTRUMENT behaviour, not an
+# experimental factor.  A Qwen-vs-Mistral difference must therefore never be
+# read causally; the successor qualification computes no model comparison and
+# publishes no model ranking.
+#
+# INSTRUMENT PINS ARE NOT WRITTEN HERE.  Instrument 5, raw schema 6,
+# native-tools-adapter-3 and tool-arguments-1 are properties of the INSTRUMENT,
+# not of a provider slot, and the provider schema rejects unknown fields.  They
+# are pinned in scripts/successor_qualification_protocol.py, in
+# docs/successor_frozen_execution_inputs.json and in
+# docs/successor_real_model_qualification_plan.md.
+#
+# THE EXPECTED OLLAMA MODEL DIGESTS ARE LIKEWISE NOT RECORDED HERE.  They are
+# pinned in the three artifacts above and are asserted against the LIVE runtime
+# immediately before any inference, by a later separately authorized preflight.
+# A difference is an ENVIRONMENT_HOLD: the successor protocol never pulls,
+# updates, retags, repairs or replaces a model.
+#
+# timeout_seconds is 600 only so that a cold local model load is not misreported
+# as a provider timeout; no retry is permitted either way, and the successor
+# protocol fixes infrastructure_retry_limit at 0.
+schema_version: 2
+default_provider: qwen_native_none
+providers:
+  qwen_native_none:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: qwen3.5:27b
+    api_key_env: SUCCESSOR_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: none
+  mistral_native_trailing_user:
+    type: openai_compatible
+    enabled: true
+    endpoint: http://127.0.0.1:11434/v1/chat/completions
+    model: mistral-small3.2:24b
+    api_key_env: SUCCESSOR_OLLAMA_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_output_tokens: 1024
+    seed: null
+    supports_seed: true
+    protocol: native_tools
+    timeout_seconds: 600
+    tool_contract_policy: trailing_user
