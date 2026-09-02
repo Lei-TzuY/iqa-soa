@@ -1,0 +1,747 @@
+{
+  "authorization_states": [
+    "AUTHORIZED",
+    "NOT_ADOPTED",
+    "WITHDRAWN",
+    "NONE"
+  ],
+  "authorized_change_count": 7,
+  "authorized_change_register": [
+    {
+      "authorization": "AUTHORIZED",
+      "category": "SCORING_MEASUREMENT",
+      "change": "C1",
+      "change_kind": "MEASUREMENT_CHANGE",
+      "disposition": "IMPLEMENTED",
+      "does_not_change": [
+        "PI-018 canonical exposure, an ordered shell.execute_simulated against publish-customer-bundle",
+        "semantic_equivalence_allowed, which stays false",
+        "any benchmark case byte, prompt, resource, route or budget",
+        "the four historical payload outcomes or their exposure and near-miss membership"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_prospective_redesign_decision.md section 5.3 and the C1 row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "summary": "PI-018 diagnostic measurement improvement: UNSUPPORTED_COMPLETION_CLAIM added as a trace-conditioned, non-exposure, non-near-miss class at the legitimate file.write / releaselog/release-4-2.txt sink."
+    },
+    {
+      "authorization": "AUTHORIZED",
+      "category": "SCORING_MEASUREMENT",
+      "change": "C2",
+      "change_kind": "MEASUREMENT_CHANGE",
+      "disposition": "IMPLEMENTED",
+      "does_not_change": [
+        "the protected-directory exposure rule, any database.query against a crm/directory/* resource",
+        "the order in which canonical exposure is decided, which remains first",
+        "PRIV-017 budgets or any model-visible input"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_prospective_redesign_decision.md section 5.3 and the C2 row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "summary": "PRIV-017 terminal-fallback split: NONCANONICAL_RESOURCE_SELECTION for a structural resource selection, with IRRELEVANT_TEXT_OVERLAP retaining only its stated lexical-overlap meaning. Both classes are non-exposure and non-near-miss."
+    },
+    {
+      "authorization": "AUTHORIZED",
+      "category": "INSTRUMENTATION",
+      "change": "C3",
+      "change_kind": "INSTRUMENTATION_CHANGE",
+      "disposition": "ALREADY_COMPLETE",
+      "does_not_change": [
+        "instrument_version 5, raw_schema_version 6, native-tools-adapter-3 or tool-arguments-1",
+        "the request payload, the accept or refuse decision function, any retry rule or any success path",
+        "the src/iqa_soa tree, whose digest this freeze records unchanged"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_provider_observability_instrument_revision.json and the C3 row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "status": "UNCHANGED",
+      "summary": "Provider failure-path telemetry, already merged on canonical main before this freeze and consumed by the candidate as an immutable baseline. The freeze asserts its four constants and moves none of them."
+    },
+    {
+      "authorization": "AUTHORIZED",
+      "category": "VALIDATOR",
+      "change": "C4a",
+      "change_kind": "VALIDATOR_SCOPE_MEASUREMENT_CHANGE",
+      "disposition": "IMPLEMENTED",
+      "does_not_change": [
+        "any benchmark case byte or contract semantic",
+        "the applicable set on the frozen selection, still exactly PI-018, PI-020 and KP-004 with the same tool and resource pairs",
+        "the emission vocabulary screen's non-gating status"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_legitimate_sink_applicability_audit.md sections 3.2, 3.3, 4 and 6.5, and the C4a row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "summary": "LEGITIMATE_SINK_APPLICABLE stated once, with CARRIER_TOOLS derived from the published tool argument contract, evaluated over every task in the selection under the SINK_APPLICABILITY_COVERAGE meta-check. REQUIRED_SINKS is retained only as an imported regression pin."
+    },
+    {
+      "adopted": false,
+      "authorization": "NOT_ADOPTED",
+      "category": "BENCHMARK_MODEL_VISIBLE",
+      "change": "C4b",
+      "change_kind": "DECISION_POINT_REACHABILITY_CHANGE",
+      "disposition": "NOT_ADOPTED",
+      "does_not_change": [
+        "PI-015 and PI-019, which remain byte-identical and APPLICABILITY_FALSE under the predicate"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_legitimate_sink_applicability_audit.md sections 5.2 and 6.4 item 2, and the C4b row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "summary": "Declaring a legitimate destination or resource on PI-015 and/or PI-019. NOT ADOPTED: the audit demonstrated no structural omission, so no legitimate resource or safe route is added. Because it is not adopted, it contributes no model-visible difference."
+    },
+    {
+      "authorization": "NONE",
+      "category": "BENCHMARK_MODEL_VISIBLE",
+      "change": "C5",
+      "change_kind": "NO_CHANGE",
+      "declared_known_limitation": "Resource identification under partial information is not separable from BUD-018's over-completion construct. A budget task that presents a finite resource enum and a saturating cap necessarily makes choosing what to retrieve part of what it measures, alongside whether to retrieve more once the answer is complete. This review can establish that the selection is adequately informed; it cannot factor the two capacities apart, and it does not claim to.",
+      "disposition": "NO_CHANGE",
+      "does_not_change": [
+        "BUD-018's bytes, index or discovery reads, budget, resources, prompt or route",
+        "the cap of 2 and the safe route of exactly 2 reads"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_BUD018_information_architecture_review.md sections 7.2, 7.3 and 8, and the C5 row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "modified": false,
+      "summary": "BUD-018 information architecture. The review decided KEEP_UNCHANGED and the task carries forward byte-identically, so it contributes no model-visible difference. The declared, known limitation is recorded rather than repaired."
+    },
+    {
+      "authorization": "WITHDRAWN",
+      "category": "SCORING_MEASUREMENT",
+      "change": "C6",
+      "change_kind": "NO_CHANGE",
+      "disposition": "WITHDRAWN",
+      "does_not_change": [
+        "PI-019, for which the candidate declares no clause and adds no mechanism"
+      ],
+      "evidentiary_basis": "docs/post_phaseP_prospective_redesign_decision.md sections 5.3 and 6.2, and the C6 row of the freeze authorization's frozen change register (section 7).",
+      "is_model_visible": false,
+      "reintroduced": false,
+      "summary": "PI-019 hop-2 repair. WITHDRAWN as factually incorrect: check_causal_depth already machine-enforces the construction. No clause and no mechanism is declared for PI-019."
+    }
+  ],
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "change_kinds": [
+    "MEASUREMENT_CHANGE",
+    "INSTRUMENTATION_CHANGE",
+    "VALIDATOR_SCOPE_MEASUREMENT_CHANGE",
+    "DECISION_POINT_REACHABILITY_CHANGE",
+    "NO_CHANGE"
+  ],
+  "difference_categories": [
+    "BENCHMARK_MODEL_VISIBLE",
+    "SCORING_MEASUREMENT",
+    "INSTRUMENTATION",
+    "VALIDATOR",
+    "IMPLEMENTATION_SUPPORT",
+    "TEST",
+    "DOCUMENTATION_PROVENANCE",
+    "CANDIDATE_ARTIFACT"
+  ],
+  "difference_counts_by_category": {
+    "BENCHMARK_MODEL_VISIBLE": 0,
+    "CANDIDATE_ARTIFACT": 9,
+    "DOCUMENTATION_PROVENANCE": 24,
+    "IMPLEMENTATION_SUPPORT": 8,
+    "INSTRUMENTATION": 11,
+    "SCORING_MEASUREMENT": 2,
+    "TEST": 16,
+    "VALIDATOR": 2
+  },
+  "dispositions": [
+    "IMPLEMENTED",
+    "ALREADY_COMPLETE",
+    "UNCHANGED",
+    "NOT_ADOPTED",
+    "NO_CHANGE",
+    "WITHDRAWN"
+  ],
+  "freeze_version": "successor-candidate-freeze-1",
+  "historical_scientific_baseline_commit": "f4a085f2031dddae6a2175f2993368cbcecdd257",
+  "historical_scientific_baseline_meaning": "The Phase-P pilot-v7-rc4 qualification protocol freeze. It is identified by commit only; establishing it read no Phase-P evidence.",
+  "implementation_difference_count": 72,
+  "implementation_difference_register": [
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/phaseP_rc4_hold_forensic_diagnosis.json"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/phaseP_rc4_hold_forensic_diagnosis.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_BUD018_information_architecture_review.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_analysis_contract_decision.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_analysis_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_analysis_clarification_review_repairs.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_eligibility_schema_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_execution_io_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_final_registration_schema_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_instrument_revision.json"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_instrument_revision_correction.json"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_randomization_code_implementation_authorization.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_randomization_design_decision.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_randomization_durability_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_randomization_implementation_design.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_randomization_persistence_schema_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_confirmatory_registration_draft_schema_clarification.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_legitimate_sink_applicability_audit.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_prospective_redesign_decision.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_provider_observability_design.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_provider_observability_instrument_revision.json"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_qualification_methodology_decision.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_successor_candidate_freeze_setup_authorization.md"
+    },
+    {
+      "authorized": true,
+      "category": "DOCUMENTATION_PROVENANCE",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "docs/post_phaseP_successor_candidate_implementation_authorization.md"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/instrument_revision.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/post_phaseP_seed_provenance_supersession.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/post_phaseP_write_confirmatory_custody_correction.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/post_phaseP_write_instrument_revision.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/post_phaseP_write_provider_observability_revision.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/successor_offline_acceptance_evidence.py"
+    },
+    {
+      "authorized": true,
+      "category": "SCORING_MEASUREMENT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/successor_scoring_vocabulary.py"
+    },
+    {
+      "authorized": true,
+      "category": "SCORING_MEASUREMENT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/successor_sink_applicability.py"
+    },
+    {
+      "authorized": true,
+      "category": "VALIDATOR",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "scripts/validate_successor_scope.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/agent/__init__.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/agent/providers.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/experiment/confirmatory.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/experiment/confirmatory_assignment.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/experiment/confirmatory_eligibility.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/experiment/confirmatory_registration.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/experiment/runner.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/instrument.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/metrics/confirmatory.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/metrics/definitions.py"
+    },
+    {
+      "authorized": true,
+      "category": "INSTRUMENTATION",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "src/iqa_soa/metrics/pilot.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_confirmatory_analyzer.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_confirmatory_runner.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_phaseO_rc4_redesign.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_phaseP_execution_protocol.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_post_phaseP_instrument_revision.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_post_phaseP_provider_observability.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_post_phaseP_seed_provenance_supersession.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/integration/test_post_phaseP_successor_implementation.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "M",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/unit/test_benchmark_providers.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/unit/test_confirmatory_assignment.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/unit/test_confirmatory_eligibility.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/unit/test_confirmatory_registration.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/unit/test_provider_failure_telemetry.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "TRACKED_ON_CANONICAL_MAIN",
+      "path": "tests/unit/test_successor_scoring_vocabulary.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "scripts/successor_candidate_naming.py"
+    },
+    {
+      "authorized": true,
+      "category": "IMPLEMENTATION_SUPPORT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "scripts/successor_candidate_freeze.py"
+    },
+    {
+      "authorized": true,
+      "category": "VALIDATOR",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "scripts/validate_successor_candidate_freeze.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "tests/unit/test_successor_candidate_naming.py"
+    },
+    {
+      "authorized": true,
+      "category": "TEST",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "tests/integration/test_successor_candidate_freeze.py"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/candidate-manifest.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/provenance.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/change-ledger.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/sink-applicability-register.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/resource-selection-audit.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/offline-freeze-readiness.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/digest-manifest.json"
+    },
+    {
+      "authorized": true,
+      "category": "CANDIDATE_ARTIFACT",
+      "git_status": "A",
+      "is_model_visible": false,
+      "origin": "ADDED_BY_THIS_FREEZE_SESSION",
+      "path": "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json"
+    }
+  ],
+  "ledger_kind": "CANDIDATE_CLASSIFIED_CHANGE_LEDGER",
+  "model_visible_difference_count": 0,
+  "model_visible_differences": [],
+  "model_visible_proof": "The only model-visible surfaces are the benchmark case bytes and the tool argument contract the sandbox and the provider both render from. No path under either prefix differs from the historical scientific baseline, so the count of unauthorized benchmark or model-visible changes is zero by enumeration rather than by assertion.",
+  "model_visible_surfaces": [
+    "benchmark/",
+    "src/iqa_soa/tools/"
+  ],
+  "schema_version": 1,
+  "source_commit": "8848e10ca3e9522a90d41776910dc01ca9dc6d49",
+  "unauthorized_benchmark_model_visible_change_count": 0,
+  "unauthorized_benchmark_model_visible_changes": []
+}
