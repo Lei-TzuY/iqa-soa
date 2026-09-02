@@ -1,0 +1,196 @@
+{
+  "authorization_record": "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md",
+  "authorizes_confirmatory_execution": false,
+  "authorizes_execution": false,
+  "authorizes_qualification_execution": false,
+  "benchmark_version": "pilot-v7-rc4",
+  "candidate_count_examined": 3,
+  "candidate_generation_procedure": "For each ordinal 1..3, walk counter = 0, 1, 2, ... and accept the first candidate the rejection rule admits. Every candidate examined is recorded, accepted or not.",
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_status_at_entry": "FROZEN_NOT_YET_QUALIFIED",
+  "candidates": [
+    {
+      "accepted": true,
+      "counter": 0,
+      "first_four_bytes": "22c00aa8",
+      "material": "d5b5537a84cc8b57bca2195c3b3bb4cfdb857e5c|IQA-SOA|post-phase-p|prospective-candidate-i5-m1-b76f40da2|qa-off-real-model-qualification|seed-1|counter-0",
+      "ordinal": 1,
+      "seed": 583010984,
+      "sha256": "22c00aa8dfb773b705f73e7be44db5503a845916eeaa78191c641f72eaf245db"
+    },
+    {
+      "accepted": true,
+      "counter": 0,
+      "first_four_bytes": "66b97bee",
+      "material": "d5b5537a84cc8b57bca2195c3b3bb4cfdb857e5c|IQA-SOA|post-phase-p|prospective-candidate-i5-m1-b76f40da2|qa-off-real-model-qualification|seed-2|counter-0",
+      "ordinal": 2,
+      "seed": 1723431918,
+      "sha256": "66b97beee9158b7d65d4b2e8b47c37e1476b68ed77c0eab8c051f6f47eef35b3"
+    },
+    {
+      "accepted": true,
+      "counter": 0,
+      "first_four_bytes": "e1bd77e9",
+      "material": "d5b5537a84cc8b57bca2195c3b3bb4cfdb857e5c|IQA-SOA|post-phase-p|prospective-candidate-i5-m1-b76f40da2|qa-off-real-model-qualification|seed-3|counter-0",
+      "ordinal": 3,
+      "seed": 1639806953,
+      "sha256": "e1bd77e926102bb4f8af6cfd3138e687311cad5ae812da6ceeff867c392bfc69"
+    }
+  ],
+  "canonical_base_commit": "d5b5537a84cc8b57bca2195c3b3bb4cfdb857e5c",
+  "collision_checks": {
+    "collision_free": true,
+    "committed_seed_count": 11,
+    "committed_seeds_discovered": {
+      "1133353488": [
+        "configs/phaseP-qualification.yaml",
+        "docs/phaseP_frozen_execution_inputs.json",
+        "docs/phaseP_rc4_hold_forensic_diagnosis.json",
+        "docs/phaseP_rc4_prospective_seed_derivation.json"
+      ],
+      "1197050110": [
+        "configs/phaseP-qualification.yaml",
+        "docs/phaseP_frozen_execution_inputs.json",
+        "docs/phaseP_rc4_hold_forensic_diagnosis.json",
+        "docs/phaseP_rc4_prospective_seed_derivation.json"
+      ],
+      "1281385038": [
+        "configs/phaseL-qualification.yaml",
+        "docs/phaseL_frozen_execution_inputs.json",
+        "docs/phaseL_rc3_prospective_seed_derivation.json",
+        "docs/phaseN_phaseL_hold_forensic_diagnosis.json"
+      ],
+      "1729": [
+        "configs/experiment.yaml",
+        "configs/phaseA-privacy-ablation.yaml",
+        "configs/phaseD-diagnostic.yaml",
+        "configs/phaseF-qualification.yaml",
+        "configs/phaseI-qualification.yaml",
+        "configs/pilot-v6.1.yaml",
+        "configs/pilot.yaml"
+      ],
+      "1904689056": [
+        "configs/phaseP-qualification.yaml",
+        "docs/phaseP_frozen_execution_inputs.json",
+        "docs/phaseP_rc4_hold_forensic_diagnosis.json",
+        "docs/phaseP_rc4_prospective_seed_derivation.json"
+      ],
+      "2718": [
+        "configs/experiment.yaml",
+        "configs/phaseA-privacy-ablation.yaml",
+        "configs/phaseD-diagnostic.yaml",
+        "configs/phaseF-qualification.yaml",
+        "configs/phaseI-qualification.yaml",
+        "configs/pilot-v6.1.yaml",
+        "configs/pilot.yaml"
+      ],
+      "3141": [
+        "configs/experiment.yaml",
+        "configs/phaseA-privacy-ablation.yaml",
+        "configs/phaseD-diagnostic.yaml",
+        "configs/phaseF-qualification.yaml",
+        "configs/phaseI-qualification.yaml",
+        "configs/pilot-v6.1.yaml",
+        "configs/pilot.yaml"
+      ],
+      "5772": [
+        "configs/phaseA-privacy-ablation.yaml",
+        "configs/pilot-v6.1.yaml",
+        "configs/pilot.yaml"
+      ],
+      "8119": [
+        "configs/phaseA-privacy-ablation.yaml",
+        "configs/pilot-v6.1.yaml",
+        "configs/pilot.yaml"
+      ],
+      "929260329": [
+        "configs/phaseL-qualification.yaml",
+        "docs/phaseL_frozen_execution_inputs.json",
+        "docs/phaseL_rc3_prospective_seed_derivation.json",
+        "docs/phaseN_phaseL_hold_forensic_diagnosis.json"
+      ],
+      "978843421": [
+        "configs/phaseL-qualification.yaml",
+        "docs/phaseL_frozen_execution_inputs.json",
+        "docs/phaseL_rc3_prospective_seed_derivation.json",
+        "docs/phaseN_phaseL_hold_forensic_diagnosis.json"
+      ]
+    },
+    "committed_seeds_not_in_reserved_set": [],
+    "consumed_triple_status": "CONSUMED_BY_A_FORMAL_EXECUTION_NEVER_REUSABLE",
+    "derived_seeds_found_in_committed_history": [],
+    "derived_seeds_leaked_outside_successor_artifacts": {},
+    "excluded_scan_roots": [
+      "results"
+    ],
+    "historical_seed_value_reused": false,
+    "history_scope": "Every seed recorded by a git-TRACKED file under ['configs', 'docs', 'benchmark', 'schemas'], EXCEPT those recorded in the successor's own declared artifacts, which necessarily carry the derived triple once it is committed. A derived seed appearing in any OTHER source is reported as a leak. No results namespace is enumerated, opened or read: ['results'] is excluded and the exclusion is asserted rather than assumed. Every seed any phase has run on is declared in that phase's committed config and derivation artifact, both of which ARE scanned. The enumeration is `git ls-files`, not a filesystem walk, so gitignored or untracked local evidence directories cannot influence this record.",
+    "internal_duplicate_seeds": [],
+    "phase_l_seeds": [
+      929260329,
+      1281385038,
+      978843421
+    ],
+    "phase_p_seeds": [
+      1197050110,
+      1904689056,
+      1133353488
+    ],
+    "rejected_candidate_count": 0,
+    "rejected_candidates": [],
+    "rejection_rule": "Starting at counter=0, accept the first candidate that is non-zero, is not a FORBIDDEN historical or reserved seed and does not duplicate a seed already accepted for a lower ordinal; otherwise record the rejection and increment the counter. The rule is part of the algorithm: no alternative is ever chosen by hand, and a rejected candidate is recorded rather than discarded.",
+    "reserved_seeds": [
+      1729,
+      2718,
+      3141,
+      5772,
+      8119,
+      929260329,
+      978843421,
+      1133353488,
+      1197050110,
+      1281385038,
+      1904689056
+    ],
+    "reserved_set_covers_every_committed_seed": true,
+    "scan_roots": [
+      "configs",
+      "docs",
+      "benchmark",
+      "schemas"
+    ],
+    "successor_artifacts_excluded_from_history": [
+      "configs/successor-qualification.yaml",
+      "docs/successor_frozen_execution_inputs.json",
+      "docs/successor_prospective_seed_derivation.json"
+    ],
+    "zero_valued_seeds": []
+  },
+  "derivation_algorithm_version": "successor-qualification-seed-derivation-1",
+  "derivation_digest": "97674242a12d05ccac8fe1ee1c1ef3885f2a999da538f1ccc3d2a429b62d4b3b",
+  "derivation_formula": "material = <canonical_base_commit> + \"|\" + <domain_separator> + \"|seed-\" + str(ordinal) + \"|counter-\" + str(counter); digest = SHA256(material.encode(\"utf-8\")); candidate = int.from_bytes(digest[:4], \"big\") & 0x7fffffff",
+  "derivation_method_reuse_is_value_reuse": false,
+  "derivation_method_reused_from": "phase-p-seed-derivation-1",
+  "derivation_method_source": "scripts/phaseP_derive_seeds.py",
+  "derived_before_any_successor_qualification_outcome": true,
+  "domain_separator": "IQA-SOA|post-phase-p|prospective-candidate-i5-m1-b76f40da2|qa-off-real-model-qualification",
+  "manual_selection_performed": false,
+  "max_counter": 1024,
+  "model_inference_performed": false,
+  "model_output_influenced_derivation": false,
+  "outcome_informed_seed_selection": false,
+  "provider_contacted": false,
+  "qa_mode": "off",
+  "record_kind": "successor_prospective_seed_derivation",
+  "result_row_influenced_derivation": false,
+  "schema_version": 1,
+  "seed_count": 3,
+  "seed_mask": "0x7fffffff",
+  "seed_order_is_frozen": true,
+  "seeds": [
+    583010984,
+    1723431918,
+    1639806953
+  ],
+  "successor_result_row_count_at_derivation": 0
+}
