@@ -1,0 +1,272 @@
+{
+  "artifact_set": {
+    "artifacts": [
+      {
+        "artifact": "candidate-manifest.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/candidate-manifest.json"
+      },
+      {
+        "artifact": "qualification-contract.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json"
+      },
+      {
+        "artifact": "provenance.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/provenance.json"
+      },
+      {
+        "artifact": "change-ledger.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/change-ledger.json"
+      },
+      {
+        "artifact": "sink-applicability-register.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/sink-applicability-register.json"
+      },
+      {
+        "artifact": "resource-selection-audit.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/resource-selection-audit.json"
+      },
+      {
+        "artifact": "offline-freeze-readiness.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/offline-freeze-readiness.json"
+      },
+      {
+        "artifact": "digest-manifest.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/digest-manifest.json"
+      },
+      {
+        "artifact": "freeze-record.json",
+        "path": "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json"
+      }
+    ],
+    "count": 9
+  },
+  "authorization": {
+    "candidate_status": "FROZEN_NOT_YET_QUALIFIED",
+    "confirmatory_execution_authorized": false,
+    "freeze_is_execution_authorization": false,
+    "model_inference_authorized": false,
+    "next_decision": "A separate human decision on real provider/model eligibility, registration, randomization, qualification and confirmatory execution. Freeze confers none of them.",
+    "production_seed_realized": false,
+    "provider_contacted": false,
+    "provider_eligibility": "NOT_REALIZED",
+    "provider_selected": false,
+    "qualification_execution_authorized": false,
+    "qualification_status": "NOT_YET_QUALIFIED",
+    "random_bits_realized": 0,
+    "randomization_realized": false,
+    "real_qualification_authorized": false,
+    "registration_performed": false,
+    "seeds_derived": 0
+  },
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_namespace": "candidates/prospective-candidate-i5-m1-b76f40da2",
+  "candidate_status": "FROZEN_NOT_YET_QUALIFIED",
+  "change_dispositions": {
+    "C1": {
+      "disposition": "IMPLEMENTED",
+      "kind": "MEASUREMENT_CHANGE"
+    },
+    "C2": {
+      "disposition": "IMPLEMENTED",
+      "kind": "MEASUREMENT_CHANGE"
+    },
+    "C3": {
+      "disposition": "ALREADY_COMPLETE",
+      "kind": "INSTRUMENTATION_CHANGE",
+      "status": "UNCHANGED"
+    },
+    "C4a": {
+      "disposition": "IMPLEMENTED",
+      "kind": "VALIDATOR_SCOPE_MEASUREMENT_CHANGE"
+    },
+    "C4b": {
+      "disposition": "NOT_ADOPTED",
+      "kind": "DECISION_POINT_REACHABILITY_CHANGE"
+    },
+    "C5": {
+      "disposition": "NO_CHANGE",
+      "kind": "NO_CHANGE"
+    },
+    "C6": {
+      "disposition": "WITHDRAWN",
+      "kind": "NO_CHANGE"
+    }
+  },
+  "critical_digests": {
+    "candidate-manifest.json": "e1dffabf908192aa37a5984aab7d719f33612833207974ab5dda26db8ff723f2",
+    "change-ledger.json": "3a10344630af41dd7428c7d82de88590f0869ef57956f6f8921f109a803c4077",
+    "digest-manifest.json": "bed26aecc7ca64be72dd1ac34f0a8dab3538b27de95535572bf9334be3483d6c",
+    "offline-freeze-readiness.json": "6d2056f342a6c8548766cbeab0703c9949474798c004582a13bcef3f86083d4a",
+    "provenance.json": "e95c1aae2309d08c4a7008666d5307490639d0eb9ce5bc4349d882a69d84ce0c",
+    "qualification-contract.json": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
+    "resource-selection-audit.json": "275071f8acd5319d86f21815481fb3ed1888c16984b6c814390b7a37af8b55f2",
+    "sink-applicability-register.json": "032ce026d27b72e9c6af736577a035c1616a48ad2033fe8adb27cd0be8806df6"
+  },
+  "digest_algorithm": "sha256",
+  "digest_basis": "SHA-256 over the artifact's exact on-disk bytes, where the artifact is serialized as json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) followed by a single trailing newline, encoded UTF-8 with LF line endings. The digest basis is the file itself, so any byte difference -- including whitespace -- changes the digest.",
+  "digest_manifest_sha256": "bed26aecc7ca64be72dd1ac34f0a8dab3538b27de95535572bf9334be3483d6c",
+  "freeze_is_execution_authorization": false,
+  "freeze_version": "successor-candidate-freeze-1",
+  "frozen_flag_meaning": "FROZEN_NOT_YET_QUALIFIED means the candidate's identity, selection, measurement profile, contract and artifact digests are fixed and may not move without a new authorization. It does NOT mean the candidate is qualified, eligible, registered, executed or analysed, and it is not authorization to execute anything.",
+  "historical_scientific_baseline_commit": "f4a085f2031dddae6a2175f2993368cbcecdd257",
+  "instrument": {
+    "cross_instrument_pooling_permitted": false,
+    "instrument_version": "5",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "pooling_note": "Rows written under instrument 5 / raw schema 6 may never be pooled, merged, averaged or compared with rows written under instrument 4 / raw schema 5. The Phase-P protocol's pin to instrument 4 / raw schema 5 remains deliberately incompatible and is not repaired.",
+    "raw_schema_version": 6,
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "model_inference_performed": false,
+  "model_visible_input_changed": false,
+  "naming_policy": {
+    "component_order": [
+      "lineage",
+      "instrument",
+      "measurement",
+      "benchmark"
+    ],
+    "component_sources": {
+      "benchmark": "scripts/validate_successor_scope.py::BENCHMARK_CASE_BYTES_DIGEST",
+      "instrument": "src/iqa_soa/instrument.py::INSTRUMENT_VERSION",
+      "lineage": "scripts/successor_candidate_naming.py::LINEAGE_TOKEN",
+      "measurement": "scripts/successor_scoring_vocabulary.py::SUCCESSOR_VOCABULARY_VERSION"
+    },
+    "components": {
+      "benchmark": "b76f40da2",
+      "instrument": "i5",
+      "lineage": "prospective-candidate",
+      "measurement": "m1"
+    },
+    "determinism_failures": [],
+    "identifier": "prospective-candidate-i5-m1-b76f40da2",
+    "identifier_families_reserved": 0,
+    "identifiers_assigned": 1,
+    "namespace": "candidates/prospective-candidate-i5-m1-b76f40da2",
+    "neutrality_failures": [],
+    "ordinal_succession_rejected_because": "Successorship of a numeral is not a naming rule. Freeze authorization section 8 constraint 4 forbids inheriting the predecessor's ordinal merely because the predecessor carried one, and no frozen record assigns a release-candidate number to this candidate.",
+    "phases_named": 0,
+    "policy_id": "successor-candidate-naming-policy-1",
+    "policy_is_stated_before_the_name_is_used": true,
+    "properties": {
+      "distinct_from_historical_namespaces": true,
+      "host_independent": true,
+      "implies_confirmatory_success": false,
+      "implies_pass": false,
+      "implies_provider_eligibility": false,
+      "implies_qualification": false,
+      "implies_superiority": false,
+      "is_an_ordinal_successor_of_the_predecessor": false,
+      "model_independent": true,
+      "outcome_independent": true,
+      "provider_independent": true,
+      "reproducible_from_committed_constants": true,
+      "seed_independent": true,
+      "wall_clock_independent": true
+    },
+    "rule": "identifier = lineage + '-' + instrument + '-' + measurement + '-' + benchmark, where lineage is the fixed neutral noun 'prospective-candidate', instrument is 'i' + INSTRUMENT_VERSION, measurement is 'm' + the trailing ordinal of SUCCESSOR_VOCABULARY_VERSION, and benchmark is 'b' + the first eight hex characters of the frozen 17-task benchmark case-byte digest"
+  },
+  "next_decision": "A separate human decision on C: real provider and model eligibility, registration, randomization, qualification and confirmatory execution. None of them is authorized by this record.",
+  "normalization_policy": {
+    "applies_to": "the embedded offline capability evidence document only; no other candidate artifact contains an ephemeral value",
+    "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+    "policy_id": "successor-candidate-ephemeral-normalization-1",
+    "policy_kind": "CLOSED_EPHEMERAL_LEAF_REGISTRY",
+    "registered_leaf_count": 3,
+    "registered_leaves": [
+      {
+        "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+        "demonstrated_to_vary_across_independent_generations": true,
+        "leaf_path": "$.criteria[5].detail.run_root",
+        "reason": "The dry-run experiment directory. Its name embeds a wall-clock timestamp and random hex, so it differs between two generations even under one fixed output root. It records where a temporary replay was written and carries no scientific content."
+      },
+      {
+        "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+        "demonstrated_to_vary_across_independent_generations": true,
+        "leaf_path": "$.criteria[8].detail.sidecar_directory",
+        "reason": "The freeze-readiness sidecar directory, derived from the caller's temporary output root. It records where temporary sidecars were written and carries no scientific content."
+      },
+      {
+        "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+        "demonstrated_to_vary_across_independent_generations": true,
+        "leaf_path": "$.output_root",
+        "reason": "The caller-supplied temporary output root for the capability evidence run. It records where a temporary run was written and carries no scientific content."
+      }
+    ],
+    "rules": {
+      "arbitrary_paths_stripped": false,
+      "arbitrary_strings_normalized": false,
+      "arbitrary_timestamps_stripped": false,
+      "exact_leaf_paths_only": true,
+      "scope_may_be_widened_silently": false,
+      "unknown_fields_ignored": false,
+      "unknown_nondeterminism_fails_closed": true,
+      "value_matching_used": false
+    },
+    "structure_guard": {
+      "$.criteria[5]": 6,
+      "$.criteria[8]": 9
+    },
+    "widening_requires": "an independent demonstration that the candidate field varies across repeated generations for an equally non-scientific reason, recorded in the readiness report before the leaf is registered"
+  },
+  "offline_freeze_readiness_conclusion": "OFFLINE_FREEZE_GATES_PASS",
+  "phase_p_evidence_touched": false,
+  "predecessor": {
+    "ben003_cell_status": "MODEL_PROTOCOL_INVALID",
+    "ben003_forensic_attribution": "MODEL_PROTOCOL_FAILURE",
+    "ben003_matrix_status": "MATRIX_INVALID",
+    "benchmark_version": "pilot-v7-rc4",
+    "historical_evidence_read": false,
+    "historical_rows_reclassified": 0,
+    "historical_rows_rerun": 0,
+    "historical_rows_rescored": 0,
+    "qualification_status": "UNQUALIFIED",
+    "relationship": "SEPARATE_LATER_CANDIDATE",
+    "retrospective_entry_impossible_because": "The historical rc4-historical profile IS rc4_scoring_vocabulary.PAYLOAD_OUTCOMES by reference rather than by copy, it remains a closed four-member tuple, and neither successor-only outcome is a member of it. A successor-only meaning is therefore inexpressible in the historical profile, so no frozen Phase-P classification can acquire one.",
+    "retrospective_entry_into_the_historical_profile": "IMPOSSIBLE",
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "this_candidate_continues_the_predecessor": false,
+    "this_candidate_rehabilitates_the_predecessor": false,
+    "this_candidate_repairs_the_predecessor": false,
+    "this_candidate_replaces_the_predecessor": false,
+    "verdict": "HOLD"
+  },
+  "provider_contacted": false,
+  "record_kind": "CANDIDATE_FREEZE_RECORD",
+  "schema_version": 1,
+  "scientific_digests": {
+    "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+    "benchmark_case_bytes_digest_recomputed_at_freeze": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+    "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+    "task_count": 17,
+    "task_ids": [
+      "BEN-002",
+      "BEN-003",
+      "PI-015",
+      "PI-018",
+      "PI-019",
+      "PI-020",
+      "KP-004",
+      "UA-004",
+      "UA-005",
+      "PRIV-007",
+      "PRIV-012",
+      "PRIV-016",
+      "PRIV-017",
+      "BUD-017",
+      "BUD-018",
+      "BUD-016",
+      "FAULT-004"
+    ]
+  },
+  "scoring_profile_identity": {
+    "historical_profile": "rc4-historical",
+    "historical_profile_unchanged": true,
+    "historical_profile_version": "rc4-scoring-vocabulary-1",
+    "profile": "successor",
+    "sink_applicability_version": "successor-sink-applicability-1",
+    "version": "successor-scoring-vocabulary-1"
+  },
+  "source_commit": "8848e10ca3e9522a90d41776910dc01ca9dc6d49",
+  "unauthorized_benchmark_model_visible_change_count": 0
+}

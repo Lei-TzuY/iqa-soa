@@ -1,0 +1,157 @@
+{
+  "authorization": {
+    "candidate_status": "FROZEN_NOT_YET_QUALIFIED",
+    "confirmatory_execution_authorized": false,
+    "freeze_is_execution_authorization": false,
+    "model_inference_authorized": false,
+    "next_decision": "A separate human decision on real provider/model eligibility, registration, randomization, qualification and confirmatory execution. Freeze confers none of them.",
+    "production_seed_realized": false,
+    "provider_contacted": false,
+    "provider_eligibility": "NOT_REALIZED",
+    "provider_selected": false,
+    "qualification_execution_authorized": false,
+    "qualification_status": "NOT_YET_QUALIFIED",
+    "random_bits_realized": 0,
+    "randomization_realized": false,
+    "real_qualification_authorized": false,
+    "registration_performed": false,
+    "seeds_derived": 0
+  },
+  "boundary": {
+    "api_key_read": false,
+    "benchmark_bytes_written": false,
+    "endpoint_configured": false,
+    "historical_artifact_written": false,
+    "model_inference_performed": false,
+    "network_call_made": false,
+    "phase_p_evidence_read": false,
+    "provider_contacted": false
+  },
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_namespace": "candidates/prospective-candidate-i5-m1-b76f40da2",
+  "change_dispositions": {
+    "C1": "IMPLEMENTED",
+    "C2": "IMPLEMENTED",
+    "C3": "ALREADY_COMPLETE_UNCHANGED",
+    "C4a": "IMPLEMENTED",
+    "C4b": "NOT_ADOPTED",
+    "C5": "NO_CHANGE",
+    "C6": "WITHDRAWN"
+  },
+  "freeze_version": "successor-candidate-freeze-1",
+  "generation_code": {
+    "scripts/successor_candidate_freeze.py": "f0aec8d38c0314291885e9a31cf4167a922cd33cdbf9b554e20288c270696cfe",
+    "scripts/successor_candidate_naming.py": "73fb00625485df12635bba18e1925d130d64fecab286fe0201d46d8249ad179f",
+    "scripts/validate_successor_candidate_freeze.py": "7122f6a90c67859be209d8b92c3ed2075f0c506204d5d65275e8a1d3c8404222"
+  },
+  "historical_code": {
+    "scripts/rc4_scoring_vocabulary.py": "a6edc0b661b3d7d2161d6473158b7b9dafe74feb5e8881fed922a92f86507b90",
+    "scripts/validate_pilot_v7_rc4.py": "414f9e537ddc8aced42deb6281aca95e7a8c98ea179d94ef76057b2557e0ac55"
+  },
+  "historical_scientific_baseline_commit": "f4a085f2031dddae6a2175f2993368cbcecdd257",
+  "instrument": {
+    "cross_instrument_pooling_permitted": false,
+    "instrument_version": "5",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "pooling_note": "Rows written under instrument 5 / raw schema 6 may never be pooled, merged, averaged or compared with rows written under instrument 4 / raw schema 5. The Phase-P protocol's pin to instrument 4 / raw schema 5 remains deliberately incompatible and is not repaired.",
+    "raw_schema_version": 6,
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "instrument_tree_digest": {
+    "src/iqa_soa": "1d0f1371099536322a4988334ea9d6ac9445c2feec85bc0b3df26d8ada1184ac"
+  },
+  "measurement_code": {
+    "scripts/successor_offline_acceptance_evidence.py": "936be034dce1619287d14e7789b8505b4bb6507cdcf0f5d955f9ff076c161db9",
+    "scripts/successor_scoring_vocabulary.py": "767b225f43bea2d5474cbcd7334be6ec09867d272add54c1f627d79f56c62457",
+    "scripts/successor_sink_applicability.py": "24f4a62cfc8bd7cd9333e8768b00ea3899253b9459e35ce0b90d16eb329719e5",
+    "scripts/validate_successor_scope.py": "d4d7a335b29d0114407a87cd76fd390efbff89977b6c4991bdc7b09bd545c0ac"
+  },
+  "naming_components": {
+    "benchmark": "b76f40da2",
+    "instrument": "i5",
+    "lineage": "prospective-candidate",
+    "measurement": "m1"
+  },
+  "naming_policy_id": "successor-candidate-naming-policy-1",
+  "normalization_policy": {
+    "applies_to": "the embedded offline capability evidence document only; no other candidate artifact contains an ephemeral value",
+    "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+    "policy_id": "successor-candidate-ephemeral-normalization-1",
+    "policy_kind": "CLOSED_EPHEMERAL_LEAF_REGISTRY",
+    "registered_leaf_count": 3,
+    "registered_leaves": [
+      {
+        "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+        "demonstrated_to_vary_across_independent_generations": true,
+        "leaf_path": "$.criteria[5].detail.run_root",
+        "reason": "The dry-run experiment directory. Its name embeds a wall-clock timestamp and random hex, so it differs between two generations even under one fixed output root. It records where a temporary replay was written and carries no scientific content."
+      },
+      {
+        "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+        "demonstrated_to_vary_across_independent_generations": true,
+        "leaf_path": "$.criteria[8].detail.sidecar_directory",
+        "reason": "The freeze-readiness sidecar directory, derived from the caller's temporary output root. It records where temporary sidecars were written and carries no scientific content."
+      },
+      {
+        "canonical_replacement": "<EPHEMERAL_RUN_ROOT>",
+        "demonstrated_to_vary_across_independent_generations": true,
+        "leaf_path": "$.output_root",
+        "reason": "The caller-supplied temporary output root for the capability evidence run. It records where a temporary run was written and carries no scientific content."
+      }
+    ],
+    "rules": {
+      "arbitrary_paths_stripped": false,
+      "arbitrary_strings_normalized": false,
+      "arbitrary_timestamps_stripped": false,
+      "exact_leaf_paths_only": true,
+      "scope_may_be_widened_silently": false,
+      "unknown_fields_ignored": false,
+      "unknown_nondeterminism_fails_closed": true,
+      "value_matching_used": false
+    },
+    "structure_guard": {
+      "$.criteria[5]": 6,
+      "$.criteria[8]": 9
+    },
+    "widening_requires": "an independent demonstration that the candidate field varies across repeated generations for an equally non-scientific reason, recorded in the readiness report before the leaf is registered"
+  },
+  "randomization": {
+    "assignment_realized": false,
+    "monte_carlo_provenance_realized": false,
+    "note": "No seed, entropy source, randomization bit or assignment is realized by a freeze. Deriving one is C-scope and unauthorized.",
+    "production_seed_realized": false,
+    "random_bits_realized": 0,
+    "seeds_derived": 0
+  },
+  "record_kind": "CANDIDATE_PROVENANCE_REGISTER",
+  "registered_tools": [
+    "api.call",
+    "database.delete",
+    "database.query",
+    "database.update",
+    "file.read",
+    "file.write",
+    "message.send",
+    "robot.move_simulated",
+    "robot.pick_up_simulated",
+    "shell.execute_simulated"
+  ],
+  "schema_version": 1,
+  "scientific_digests": {
+    "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+    "benchmark_case_bytes_digest_recomputed": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+    "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+    "canonical_exposure_digest_recomputed": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+    "recomputed_not_copied": true
+  },
+  "scoring_profile_identity": {
+    "capability_evidence_version": "successor-offline-capability-evidence-1",
+    "historical_profile": "rc4-historical",
+    "historical_vocabulary_version": "rc4-scoring-vocabulary-1",
+    "scope_validator_version": "successor-scope-validator-1",
+    "sink_applicability_version": "successor-sink-applicability-1",
+    "successor_profile": "successor",
+    "successor_vocabulary_version": "successor-scoring-vocabulary-1"
+  },
+  "source_commit": "8848e10ca3e9522a90d41776910dc01ca9dc6d49"
+}
