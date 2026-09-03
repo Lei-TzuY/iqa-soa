@@ -1,0 +1,119 @@
+{
+  "additive_to": "docs/post_phaseP_provider_observability_instrument_revision.json",
+  "authorizes_confirmatory_execution": false,
+  "authorizes_qualification_execution": false,
+  "ben_003_rehabilitated": false,
+  "benchmark_bytes_unchanged": {
+    "benchmark_source_tree_sha256": "538eaac4f6472c23a061b84a5f85f44ebde33476d2f1e54892ecdd77a9dcddb6",
+    "note": "No rc3 or rc4 task YAML, manifest byte, contract byte, freeze record or scoring threshold was touched. This repair creates no benchmark byte and changes no benchmark reachability, task semantic, canonical exposure setting or QA treatment. benchmark_source_tree_sha256 is the value the CORRECTED rule now produces for the production benchmark root, recorded so a later reader can see the repaired capture is bound to the same benchmark bytes every other record pins.",
+    "pilot-v7-rc3_freeze_record_sha256": "853e1b9d0bc343fe1c780454cd4d1e24c389d7e16b7536c446ae3d695454d8da",
+    "pilot-v7-rc3_manifest_sha256": "2e3ff2157d8d61d5aed5386910e80f4ef6a1a845bf560378c4f9a2c94d899b0d",
+    "pilot-v7-rc4_audit_sha256": "4b0321012d43b6c2d8d7e31b472b5034893e8ecc7c771ce84781a4fe4c655dc8",
+    "pilot-v7-rc4_freeze_record_sha256": "c988a94114dca1470324504adb85c4061ed849808383cb50c4ea512800a8396f",
+    "pilot-v7-rc4_manifest_sha256": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
+    "pilot-v7-rc4_provenance_sha256": "0486df32c46285615e46c859728f09b0b8f83528f9a3a0fa4de7cbbf1302bf24",
+    "pilot-v7-rc4_qualification_contract_sha256": "ac600e6d84be5aa46f9c39d51311b0da6c68847a2083a57bdb901c38e45433cc",
+    "qa_policy_default_xml_sha256": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5"
+  },
+  "benchmark_freeze_records_overwritten": false,
+  "changed_files": {
+    "src/iqa_soa/experiment/confirmatory.py": {
+      "reason": "The whole of the repair, and exactly one removed line. The ExperimentExecutionConfigIdentityV1 preimage inside capture_runtime_snapshot_v1 now obtains benchmark_sha256 from the directory-capable canonical benchmark-source digest, via the new fail-closed wrapper _benchmark_source_sha256, instead of from the file-only _file_sha256. The old derivation was not merely questionable, it was IMPOSSIBLE: ExperimentConfig.benchmark_path is a benchmark source root and every production configuration points it at a directory, which path.read_bytes() cannot read, so the first real runtime preflight refused with ConfirmatoryExecutionError rather than capturing. EVERYTHING ELSE IS PRESERVED EXACTLY: the RuntimeSnapshotV1 schema stays at twenty fields, the experiment_config_digest object keeps exactly its sixteen keys with no output_root, the field NAME benchmark_sha256 is unchanged, and _file_sha256 remains the primitive for source_path, policy_path, models_path and ablations_path, which are genuine single files. provider_config_digest, provider_parameters_digest, prompt_digest, models_config_digest, environment_fingerprint, retry_policy, tool_contract_policy, timeout_seconds, endpoint capture, the seventeen-field runtime_identity_digest basis and the self_digest rule are untouched. No caller override, keyword, hook, registry entry or exported alternative is added: capture_runtime_snapshot_v1 still accepts exactly config and provider, both keyword-only. Missing, empty, source-free and unreadable benchmark roots all fail closed.",
+      "sha256": "5a7a627b83d9b02886ee8f57fce2758dd9959be4a2816faceb345d68fb9bd6ad"
+    },
+    "src/iqa_soa/experiment/runner.py": {
+      "reason": "PURELY ADDITIVE, and deliberately so: the diff is three hunks and not one removed line, so no existing runner code path is altered. It adds the frozen source-set constant BENCHMARK_SOURCE_SUFFIXES = {'.json', '.md', '.yaml'} and the public helper benchmark_source_sha256(path), which delegates to the pre-existing private _path_digest exactly as the pre-existing package_source_sha256 already does, and names both in __all__. THE DIGEST ALGORITHM ITSELF IS NOT CHANGED: _path_digest is not edited, re-parameterized or re-ordered, and it keeps its sorted enumeration, its repository-relative name basis and its length-prefixed name-plus-content framing. ExperimentRunner is not edited: its benchmark loading, its arm ordering, its seed derivation, its row writing and the input_digests block it records -- including the benchmark_sha256 it already computed with _path_digest -- are byte-identical. No existing symbol is removed, renamed or rebound and no legacy importer observes any difference. The helper exists so that the confirmatory capture path can reuse the repository's ONE canonical benchmark identity instead of inventing a second, incompatible benchmark hash.",
+      "sha256": "459c475587c5286030e1bd98519065c270d558b6bd18558be48e85615d18c412"
+    }
+  },
+  "confirmatory_executions_before_repair": 0,
+  "current_instrument": {
+    "adapter_unchanged": true,
+    "instrument_version": "5",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "raw_schema_version": 6,
+    "src_iqa_soa_tree": "5d1126cff3d75c182e840e32bbd97baeabc787e469a3d66265d31f073b05ea3c",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "frozen_historical_inputs": "This revision changes no prospectively frozen scientific input. The successor frozen-input record's src/iqa_soa TREE binding is mechanically invalidated by the approved source change and is recomputed downstream from the repository-owned compute_frozen_inputs() path once this link is green; no stored SHA is hand-edited and no validator is weakened.",
+  "frozen_input_audit": "scripts/phaseM_frozen_input_audit.py",
+  "governed_by": [
+    "docs/post_phaseP_confirmatory_execution_io_clarification.md",
+    "docs/post_phaseP_runtime_snapshot_benchmark_identity_correction.md"
+  ],
+  "historical_analysis_compatibility": "scripts/phaseM_historical_analysis.py",
+  "historical_rows": "Committed Phase-D, Phase-F, Phase-I, Phase-L and Phase-P raw rows are neither rewritten nor re-run. The raw row schema is untouched by this revision -- src/iqa_soa/metrics/definitions.py is not among the changed files -- so RAW_FIELDS_BY_SCHEMA_VERSION gains nothing and loses nothing, and every historical row remains readable exactly as it was under the instrument version its own phase pinned.",
+  "historical_rows_rescored": false,
+  "instrument_boundary_declaration": "NO NEW BOUNDARY IS DECLARED. Rows written under instrument 5 / raw schema 6 / native-tools-adapter-3 before this revision and rows written after it are produced by the same instrument in the same way, and may be pooled without a new argument. The pre-existing boundary between instrument 5 / raw schema 6 and instrument 4 / raw schema 5 is preserved exactly as the C3 link declared it, and is neither widened, narrowed nor reinterpreted here. The Phase-P protocol's deliberate pin to instrument 4 / raw schema 5 remains incompatible on purpose and is not repaired.",
+  "instrument_revisions_overwritten": false,
+  "instrument_versions_unchanged": "INSTRUMENT_VERSION, RAW_SCHEMA_VERSION, NATIVE_TOOL_ADAPTER_VERSION and TOOL_ARGUMENT_CONTRACT_VERSION are recorded at the values the code ACTUALLY declares, and none of them moves. No boundary is bumped merely because the tree changed -- the rule the post-Phase-P confirmatory link already stated. Every claim behind that is checkable from the diff: runner.py is purely additive (three hunks, zero removed lines), confirmatory.py removes exactly one line, and src/iqa_soa/agent/, src/iqa_soa/tools/, src/iqa_soa/iqa/, src/iqa_soa/metrics/ and src/iqa_soa/instrument.py are not touched at all. The request payload the model receives, the advertised and enforced tool argument contract, the prompts, the policy, the treatments, the seed derivation, the tool dispatch, the sandbox accept/refuse decision function, the failure taxonomy, the raw row schema and every persisted scientific endpoint are what instrument 5 / raw schema 6 already produced. A row written under this revision and a row written under the C3 link measure the same quantity in the same way. Bumping a boundary here would assert an instrument difference that does not exist and would gratuitously forbid pooling measurements that are in fact commensurable.",
+  "model_inference_performed": false,
+  "observation_only": true,
+  "offline_tests": "tests/integration/test_post_phaseP_runtime_snapshot_benchmark_identity_revision.py, tests/integration/test_runtime_snapshot_benchmark_identity.py",
+  "offline_validator": "scripts/instrument_revision.py",
+  "offline_writer": "scripts/post_phaseP_write_runtime_snapshot_benchmark_identity_revision.py",
+  "overwrites_nothing": "No existing instrument revision is overwritten and no historical hash in any of them is updated in place. Neither docs/phaseM_instrument_revision.json, docs/phaseO_instrument_revision.json, docs/post_phaseP_confirmatory_instrument_revision.json, docs/post_phaseP_confirmatory_instrument_revision_correction.json nor docs/post_phaseP_provider_observability_instrument_revision.json is edited. No benchmark freeze record is edited. Each predecessor's pins are still proved from committed bytes at the commit its own successor started from; this link's predecessor is proved at a24d8924e7bd3e42c07530aab074236db7478447, the last commit at which it was the approved head. scripts/instrument_revision.py verifies the chain link by link.",
+  "parent_commit": "a24d8924e7bd3e42c07530aab074236db7478447",
+  "parent_commit_basis": "The canonical commit at which the post-Phase-P provider observability revision was the approved head, and the commit this benchmark-identity repair was made directly on. There is no intermediate unapproved-instrument commit and none is invented: the repair, this link and the downstream re-freeze are released together as one reviewed change.",
+  "phase": "POST_PHASEP_RUNTIME_SNAPSHOT_BENCHMARK_IDENTITY",
+  "phase_p_evidence_untouched": "The official Phase-P evidence root results/phaseP-rc4-qualification/ is not read, enumerated, traversed, hashed, regenerated, resumed, repaired, replaced or modified by this revision or by scripts/post_phaseP_write_runtime_snapshot_benchmark_identity_revision.py, and no value in this record, and nothing in the change it documents, is derived from it. The corrected benchmark-source digest walks only config.benchmark_path, which is the benchmark/ tree; no results namespace is reachable from it.",
+  "phase_p_execution_rerun": false,
+  "phase_p_rc4_hold": {
+    "benchmark_version": "pilot-v7-rc4",
+    "diagnosis_record": "docs/phaseP_rc4_hold_forensic_diagnosis.json",
+    "note": "The completed official Phase-P qualification of pilot-v7-rc4 ended SCHEDULE_COMPLETE_VERDICT_HOLD and pilot-v7-rc4 remains UNQUALIFIED. That verdict stands, and is neither retracted, revisited, reinterpreted nor rescored by this revision. BEN-003 remains historical and unrepaired. This repair is PROSPECTIVE and acts only on a pre-execution identity capture that no Phase-P row ever used: Phase P recorded benchmark identity through the RUNNER's own _path_digest path, which this revision does not touch and which the repaired capture now agrees with.",
+    "phase": "P",
+    "phase_p_cells_rerun": 0,
+    "phase_p_rows_rescored": 0,
+    "qualification_status": "UNQUALIFIED",
+    "report": "docs/phaseP_rc4_hold_forensic_diagnosis.md",
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "verdict": "HOLD"
+  },
+  "phase_p_result_reinterpreted": false,
+  "phase_p_rows_rerun": 0,
+  "phase_p_rows_rescored": 0,
+  "post_phaseP_confirmatory_execution_authorized": false,
+  "predecessor_custody": {
+    "committed_src_iqa_soa_tree_at_parent_commit": "1d0f1371099536322a4988334ea9d6ac9445c2feec85bc0b3df26d8ada1184ac",
+    "corrected_record_edited_by_this_revision": false,
+    "custody_correction_required": false,
+    "note": "This link inherits NO custody defect. The predecessor's declared pin and every one of its per-file digests reproduce exactly from committed bytes at this revision's parent commit, which is proved here before the record is written rather than asserted. No custody correction is admitted, needed or invented, and no predecessor record is edited, regenerated or overwritten.",
+    "predecessor_declared_pin_is_reproducible_from_history": true,
+    "predecessor_declared_src_iqa_soa_tree": "1d0f1371099536322a4988334ea9d6ac9445c2feec85bc0b3df26d8ada1184ac",
+    "predecessor_record_sha256": "79ae381860daeb242b085078fa7c1cebefb70212665bf6f58226c8ea807e8ed2"
+  },
+  "previous_instrument": {
+    "instrument_version": "5",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "parent_commit": "883c425daf2e6462877f0626f5fce0664ac85ca9",
+    "phase": "POST_PHASEP_PROVIDER_OBSERVABILITY",
+    "raw_schema_version": 6,
+    "record": "docs/post_phaseP_provider_observability_instrument_revision.json",
+    "src_iqa_soa_tree": "1d0f1371099536322a4988334ea9d6ac9445c2feec85bc0b3df26d8ada1184ac",
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "production_randomization_realized": false,
+  "prospective_implementation_only": "This record documents a PROSPECTIVE post-Phase-P instrumentation correctness repair only. No model inference is performed by it or by the script that produces it; no provider is contacted and no socket is opened. No Phase-P execution is rerun, resumed, repaired, replaced or reinterpreted. No historical Phase-D, Phase-F, Phase-I, Phase-L or Phase-P row is modified, reclassified or rescored. No benchmark freeze record is overwritten. No existing instrument revision is overwritten. This revision authorizes no qualification execution, no confirmatory execution and no production randomization.",
+  "provider_contacted": false,
+  "qa_off_treatment_invariant": "treatment_for('off').detailed_evidence remains False and the evidence guard remains disabled under QA OFF. This revision persists no new field of any kind: it changes the DERIVATION of one already-existing RuntimeSnapshotV1 identity digest and adds nothing to any raw row, evidence record or artifact. No assistant text, prompt echo, chain-of-thought, tool argument value, resource value, response hash, raw header, endpoint URL, credential or response body reaches disk that did not before.",
+  "realized_measurement_population": "There is NO old-vs-new successor measurement population to pool across, because the defective rule realized none. The old production path was structurally incapable of capturing the real directory-valued successor configuration -- it raised rather than returning a digest -- so no successor RuntimeSnapshotV1 was ever produced under it, and no successor qualification or confirmatory row exists at all. The repair is therefore prospective in the strongest sense: it precedes the first successor measurement rather than dividing an existing series. No claim is made here about Phase-P pooling beyond preserving the boundary the C3 link already declared; Phase P recorded benchmark identity through the runner's own _path_digest path, which this revision does not touch.",
+  "record_kind": "instrument_revision",
+  "scientific_invariants": {
+    "benchmark_bytes_changed_by_this_revision": 0,
+    "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+    "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+    "recomputed_not_copied": true
+  },
+  "successor_candidate_created": false,
+  "successor_qualification_inference_before_repair": 0,
+  "successor_result_rows_before_repair": 0,
+  "successor_runtime_snapshots_before_repair": 0,
+  "superseded_live_assertions": {
+    "scripts/phaseL_protocol.py": "Already superseded by Phase O, by the post-Phase-P confirmatory link and by the C3 link on their stated terms, and superseded again here only in the sense that the digest its one false tree assertion reports is now the post-repair tree. scripts/phaseO_frozen_input_supersession.py composes the expected text from the approved HEAD of the revision chain rather than pasting it, so it consumes this new head automatically and nothing in it needed editing.",
+    "scripts/phaseP_protocol.py": "check_frozen_inputs() pins the Phase-O src/iqa_soa tree and check_instrument_pins() pins EXPECTED_INSTRUMENT_VERSION = '4' and EXPECTED_RAW_SCHEMA_VERSION = 5. Both were already false live before this revision, and THAT IS THE DESIRED BEHAVIOUR AND MUST NOT BE REPAIRED: the frozen Phase-P protocol refuses to run under an instrument it was not frozen against, which prevents any retroactive reinterpretation of Phase-P rows. scripts/phaseP_protocol.py is NOT edited, FROZEN_ARTIFACT_MISMATCH is not weakened and no preflight is relaxed; the claims are proved where they are true, from committed bytes.",
+    "scripts/validate_pilot_v7_rc2.py": "Already superseded by Phase M, Phase O, the post-Phase-P confirmatory link and the C3 link on the same terms, and superseded again here only in the sense that the digest its one false assertion reports is now the post-repair tree. scripts/phaseM_historical_analysis.py composes that expected string from the approved head of the revision chain, so it follows the chain automatically."
+  },
+  "title": "Post-Phase-P RuntimeSnapshotV1 benchmark-identity capture correction (capture-only; no boundary moves)",
+  "why_observation_only": "Nothing the model sees and nothing the sandbox does is different. This repair does not reach any execution path at all: it corrects how a PRE-EXECUTION provenance capture derives one identity field. The request payload, the tool definition, the advertised and enforced argument contract, the prompts, the treatments, the policy, the seed derivation and the tool dispatch are byte-identical, so controlled_input_digest, system_prompt_sha256 and user_prompt_sha256 are unaffected. Every accept/refuse predicate, every failure_class, every failure_origin and every retryability rule is byte-identical, so every response accepted before the repair is still accepted and every response refused is still refused with the same class. No benchmark case byte, no canonical exposure definition, no scoring rule and no persisted raw scientific row field changes. The ONLY observable difference is that RuntimeSnapshotV1 capture now succeeds against a directory-valued benchmark_path where it previously could not be computed."
+}

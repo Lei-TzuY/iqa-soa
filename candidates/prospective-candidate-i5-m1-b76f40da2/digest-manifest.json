@@ -20,7 +20,7 @@
     {
       "artifact": "provenance.json",
       "path": "candidates/prospective-candidate-i5-m1-b76f40da2/provenance.json",
-      "sha256": "e95c1aae2309d08c4a7008666d5307490639d0eb9ce5bc4349d882a69d84ce0c",
+      "sha256": "ad4d148b2ffe4dc284d326766d0aa750c40fe7f1537fdae8bfb3fa59dfc64a69",
       "tier": "CONTENT"
     },
     {
@@ -44,7 +44,7 @@
     {
       "artifact": "offline-freeze-readiness.json",
       "path": "candidates/prospective-candidate-i5-m1-b76f40da2/offline-freeze-readiness.json",
-      "sha256": "6d2056f342a6c8548766cbeab0703c9949474798c004582a13bcef3f86083d4a",
+      "sha256": "656d28bedd30343036d400c9e51bb422e9bdc79267e056166f9be419efda0758",
       "tier": "CONTENT"
     }
   ],

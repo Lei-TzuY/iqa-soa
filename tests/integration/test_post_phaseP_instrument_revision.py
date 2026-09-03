@@ -352,12 +352,13 @@ def test_the_affected_file_is_now_line_ending_normalised_in_the_working_tree(
 def test_the_record_is_the_third_link_of_the_approved_chain(
     record: Mapping[str, Any],
 ) -> None:
-    """The chain gained a fourth link; this one keeps its position and bytes.
+    """The chain gained a fourth and then a fifth link; this one keeps its place.
 
     It is no longer the head, and that is the chain working as designed rather
     than a defect in it. Custody is still asserted in both directions: Phase O's
     result is this link's parent, and this link's result is the successor's
-    parent.
+    parent. Appending the benchmark-identity link changes neither this record's
+    bytes nor its position.
     """
 
     chain = instrument_revision.load_revision_chain()
@@ -366,6 +367,7 @@ def test_the_record_is_the_third_link_of_the_approved_chain(
         "O",
         "POST_PHASEP_CONFIRMATORY",
         "POST_PHASEP_PROVIDER_OBSERVABILITY",
+        "POST_PHASEP_RUNTIME_SNAPSHOT_BENCHMARK_IDENTITY",
     ]
     assert instrument_revision.REVISION_CHAIN[2] == RECORD_PATH
     assert chain[2] == record
@@ -384,8 +386,18 @@ def test_the_record_is_the_third_link_of_the_approved_chain(
     assert chain[2]["current_instrument"]["src_iqa_soa_tree"] != (
         chain[3]["previous_instrument"]["src_iqa_soa_tree"]
     )
-    # Only the HEAD is asserted against the live working tree.
+    # Custody carries on to the fifth link, and only the HEAD is asserted
+    # against the live working tree.  The fourth link is itself superseded now,
+    # so its pin is proved at the commit ITS successor started from.
     assert chain[3]["current_instrument"]["src_iqa_soa_tree"] == (
+        instrument_revision.tree_digest_at_commit(
+            chain[4]["parent_commit"], "src/iqa_soa"
+        )
+    )
+    assert chain[4]["previous_instrument"]["src_iqa_soa_tree"] == (
+        chain[3]["current_instrument"]["src_iqa_soa_tree"]
+    )
+    assert chain[4]["current_instrument"]["src_iqa_soa_tree"] == (
         instrument_revision.tree_digest("src/iqa_soa")
     )
 

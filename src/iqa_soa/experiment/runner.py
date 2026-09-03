@@ -1014,6 +1014,35 @@ def package_source_sha256() -> str:
     )
 
 
+#: The frozen source-set rule for a benchmark SOURCE ROOT.  The benchmark tree
+#: holds exactly three kinds of tracked scientific source: ``.yaml`` case files,
+#: ``.json`` manifests / contracts / freeze records, and ``.md`` audits.
+#: Restricting the digest to them keeps build output and editor droppings out of
+#: a scientific identity, exactly as the ``.py`` restriction already does for
+#: :func:`package_source_sha256`.  On a clean checkout the restriction is a
+#: no-op: every tracked benchmark file carries one of these suffixes, so this
+#: digest equals the unrestricted tree digest ``ExperimentRunner`` records.
+BENCHMARK_SOURCE_SUFFIXES = frozenset({".json", ".md", ".yaml"})
+
+
+def benchmark_source_sha256(path: str | Path) -> str:
+    """Reuse the legacy path-tree digest algorithm for a benchmark source root.
+
+    ``ExperimentConfig.benchmark_path`` is a benchmark SOURCE ROOT: production
+    configurations point it at a directory, and the loaders treat it as a root
+    rather than as one file.  This is the single canonical benchmark identity
+    for that input -- the same algorithm, over the same path, that
+    :class:`ExperimentRunner` already records as ``benchmark_sha256`` in its run
+    manifest -- so no second, incompatible benchmark hash exists.
+
+    A regular file remains well defined and keeps the digest's name-plus-content
+    framing, so a synthetic single-file fixture stays deterministic.  A missing,
+    empty or unreadable source raises rather than returning a digest.
+    """
+
+    return _path_digest(path, include_suffixes=BENCHMARK_SOURCE_SUFFIXES)
+
+
 def controlled_input_digest(
     case: BenchmarkCase, provider: AgentProvider, seed: int
 ) -> str:
@@ -1188,12 +1217,14 @@ def _join_error(left: Any, right: str) -> str:
 
 
 __all__ = [
+    "BENCHMARK_SOURCE_SUFFIXES",
     "ExperimentConfig",
     "ExperimentConfigError",
     "ExperimentRunner",
     "PositionExecutionError",
     "PositionFailureOrigin",
     "append_raw_record",
+    "benchmark_source_sha256",
     "create_experiment_directory",
     "controlled_input_digest",
     "load_experiment_config",

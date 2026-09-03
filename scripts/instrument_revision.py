@@ -78,6 +78,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 #: describing the tree it actually approved, and is proved from COMMITTED bytes
 #: at the commit its own successor started from.
 #:
+#: (Benchmark-identity amendment.)  The first real runtime preflight of the
+#: successor configuration discovered that the frozen WU5 capture rule
+#: ``benchmark_sha256 = file_sha256(config.benchmark_path)`` was unsatisfiable:
+#: ``benchmark_path`` is a benchmark SOURCE ROOT and production configs point it
+#: at a directory, which cannot be read as a file.  Repairing the capture path
+#: legitimately changed ``src/iqa_soa`` again, so a FIFTH link is appended on
+#: exactly the same terms.  Unlike the fourth, its version constants do NOT move:
+#: the repair is capture-only, so ``INSTRUMENT_VERSION`` stays "5" and
+#: ``RAW_SCHEMA_VERSION`` stays 6, on the rule the third link already stated --
+#: no boundary is bumped merely because the tree changed.
+#:
 #: The chain is verified link by link (see :func:`check_approved_instrument_revision`):
 #: each link's parent digest must equal its predecessor's current digest, each
 #: non-head link's claims are proved from COMMITTED bytes at the commit its
@@ -88,6 +99,9 @@ REVISION_CHAIN: tuple[Path, ...] = (
     REPO_ROOT / "docs" / "phaseO_instrument_revision.json",
     REPO_ROOT / "docs" / "post_phaseP_confirmatory_instrument_revision.json",
     REPO_ROOT / "docs" / "post_phaseP_provider_observability_instrument_revision.json",
+    REPO_ROOT
+    / "docs"
+    / "post_phaseP_runtime_snapshot_benchmark_identity_instrument_revision.json",
 )
 
 #: The HEAD of the chain: the revision the CURRENT working tree must match.
