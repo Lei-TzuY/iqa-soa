@@ -456,3 +456,43 @@
   - `task_plan.md`
   - `findings.md`
   - `progress.md`
+
+## Session: 2026-09-04 -- FSE 2027 Manuscript Evidence Integration and Gap Audit (documentation-only)
+
+### Phase: Post-successor-qualification manuscript maintenance
+- **Status:** complete
+- Boundary honored: no provider contact, no Ollama contact, no model inference,
+  no qualification execution, no cell rerun/retry/replacement, no confirmatory
+  execution, no production randomization, no result rewriting or rescoring.
+  RERUN_AUTHORIZED = NO, CONFIRMATORY_ELIGIBLE = NO,
+  CONFIRMATORY_EXECUTION_AUTHORIZED = NO,
+  PRODUCTION_RANDOMIZATION_AUTHORIZED = NO.
+- Canonical base verified by fresh fetch: `origin/main` =
+  `5138dd708d38300e11fd71466827281a1350509e` = local `HEAD`.
+- Forbidden paths (the historical Phase-P results namespace and the four
+  `FSE-*-schema-clarification` working directories) were never read, listed,
+  hashed, globbed, or modified.
+- Manuscript selected: `FSE_2027_IQA_SOA_Draft_v0.4.docx` (highest existing
+  version). Output: `FSE_2027_IQA_SOA_Draft_v0.5.docx`, created new; the source
+  manuscript was not overwritten.
+- Successor qualification status now carried by the manuscript: COMPLETE /
+  `HOLD`; 102 of 102 cells observed; 0 retries; 3 invalidated; 7 of 17 tasks
+  qualified; confirmatory eligibility NO; confirmatory execution NOT ENTERED.
+- Created `docs/fse2027_post_successor_manuscript_gap_audit.md` (claim
+  classification plus G1-G9 evidence gaps).
+- Appended dated current sections to `docs/fse_submission_checklist.md`,
+  `docs/paper_mapping.md`, `findings.md` and this file. No historical entry was
+  rewritten.
+
+### Test Results (2026-09-04 addendum)
+- No test suite was run: no production code changed. `src/`, `tests/`,
+  `benchmark/`, `configs/`, `schemas/`, `scripts/` and every path under
+  `results/` are unmodified.
+
+### Files created/modified
+- `FSE_2027_IQA_SOA_Draft_v0.5.docx` (new; gitignored local draft)
+- `docs/fse2027_post_successor_manuscript_gap_audit.md` (new)
+- `docs/fse_submission_checklist.md` (appended)
+- `docs/paper_mapping.md` (appended)
+- `findings.md` (appended)
+- `progress.md` (appended)

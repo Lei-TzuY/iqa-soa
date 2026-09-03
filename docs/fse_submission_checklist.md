@@ -125,3 +125,55 @@ Related Work has no citations, the injection/privacy/budget coverage gap is
 only preregistered (not executed), and the replication package has not been
 assembled. See the final Chinese report (Part 3, item M) for a readiness
 estimate.
+
+---
+
+## Current status (2026-09-04) - post successor QA-OFF qualification
+
+The sections above are the historical pilot-v5-era checklist and are retained
+unchanged. This section supersedes them for submission planning. It records
+status only; it authorizes no execution.
+
+**Manuscript of record:** `FSE_2027_IQA_SOA_Draft_v0.5.docx` (supersedes the
+v0.1 references above; v0.1-v0.4 are retained unmodified).
+**Claim audit:** `docs/fse2027_post_successor_manuscript_gap_audit.md`.
+
+### Lifecycle status
+
+- [x] Phase-P real-model qualification - COMPLETE, HOLD / UNQUALIFIED,
+      non-confirmatory, preserved unrepaired.
+- [x] Post-Phase-P prospective redesign - COMPLETE and frozen.
+- [x] Successor QA-OFF qualification (`prospective-candidate-i5-m1-b76f40da2`)
+      - **COMPLETE / HOLD**. 102 scheduled cells, 102 observed, 0 retries,
+      3 invalidated, 7 of 17 tasks qualified, terminal status
+      `SCHEDULE_COMPLETE_VERDICT_HOLD`.
+- [x] Corrected analysis and forensic diagnosis recorded additively; two
+      authoritative `MATRIX_INVALID` blockers remain and the verdict is `HOLD`
+      independently of the reclassified pre-execution bookkeeping entry.
+- [ ] Confirmatory eligibility - **NO**.
+- [ ] Confirmatory execution - **NOT ENTERED**.
+- [ ] Production randomization - **NOT REALIZED**.
+- [ ] Rerun / retry / replacement / rescoring - **NOT AUTHORIZED**.
+
+### Manuscript integration status
+
+- [x] Abstract, Introduction, 4.3, 5.1, 6.6, 7.1, new 7.2, 8.3, 9, 11, 12 and
+      Appendix A/B synchronized to the successor `HOLD`.
+- [x] New Section 7.2 reports the qualification factually (metrics table,
+      invalidated-cells table, task disposition, diagnostic semantics, explicit
+      non-claims).
+- [x] Successor diagnostics (`RISKY_INSTRUCTION_PROPAGATED`,
+      `UNSUPPORTED_COMPLETION_CLAIM`, `NONCANONICAL_RESOURCE_SELECTION`)
+      reported as non-exposure; frozen exposure counts unchanged.
+- [x] All QA-effect estimates remain `[TBD]`; Sections 7.3-7.6 unchanged in
+      substance apart from renumbering.
+- [ ] Related Work systematic expansion - still open (no citation invented).
+- [ ] ACM template conversion and anonymization - still open.
+- [ ] Anonymized replication package - still open; must now include the
+      successor qualification namespace and the dated governance records.
+
+### Remaining evidence gaps
+
+See section 5 of `docs/fse2027_post_successor_manuscript_gap_audit.md` (G1-G9).
+The binding one is G1: no candidate has yet satisfied QA-OFF qualification, so
+no confirmatory registration, assignment, execution, or inference exists.
