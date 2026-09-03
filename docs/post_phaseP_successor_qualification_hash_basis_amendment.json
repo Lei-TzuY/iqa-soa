@@ -1,0 +1,1119 @@
+{
+  "additive_only": true,
+  "amendment_id": "successor-qualification-hash-basis-amendment-1",
+  "authorizations": {
+    "cell_replacement_authorized": false,
+    "cell_retry_authorized": false,
+    "confirmatory_eligible": false,
+    "confirmatory_execution_authorized": false,
+    "model_inference_performed": false,
+    "production_randomization_authorized": false,
+    "provider_contacted": false,
+    "rerun_authorized": false,
+    "result_write_authorized": false
+  },
+  "benchmark_semantics_changed": false,
+  "bound_correction": {
+    "correction_machine_record": "docs/post_phaseP_successor_qualification_analysis_correction.json",
+    "correction_record": "docs/post_phaseP_successor_qualification_analysis_correction.md",
+    "correction_version": "successor-qualification-analysis-correction-1",
+    "diagnosis_machine_record": "docs/post_phaseP_successor_qualification_hold_forensic_diagnosis.json",
+    "diagnosis_record": "docs/post_phaseP_successor_qualification_hold_forensic_diagnosis.md",
+    "diagnosis_version": "successor-qualification-hold-forensic-diagnosis-1"
+  },
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_status": "FROZEN_NOT_YET_QUALIFIED",
+  "claims": {
+    "canonical_git_tree_identical": true,
+    "canonical_lf_reproducibility": "PASS",
+    "claim_language_note": "the two materializations are literally different byte sequences, so no byte-identity between them is claimed; what is identical is the committed Git tree and the scientific content",
+    "csv_files_with_historical_crlf_basis": 102,
+    "current_csv_files_with_crlf": 0,
+    "difference_class": "EOL_REPRESENTATION_ONLY",
+    "historical_reconstruction": "PASS",
+    "historical_to_canonical_byte_identical": false,
+    "result_tree_byte_identical_between_bases_claimed": false,
+    "scientific_content_identical": true
+  },
+  "classifications_changed": false,
+  "eol_basis_proof": {
+    "blob_only_substitution": {
+      "note": "the committed Git tree object is recorded as an independent second identity; working-tree bytes remain the attested basis",
+      "used": false
+    },
+    "byte_relation": {
+      "bytes_differing_beyond_the_inserted_cr": 0,
+      "canonical_materialization_contains_no_cr": true,
+      "cr_bytes_inserted_total": 204,
+      "dropping_the_inserted_cr_returns_canonical_bytes": true,
+      "every_historical_cr_is_part_of_a_crlf_pair": true,
+      "files_differing_beyond_the_inserted_cr": 0,
+      "inserted_byte": "0x0D",
+      "insertion_count_equals_lf_terminator_count": true,
+      "lf_terminators_total": 204,
+      "transform": "LF -> CRLF applied to exactly the 102 per-cell successor-runs.csv artifacts; every other evidence byte left untouched"
+    },
+    "canonical_git_tree_identical": true,
+    "canonical_lf_materialization": {
+      "eol_basis": "repository-enforced LF (.gitattributes: * text=auto eol=lf)",
+      "portable_and_clone_reproducible": true,
+      "raw_working_tree_digest": "f6a170a0ab271dbc2c4a50eb3130ce48aecb28eaf231bc885abe2c0684587cd7",
+      "reproduced_from_the_checkout": true,
+      "result_working_tree_digest": "956487194eb68baf1ec509068f5f3474611a61cf4224820dca0599091803bf14"
+    },
+    "canonical_lf_reproducibility": "PASS",
+    "current_materialization": {
+      "checkout_eol_attribute": "lf",
+      "current_csv_files_with_crlf": 0,
+      "non_participating_bytes_changed": 0,
+      "non_participating_files": 310,
+      "result_files": 412,
+      "result_files_containing_any_cr": 0,
+      "result_files_containing_crlf": 0
+    },
+    "difference_class": "EOL_REPRESENTATION_ONLY",
+    "evidence_unchanged_by_this_proof": true,
+    "hash_time_eol_normalization": {
+      "historical_equals_canonical_raw_digest": false,
+      "historical_equals_canonical_result_digest": false,
+      "proof": "the two bases hash to different aggregate digests; a hash-time normalizing basis would have collapsed them to a single value, so the absence of normalization is observable rather than promised",
+      "used": false
+    },
+    "historical_local_materialization": {
+      "bytes_written_to_disk": 0,
+      "eol_basis": "CRLF for the 102 per-cell successor-runs.csv files; every other evidence byte identical to the canonical materialization",
+      "overwritten_or_re_frozen": false,
+      "preserved_as_historical_observation": true,
+      "raw_working_tree_digest": "d5381b620cf20894cf1b2062027a919d5f887d4ef30477ee426b5ee99b498a61",
+      "reconstructed_from_canonical_evidence": true,
+      "reconstruction_performed_in_memory_only": true,
+      "result_working_tree_digest": "2059f30349a852f7c7d06add0d23f90b48527bbc0705dfaa3b6612b926976c62"
+    },
+    "historical_reconstruction": "PASS",
+    "historical_to_canonical_byte_identical": false,
+    "participants": {
+      "artifact_name": "successor-runs.csv",
+      "csv_files_with_historical_crlf_basis": 102,
+      "every_result_csv_participates": true,
+      "per_file": [
+        {
+          "canonical_lf_bytes": 4328,
+          "canonical_lf_sha256": "a09e9766d4e7e7c88535ec828d2f9a1df1ce27ef76c6bf13f816d39f4b864ae4",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 4330,
+          "historical_crlf_sha256": "bdd5827a720148a6f550378f81dd2d743205ba18000d93837149c971a094f9eb",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/000-qwen-BEN-002-583010984/exp-20260903T154343.756889Z-8147224626da434280501a495ef256cd/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5557,
+          "canonical_lf_sha256": "9ddeadd3abe0b6722fb27be96c409a12b7548e7690a82084564bb132d9e23955",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5559,
+          "historical_crlf_sha256": "bce70900c72dd91d5a56c926fc950ed135e94de0bce477003b4c592f3b52dc3f",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/001-qwen-BEN-002-1723431918/exp-20260903T154415.470050Z-cb85e00d3f3e495196c006774ea78c14/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5576,
+          "canonical_lf_sha256": "30389a7864b779310cd58ad40e6497882715a27385630a7c799428447961c883",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5578,
+          "historical_crlf_sha256": "78f2e7269e5e843932d75950074b73371076782d509fc13747776d0b02fd03c0",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/002-qwen-BEN-002-1639806953/exp-20260903T154429.230834Z-71e08f86d84641e7bec844249bd78f4c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5483,
+          "canonical_lf_sha256": "ed58e9575183be43e024fcf696518c6011b307e028a7ddcee8c5965c0e303614",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5485,
+          "historical_crlf_sha256": "30717e0b2b0fd760d95258cbace5a3834db9dcfe5f08d2d935dacf0014283be3",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/003-qwen-BEN-003-583010984/exp-20260903T154434.409249Z-37a8eb9b617f46e6839bdd4853b4f3e4/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5486,
+          "canonical_lf_sha256": "b30f2192fe7ae66901c76a921ba27ad06dffece6f291e8c55f3ecc1c482a0e9d",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5488,
+          "historical_crlf_sha256": "27b8ae50677123b063550f7382f01c694ec3dc4e6d385b0e9135ae91ddeab8ea",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/004-qwen-BEN-003-1723431918/exp-20260903T154438.779574Z-3ec4beefb7a74bd8a793dedadb1af6d1/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5486,
+          "canonical_lf_sha256": "36b22fb60035605db4d265f7268be1b19459469b1c7e0ba9818aad07b22c7009",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5488,
+          "historical_crlf_sha256": "ce27a844867a5b17ce95d653f8c6923efa091ae7b06cc88d0d97865b6eaed263",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/005-qwen-BEN-003-1639806953/exp-20260903T154443.269692Z-ee5566c32f0643369017a98f35e0cb6a/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 9894,
+          "canonical_lf_sha256": "8511b426b91c8db0b93252a2426753504b8144fde7d395b61a5569c96daced40",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 9896,
+          "historical_crlf_sha256": "5583dc300ad72173f3e6a5f152fef8b194488b2129e74c30a2965a56ae1bc322",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/006-qwen-PI-015-583010984/exp-20260903T154447.601473Z-0b61b36ef0684728b478239033cdc58d/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 9339,
+          "canonical_lf_sha256": "b74d64efccc6e704f59f6c03887e5d49899f25438d5fa3ede81f2ddaa343ac66",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 9341,
+          "historical_crlf_sha256": "32dc90add4cfd5a4b12e37f215b663f122d3fa5b1ba436cef5dd229d13c1e908",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/007-qwen-PI-015-1723431918/exp-20260903T154459.604511Z-d27b889fb0f04d238f9ffcaf2ab54b30/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 9558,
+          "canonical_lf_sha256": "6323187816cfe67a0af7913918040f60338f313a82ea5232cd4fead7b7975ef7",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 9560,
+          "historical_crlf_sha256": "8ea4779cc59a4441f5c180a9ba054c5f52844bf5006688dae4699bcaac2e8ea0",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/008-qwen-PI-015-1639806953/exp-20260903T154519.091074Z-9519f3a73e484530aa7c8cbb42fac709/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7304,
+          "canonical_lf_sha256": "dc163d2cc4472d736639333ba5bffa9ac10345194d66dcc3c5497728c3fd0f00",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7306,
+          "historical_crlf_sha256": "fbb7b6110e09293635185b3cfe76131e1c68bdb68952424d8bfd0e64403fa5f5",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/009-qwen-PI-018-583010984/exp-20260903T154531.246161Z-e65a02d220a746b6ace21c5d7f92b66a/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7232,
+          "canonical_lf_sha256": "d93b074faa450c644d9ab461065303ebc552c3e8aca2b7e52bbad1e16f9eac84",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7234,
+          "historical_crlf_sha256": "80dde1d3cc6bfdc19b0b94fca9ecb10dc245fd3e73783cdf0200a7e1a7bae539",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/010-qwen-PI-018-1723431918/exp-20260903T154538.795985Z-bfb177ea51b44daeb8540eafca349688/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7234,
+          "canonical_lf_sha256": "a850df7a3829f72a541056730ce2b18f570769a8f89dde66bad42a5250fd3b32",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7236,
+          "historical_crlf_sha256": "d8a0caa043cdd20169d0868b8049523769db87ea4b58e9f7fc3267316d1fc95a",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/011-qwen-PI-018-1639806953/exp-20260903T154545.853853Z-1329795fa07243cc8b05fbf6b4d6536d/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6931,
+          "canonical_lf_sha256": "780612b65f9c34b37c5523b4baf262ff72a6fa6bbd3f1bdd640f96b821a1d7de",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6933,
+          "historical_crlf_sha256": "16a300daec36a3241c6714b2d1e7dc2f5d90861982d3c6b505e9eb079abbc35e",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/012-qwen-PI-019-583010984/exp-20260903T154552.829810Z-9ab78ddd40fb4c4eaa62d1d15774ed83/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6933,
+          "canonical_lf_sha256": "001ce78f2cfadb77308e7ea94d5d9eb58307ff5baa8facf8443e1ebc42a2cac9",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6935,
+          "historical_crlf_sha256": "022e395a73e840d6e0fe744e2b1f83fc5a3068a935bcab838f96378866bc3fbd",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/013-qwen-PI-019-1723431918/exp-20260903T154601.818911Z-2bc56046a94f43ac89005212414aa9c7/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6940,
+          "canonical_lf_sha256": "084201ae0e3e8d4246f2a0d44eea88ff4a8ec3cc7cf713b6124be39f2b6b15bc",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6942,
+          "historical_crlf_sha256": "cdb5e43f9094c95cd4dc22ea04a0a5e04b0ea62fc35de4c711c9b441f4598364",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/014-qwen-PI-019-1639806953/exp-20260903T154610.634992Z-e9084cd3dc86410e98ddbfe3c398063a/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8162,
+          "canonical_lf_sha256": "7b24fc3f26c785e30555787c83ea5feda7012a435d3fdde8169f8b73a26583d2",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8164,
+          "historical_crlf_sha256": "908641808823707980c3964eac3bdd1f02ff588a7794762af75c5364939fcbda",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/015-qwen-PI-020-583010984/exp-20260903T154617.724996Z-cc5ba104250c4721887340dfe706dc07/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8184,
+          "canonical_lf_sha256": "8179dd0a62fe320a2eca2c7ae234cb77329f45bd6ac8dd7f4c5aa574096a5520",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8186,
+          "historical_crlf_sha256": "f4972532cd5ec18e367f27de5b9a6bb24b27f44a19bc5d07d168417f9ba4ca21",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/016-qwen-PI-020-1723431918/exp-20260903T154627.120148Z-802325867aea46858344f1d6ef43a41b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8238,
+          "canonical_lf_sha256": "8d5d091def2416651a6869aeae441024b797d65767ea01a3b88e7ae6704f8906",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8240,
+          "historical_crlf_sha256": "c5ec124f2a129b89949059952b6a5b1085f4e28dd9d49f0b1da035a25c9e3150",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/017-qwen-PI-020-1639806953/exp-20260903T154636.828203Z-d4574238ea3845818b27dc1d9995f309/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 9236,
+          "canonical_lf_sha256": "82b7dddae8907030b77dd742efecd86ddd526f65ee96c6b942f964629209beff",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 9238,
+          "historical_crlf_sha256": "fd7a32b965bf3c0d502e33bd7e7089c74b4197ca0794e0ca3152eba3b2005192",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/018-qwen-KP-004-583010984/exp-20260903T154645.973713Z-f2da0c48669e4eec8d0b0a893167ff29/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8967,
+          "canonical_lf_sha256": "bacb56ec067f203326a1a85c3465c2e7fca9ef4a635ea16b01de27f761085de7",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8969,
+          "historical_crlf_sha256": "5c13cdfd00e25d907453b5e807ff9e10d3d0c326cd438aa23980defe07686260",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/019-qwen-KP-004-1723431918/exp-20260903T154659.857068Z-deea4fd6c674498abbb630c773d43ec1/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8977,
+          "canonical_lf_sha256": "25e8de834894a7e081e71ee40da29a432863770746a59d2def3d5f5086627d4c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8979,
+          "historical_crlf_sha256": "3c0ef15208bee99a1e4d914cecdb044fb85ca8bf9181ddd394c67a8a670b3732",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/020-qwen-KP-004-1639806953/exp-20260903T154709.815175Z-a92c7a62272a45beba13a3ffd4196b9d/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5580,
+          "canonical_lf_sha256": "a201ccad237bfa585cd355608bd1e3cd232841d9513d45ad189a091dcdc48387",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5582,
+          "historical_crlf_sha256": "d24900af95bea49ddd013a5338be7d1f019045649fd0c3fb29fde54ada1bb53b",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/021-qwen-UA-004-583010984/exp-20260903T154720.525993Z-99a5b5b5d65a4c9d8e1d2f189e1d5a64/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5549,
+          "canonical_lf_sha256": "7ece9789a5e1b32c257c3268a182f49d299ba735aa209c64f5ae03e698d91f0a",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5551,
+          "historical_crlf_sha256": "6389cd19504e17567184dcf1ac8a69f86804971cfa8e8be7a4bd7fe2fecb50d9",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/022-qwen-UA-004-1723431918/exp-20260903T154727.190632Z-f81e3e1ef9244e0cabd29f54dd31644b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5552,
+          "canonical_lf_sha256": "508d50b715ef36d974f2cca029289d4eb0a5aa3e9248e20734549e1e47273b68",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5554,
+          "historical_crlf_sha256": "bb6d7ae511c778aa5a225023a3e50a1de90dc9a63629472d35e6da6fd4100d79",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/023-qwen-UA-004-1639806953/exp-20260903T154733.578159Z-9d1a6aea6c51489592a377b5dcc273ff/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5609,
+          "canonical_lf_sha256": "d46542d52385796af7f9e9ac321838d3330b7f9af3ad3a69335ae851ade58806",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5611,
+          "historical_crlf_sha256": "7bae6da473074ea8fea43a7ef27cbe0589eef3b537d26e3d97c3085b356c4636",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/024-qwen-UA-005-583010984/exp-20260903T154740.705563Z-69b142596713499983628f5fa6672a6b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5611,
+          "canonical_lf_sha256": "16771b12fc37241e73529822415ad291a6928387b5ee74caef6c2383a0110b7b",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5613,
+          "historical_crlf_sha256": "196f3151eedbd008c396b51e1dcd615f75fd92ac8335e76ed2ec63ecbb66ffab",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/025-qwen-UA-005-1723431918/exp-20260903T154754.820865Z-551286b9a11f46019676cdb690965270/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5615,
+          "canonical_lf_sha256": "d7ea11d663405115b8ad436dd1477b0d7e0d55f0529f1747baa479d4dcefafb2",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5617,
+          "historical_crlf_sha256": "0166762302869cd1a09d7c41c5b0398ca365cdb662499c02ca52487ef40d35bd",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/026-qwen-UA-005-1639806953/exp-20260903T154803.684578Z-4776386ebdf342299c3595882b96504a/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6939,
+          "canonical_lf_sha256": "9f186ec53c8d43c376b7c6ec3c6acd3b9826cce7e5f08c2b15d947da411b6e88",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6941,
+          "historical_crlf_sha256": "f5c9e2beb2446a94a3231f20a5579b928c388338ea0ec58ed3677967cf1e1069",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/027-qwen-PRIV-007-583010984/exp-20260903T154812.708060Z-77db09f20fea4142b675792067402635/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6945,
+          "canonical_lf_sha256": "163fa7222c61e4a2dd6017a5471891ce6a63a419bde9ff12409d89226765de88",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6947,
+          "historical_crlf_sha256": "235b3ee3b28065d175163623b8c43734f705a0551369607dba3375962406ffaf",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/028-qwen-PRIV-007-1723431918/exp-20260903T154820.499200Z-20ecc2db63734c978690bf9843d7f005/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6944,
+          "canonical_lf_sha256": "fe198e1ccfaa3e473f8aeb606a19e0ab67fbcaed67e974fcaf3cb97d7cce5ed2",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6946,
+          "historical_crlf_sha256": "e182da6e10d372a3485d98cf66e3258d154ebc402918c273f97baa97b82e1793",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/029-qwen-PRIV-007-1639806953/exp-20260903T154827.918065Z-0eeff92a7633426aa76189d2632ff44b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8795,
+          "canonical_lf_sha256": "a4a060e716e35ad353aaa38c19211aa30b21aadc10905d9d61825dcb74f51274",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8797,
+          "historical_crlf_sha256": "0fb0fb257c45bcbd7bba45b1e00e5fca1179fd6d8ac55a4aa158e6aae18964ea",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/030-qwen-PRIV-012-583010984/exp-20260903T154835.112162Z-d90f9123b2d44419a51905bd533b2b06/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8718,
+          "canonical_lf_sha256": "42769028ec182595e05c69496c41085ebaf78d630ec852fa30af19533cfca927",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8720,
+          "historical_crlf_sha256": "2796c5aef8a8751ce7a0df839dfdb41d77d2620928025d88791d24a52223f22c",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/031-qwen-PRIV-012-1723431918/exp-20260903T154845.291592Z-bf4e8246e4a842e98ca2ff8566f4849c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8915,
+          "canonical_lf_sha256": "7148654325b342ae1fd26f1cf056b116acaef066cadba8773160716cf594093c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8917,
+          "historical_crlf_sha256": "6fe9048d4d339d2bcd52d71ce36bac8a60b746f4f1ea4482e0c3c680fd673394",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/032-qwen-PRIV-012-1639806953/exp-20260903T154854.114367Z-4cad1b5a1da6456e8ea280393e2e1c74/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8456,
+          "canonical_lf_sha256": "7cd5b848711b371190588b7baba8e22ae772faa5485f41c45441afb512d18b3d",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8458,
+          "historical_crlf_sha256": "6008158bca892099e64e1222dd62c113773a6770f1b5f6f8407ee87ba7dfaf1e",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/033-qwen-PRIV-016-583010984/exp-20260903T154903.927958Z-da69defb161740aa941371528e7b6135/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8444,
+          "canonical_lf_sha256": "7633d15d68567339f706606031a2b086a042f3de94407c084b9d104dc52b20b4",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8446,
+          "historical_crlf_sha256": "2bd8a04094c5c5d80bd47f7c0b46814e759771ec81b6ac29d168d0fd3a9a9a11",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/034-qwen-PRIV-016-1723431918/exp-20260903T154917.143552Z-7416e364d710455baad1ed168ae74f70/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8448,
+          "canonical_lf_sha256": "00063fa9447ac29a6cd3fde1c6c60cb50f719c816f70730e3db00445428e5a8a",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8450,
+          "historical_crlf_sha256": "15d2a3d8f86d3138f05974c2d84f323235d5ebaa446d13dd4ffc991c1e7d18f9",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/035-qwen-PRIV-016-1639806953/exp-20260903T154930.886006Z-50f7e2ef2cf04276b0ed8b269f59d69c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 9674,
+          "canonical_lf_sha256": "aa10674a2e78c30e751acc1ac647f3c8c12f35fb12d46490729cec89c6afd9a0",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 9676,
+          "historical_crlf_sha256": "4629300bdd0605706b0dc6c3b14ee282e2ff81c6afe7d618bf3b3f5c2cc3fb0c",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/036-qwen-PRIV-017-583010984/exp-20260903T154944.862482Z-666301d7b95643df86197e7a5c524717/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 9696,
+          "canonical_lf_sha256": "d45a8451c5b9f06a97ab83506cd8705c7077bf54f2ecb981fec701a87558b7ee",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 9698,
+          "historical_crlf_sha256": "a01104aa2009e24ae5ff99558ab69a1665a4f0d9c1ba152a6dd8279e1d4f9e0b",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/037-qwen-PRIV-017-1723431918/exp-20260903T154959.994827Z-e7da26ff19324fd7a5b7c25f69d54add/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8324,
+          "canonical_lf_sha256": "3c8c30ec3e80e82470de5d0d2e8da438168cf87ab22d39267d636c49b8b4f4b5",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8326,
+          "historical_crlf_sha256": "474142853ec9031776a2793b911d466e4605a46ed9b242f2cd4bd2e7eeadae60",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/038-qwen-PRIV-017-1639806953/exp-20260903T155015.056635Z-5f934d7e417543b996702dfd83d3adf2/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8246,
+          "canonical_lf_sha256": "c35e0e7ba007aa3db25b1186974224fa4d35ebc08e0760506caf9ac9fa73445d",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8248,
+          "historical_crlf_sha256": "bacf23fed70e33af7d4f5c4a087c67d4dbec5a9a980b792114ea390c2c044ab1",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/039-qwen-BUD-017-583010984/exp-20260903T155028.139864Z-76d0d255b2674218b7ba7bab78ed363c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8256,
+          "canonical_lf_sha256": "c4c41927d4eda125d838a327153bad5af12d6fd7e515da89dd8a7a7479d8eb0d",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8258,
+          "historical_crlf_sha256": "5b8b934d96c678da3a06b609e43b21d7fc75361dd2eed984077023d7df31f4e6",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/040-qwen-BUD-017-1723431918/exp-20260903T155047.051829Z-e9fe44642f19482e835ea02cd7808f52/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8251,
+          "canonical_lf_sha256": "177e9dfb4a6b9a6a47dbbfdc2f5aa5d257624b861ebf4bbbec64f568fc7ab4ad",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8253,
+          "historical_crlf_sha256": "6ecdeeeaab0d03514dac3dc71f6b6768b429fd7f8bcc6c94d04dd346ad3ea4a1",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/041-qwen-BUD-017-1639806953/exp-20260903T155101.793316Z-2489c84a6f7040a0bc628ac62ddf9b8f/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6847,
+          "canonical_lf_sha256": "01b69c725f6ba3f52e21aa8f53a2135e20c3f14b748a98a5aac4d6af5c5c0662",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6849,
+          "historical_crlf_sha256": "ded202e3538fa91c0ad0308112198108c6c3d6c0d3d45a4d89e40f47d7ad1783",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/042-qwen-BUD-018-583010984/exp-20260903T155120.687769Z-88b6000b2a3540e0add5d8a240c16afa/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6850,
+          "canonical_lf_sha256": "c8392c51a746f05d3610097a6630c635544782f00c6b74b6081d09d7bcd33c49",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6852,
+          "historical_crlf_sha256": "035ed8444cf8a26991dcf59847c373966ec8d81b4b0c0553a1a112e70af064cd",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/043-qwen-BUD-018-1723431918/exp-20260903T155128.345961Z-0e8e0b1bff6542d9b102335422c9e68b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6853,
+          "canonical_lf_sha256": "6f503212ee8212b7954ff0541ca5bd10297f10bab920ad09dd4d940f2ab06a08",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6855,
+          "historical_crlf_sha256": "bbc94360ead628f6484d5852ac5caeb2e8066a96bc670aeb2f07b99fe1272980",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/044-qwen-BUD-018-1639806953/exp-20260903T155135.589616Z-7b62bbf05ecb4f64ad1b1f81fbaeaa64/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7283,
+          "canonical_lf_sha256": "d8d05741a7992e8aec40343b1185b7c1bf0620e4f7c20330066043a73469aa15",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7285,
+          "historical_crlf_sha256": "c0a12169de3463e92c6b577633e1e40c47d4d55b3cee6576207fa3e96186ae36",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/045-qwen-BUD-016-583010984/exp-20260903T155143.003627Z-5adec66709864cb4825584a0cebc45bc/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7315,
+          "canonical_lf_sha256": "301c3c5b391028ba7e32cf2a69e6dfc443cb1c740cc416416038253c1d9724c5",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7317,
+          "historical_crlf_sha256": "b01aba984afc481f5b6265b305920c6740d6bc4641ffdf3a03ec2f8429c81d72",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/046-qwen-BUD-016-1723431918/exp-20260903T155150.652727Z-bc893d3a9f4a43bd940ae5b13ae4603e/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7317,
+          "canonical_lf_sha256": "0a668a746a8306640c101ed0383d1e0a9063888efb5eb93dfe37f67acdc11f80",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7319,
+          "historical_crlf_sha256": "36e5a6f4cf9c0f844393e965a3b4553afd3941ebcc59453b62d24ff695d89523",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/047-qwen-BUD-016-1639806953/exp-20260903T155159.375951Z-923de86a9d144af4b0afb7271a0466d1/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5874,
+          "canonical_lf_sha256": "7b32c09335c530157ed6d397882cfd2416be6b741e4a5b9458e6e26e0b2574af",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5876,
+          "historical_crlf_sha256": "8cbdd91169fbdbab78d11915aef2d0913bbde8d6dd9ca299aada0df954852c9e",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/048-qwen-FAULT-004-583010984/exp-20260903T155207.607454Z-6c377bc52ed4480293da69d55c6b6066/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5908,
+          "canonical_lf_sha256": "7143d6ebd2cf3713429537eb054c3a72da44886caa399588986213f180161499",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5910,
+          "historical_crlf_sha256": "4f7b9c1d88745683f5479bb3eb6c9c06ef4852d47cfc5a73586abb7e6caf34fb",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/049-qwen-FAULT-004-1723431918/exp-20260903T155214.201281Z-578072592fba456997043bfc87f0d5ab/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5931,
+          "canonical_lf_sha256": "968f6a699612a86667a00022b9aaf93cca60f99091fa0ec1e6a75bf926b75153",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5933,
+          "historical_crlf_sha256": "43cafd362455901fe0fa5b30082b8bd4e7b01f7aa8438c729c3962af8deb5e02",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/050-qwen-FAULT-004-1639806953/exp-20260903T155220.793291Z-875471f8fda84393b13f54ad3371289e/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5585,
+          "canonical_lf_sha256": "304e090596d2608e0dc5816aa9e5f8569e18ec9914f59d2c7f3ecce70da8fa2c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5587,
+          "historical_crlf_sha256": "827f02d6540db3a1b901898e8d499768882571d6a966969fe9279bfc8ca77d0e",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/051-mistral-BEN-002-583010984/exp-20260903T155227.352231Z-84a6dd693c484e9ebbd21526a320a166/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5595,
+          "canonical_lf_sha256": "5ffc9b68de713556991ed64a6e10a7be5d872bddf85b4077b97536166610862c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5597,
+          "historical_crlf_sha256": "1c75a589f79abf5df5200b34af389b9b1e99ee49ef713f005505c6cce09af0fd",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/052-mistral-BEN-002-1723431918/exp-20260903T155240.991826Z-8bee7d1889eb407c9d8058e9f149bc6b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5594,
+          "canonical_lf_sha256": "e4c5c17816accd7bcbbaf277de7f1995326060cc8ba694f31d317099f4f6d082",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5596,
+          "historical_crlf_sha256": "544a1bc642c0a2478a96f9497b7e5e4c71d4dbdce22438d587c115c46a6ad4a1",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/053-mistral-BEN-002-1639806953/exp-20260903T155242.345716Z-cf4ae1cd748f4870822afe8870eb4983/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 4475,
+          "canonical_lf_sha256": "c5d23290858a9346470181d852a70c702f1c26842e608343e4377c7b1fb81cad",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 4477,
+          "historical_crlf_sha256": "ea581d497083c606ba638e7d3c6603672d0885d51a25e921576a32e93ebac959",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/054-mistral-BEN-003-583010984/exp-20260903T155243.598439Z-b331379fc14d4d21b55f695e0dbfa4e4/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 4479,
+          "canonical_lf_sha256": "4f1551a0baf63bde16d0c3dd5f4458ba2df3dfdb886cf459986a4467fada4ba2",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 4481,
+          "historical_crlf_sha256": "64875d0f5efb600f46dd9c7552eb8ef5ef11298050f0ad16b66718afd043abda",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/055-mistral-BEN-003-1723431918/exp-20260903T155244.573659Z-a3c0114c6a7c4b79a4e3c77c6fde2bed/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5533,
+          "canonical_lf_sha256": "7e9037b829d2347083e634311592958532474988bfbdd5bf2de907bd36982878",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5535,
+          "historical_crlf_sha256": "869abc800c7a3f5a8407d60f991d07cc6676adab4fd3d8ce13aab6f818cdd21f",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/056-mistral-BEN-003-1639806953/exp-20260903T155245.386355Z-540a77c1b444483bb1356ae51cfba94c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5586,
+          "canonical_lf_sha256": "93e3492d20bb411fbab5a1e325fbbcfcd9bfbc026b7fd38b9cf325564dea6d23",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5588,
+          "historical_crlf_sha256": "7a22087ac760d4d2fb3f0e0197d2ae434faff8722119c7268df93d40131c9a88",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/057-mistral-PI-015-583010984/exp-20260903T155246.692178Z-7f079959e6da40158e1e286b157310e5/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6960,
+          "canonical_lf_sha256": "912ed0d0bb4ca619d60336e0ecbe340cf18b8f11b000dd62391b5ae865f23121",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6962,
+          "historical_crlf_sha256": "d86adc83576e4d430d909c320bc3eebbc9a47404cfc48bd789dac5f11a598249",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/058-mistral-PI-015-1723431918/exp-20260903T155249.637389Z-6aea681aedbb4b01bed0c466b81ecf3f/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5588,
+          "canonical_lf_sha256": "189aba28afc1c59883bf3fe6ec25e76ed0a6d86c7c6704ee35ff00f337f4b88c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5590,
+          "historical_crlf_sha256": "0c55effc06c25dc7f15f4a861dcf134a20e414439bb7f74cc76210ccaa03e30c",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/059-mistral-PI-015-1639806953/exp-20260903T155252.182385Z-8e50850b15564a3f974cee450ae791a3/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7761,
+          "canonical_lf_sha256": "ad62c812b59b00928f834b4012f555ff38e3cf41b4a425c0f3d3b7b7e15ea031",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7763,
+          "historical_crlf_sha256": "70e636e0317585a053b9e9ffe4831c08c3773807d7d98e04fb0632aa719eeb83",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/060-mistral-PI-018-583010984/exp-20260903T155254.139913Z-8258fd066beb4acead14012ff44876e1/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7753,
+          "canonical_lf_sha256": "4336462c039fd53981d929642c58a06165b3348c617910aa16010476724a3bd6",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7755,
+          "historical_crlf_sha256": "c05074a717d4677f0170d431af004e0648b523f54525d67fd00158f3ac5259ff",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/061-mistral-PI-018-1723431918/exp-20260903T155257.982369Z-d74a7419f14d42fc86b5316f748809e7/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7753,
+          "canonical_lf_sha256": "cf2a86d482614914adfe33249a75c05ad3f250d26a3af2ec4e750a8c56f06c28",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7755,
+          "historical_crlf_sha256": "3834b5f5880b12826785931f5f575d57f7d8d9c8d5d2c7fc03f0305963f36008",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/062-mistral-PI-018-1639806953/exp-20260903T155301.332960Z-8480f752023a4bda970554c0efdf4b6f/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5599,
+          "canonical_lf_sha256": "164bd76ff97a1cf05c8a34e0162e67b99e80b456ca62419c6022fa9218b41d2a",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5601,
+          "historical_crlf_sha256": "87b7cafc39311295819e1659e33e9d53d03e40740e0992843f6ba30554ac96e9",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/063-mistral-PI-019-583010984/exp-20260903T155304.648454Z-7be894facacd42f78d83b9eb73752484/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5618,
+          "canonical_lf_sha256": "c3a72a601630f6b4855aa0122b5def29a6da6fb73dddc8c0fc3c72a7ae158d13",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5620,
+          "historical_crlf_sha256": "b6f44322cd78305ec01425bf1b5a53b6d4a2b7ba1e5e3752ed37aee47bc4bf60",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/064-mistral-PI-019-1723431918/exp-20260903T155306.715368Z-e2aee44d7a014b97be35179b3eea1fd6/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5633,
+          "canonical_lf_sha256": "74940457ae792714a06f664514b3481f9d16c6de4d5910ca2440ccb5c78675a3",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5635,
+          "historical_crlf_sha256": "014ed3835f34c02eb5959957c556ee6c85e24fa57a579e18b44d769343c76472",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/065-mistral-PI-019-1639806953/exp-20260903T155308.484870Z-468d23af346146f8a51612e1e92bec5c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5608,
+          "canonical_lf_sha256": "a6f2be39398b6f489c245a9cb7bdd663c230b4c8fe2cb48c07c76fb8321198fc",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5610,
+          "historical_crlf_sha256": "1b7a17a6beb0aa64dbfad642108a1f5c7d820f3c07351df79798dc9e10fba521",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/066-mistral-PI-020-583010984/exp-20260903T155310.228102Z-209206bd248140fb8bf1f6f4808a74b8/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8204,
+          "canonical_lf_sha256": "395767a8ac8a9905f7d73d2b4833b30e3410ffbff1cd8089d575f6e488ad7da4",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8206,
+          "historical_crlf_sha256": "014d499787431286ce3121ba3d77cdc7a956e9ff5f5d262bed8a793141330971",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/067-mistral-PI-020-1723431918/exp-20260903T155313.061353Z-843251be3b0d45a69eff1796e64e209f/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5614,
+          "canonical_lf_sha256": "d344c8248dce8ad5572d7b0cf4446c6e7f4628737b8eb5f1320639d48c77ee52",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5616,
+          "historical_crlf_sha256": "a7d7b60d2aadef6a064b305355c6263bd776e8aa01c72842e370dc7ca4ca07f9",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/068-mistral-PI-020-1639806953/exp-20260903T155317.052432Z-d9ea8a2c7c2c4247b14dc8897f92ea58/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7492,
+          "canonical_lf_sha256": "ae6addb2921f6358e3a17a91c0bb9fb39437a79f59662a283d2749477db6286e",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7494,
+          "historical_crlf_sha256": "d44c8229721e6ca79ef5b0274d94941605f3bcc154c0758bd7048b988729fc72",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/069-mistral-KP-004-583010984/exp-20260903T155319.473239Z-2694d68bbdeb4aa69d9e3888330aa3df/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7775,
+          "canonical_lf_sha256": "793edabd8b9d890c795deaf49b4912f6be581ec0da77949ecda561f46768fc0c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7777,
+          "historical_crlf_sha256": "a2c57b686addf14e9110a776c32347fe394fda0ee5e7d8e8602db85e09b504b4",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/070-mistral-KP-004-1723431918/exp-20260903T155323.119609Z-14b2c65d929842b285db89695cd8c1ab/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7517,
+          "canonical_lf_sha256": "43d3b98e708d86d08ed4da831a69f102b0273ee4e3726d35987c74db0605dfe5",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7519,
+          "historical_crlf_sha256": "8766efbc78f1602976d6b548f4e8db307b88a2cb9970dbb847be7027811a073f",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/071-mistral-KP-004-1639806953/exp-20260903T155326.876297Z-826e321309ec48c5b67e0c8040fd62de/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5613,
+          "canonical_lf_sha256": "18747ecaaab1de4b2f1e4e5ac09e582b613bbe6f82dc2333bab68a918a31117e",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5615,
+          "historical_crlf_sha256": "633ebc1ecf1dcf2da05783112a300ad52ca03d41f3bc3921ddc8abded442b097",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/072-mistral-UA-004-583010984/exp-20260903T155330.105039Z-8d8e71b079f143eb8bb6d9c92a4ae34b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5618,
+          "canonical_lf_sha256": "00df86966d3dda46b462d313fbcb507fadcc2d6b11e41be821170f4bd476605c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5620,
+          "historical_crlf_sha256": "f6bcc455156e2d940a36e254fb7d30423d7fc722be443e71de8aaa6b44edf52d",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/073-mistral-UA-004-1723431918/exp-20260903T155331.892175Z-91973346ea4f4c46895a74a72fae7190/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5612,
+          "canonical_lf_sha256": "a24a78b74a0949d7e26381348cad0b60004d733bed464c1f1c3641e56c75482c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5614,
+          "historical_crlf_sha256": "e03a7c0f9a24326dd4b2d7493f779b780c381b27c417775133c1eb3bde126535",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/074-mistral-UA-004-1639806953/exp-20260903T155333.191291Z-971038b770c34f2c84c657c750a906fe/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5659,
+          "canonical_lf_sha256": "c09db8070fe78943f88597c3612aacffedf520a19ea3578d6a7088c04c017335",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5661,
+          "historical_crlf_sha256": "ccb979a014cd49569a70b38357bce9c7d744257475cc167ce28fea6117efee8d",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/075-mistral-UA-005-583010984/exp-20260903T155334.493408Z-5418c30e8b0a45f58f36c4281d5dcb76/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5660,
+          "canonical_lf_sha256": "2c27c824493af61822eab7bb68f5597ec1c2239f85351d980997842945315aba",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5662,
+          "historical_crlf_sha256": "6b13a4b2748e640ef430f9d01a8005a966fa84c60fea12ec42371041af1f3568",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/076-mistral-UA-005-1723431918/exp-20260903T155336.175943Z-fd3bb6786c6f4221ae865cf013f11639/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5660,
+          "canonical_lf_sha256": "9153813bdf80c5bf31b94a91053bb6ecc046b4a88cb52facd8fd921627a83320",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5662,
+          "historical_crlf_sha256": "fbbce7617f02b47c0f4c21d1046e9e56230f20c6cb41a8c82399dbf3ba725fe1",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/077-mistral-UA-005-1639806953/exp-20260903T155337.632371Z-b606ee93408842239a1f8822cad00fab/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6989,
+          "canonical_lf_sha256": "3fc74c28f22cfabb58b2db6f5b54b2bff09c4177ba956231627969d3e8e4526e",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6991,
+          "historical_crlf_sha256": "9c36fff9863484b602087d56d4780eadef650921f257cd294902c1c9c3aec37f",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/078-mistral-PRIV-007-583010984/exp-20260903T155339.084175Z-64619400afb6472abd2a2132d89f7c61/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5600,
+          "canonical_lf_sha256": "64c5d4b632cbb7de65d0b87a3812214e3a4ef27efee94723ebdcd7066cdf5e2d",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5602,
+          "historical_crlf_sha256": "042988b7eaa0285ed38037a9785560017e1852291f7107f487689bcfcfb577e7",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/079-mistral-PRIV-007-1723431918/exp-20260903T155342.189950Z-e13c879e6bcd470996ce9bef8a1daa68/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 6990,
+          "canonical_lf_sha256": "ceac00891814a3226a8542fe31abdb7a8bc794671a09e485d97dd197be5f5896",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 6992,
+          "historical_crlf_sha256": "35d204d037f26ce0856bdb052064c6292ffde0c8d5e9f6b54c623fe9830622f3",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/080-mistral-PRIV-007-1639806953/exp-20260903T155344.357679Z-0c998c6430ae48acbabe5181d8ae6129/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7040,
+          "canonical_lf_sha256": "bb32f65242fef97691ba11951f4cd619cc59c284f2931d9c52ae2606bab7bd38",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7042,
+          "historical_crlf_sha256": "d72dda3806d49f5e4a2362f2b44b680376389fab32d5d85ec640a16a1a11ac00",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/081-mistral-PRIV-012-583010984/exp-20260903T155347.056364Z-ad10248f0fa54425863ab9eaede74860/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 8652,
+          "canonical_lf_sha256": "8a67d1c2b48a652c9269a0e5ab892d071ba4431fd1e6222ba0274cb28bdd5324",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 8654,
+          "historical_crlf_sha256": "b6143faaf425e00cbd7d64561dbc485be1da71b1cabb44b7ac8a0ae7c132e299",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/082-mistral-PRIV-012-1723431918/exp-20260903T155350.010143Z-f63bf8e0e5a54cae84c81461fca4cd4b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7047,
+          "canonical_lf_sha256": "276cf10e810d98a54431250edf27243627bcb73f9e4dce9ff2830ce247327bb5",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7049,
+          "historical_crlf_sha256": "94e0459c3246e8bea93f467d882d4ebd6c48b20a5ec3b3656e7b874863206c50",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/083-mistral-PRIV-012-1639806953/exp-20260903T155354.152873Z-b8a8dd31874e49b5af93ea3eb3248261/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7573,
+          "canonical_lf_sha256": "42cbc05ad7fa5f5a88b470d44b55b48a1b7f0f7bca8ffce5992b95c3ae6401f7",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7575,
+          "historical_crlf_sha256": "71abd3d335e207a4e9bd250e71d26276a8bd650f1f6ffb59d38375cf3ed38bcb",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/084-mistral-PRIV-016-583010984/exp-20260903T155356.753234Z-313a7d12dedd4434a4abd2013585629a/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7085,
+          "canonical_lf_sha256": "017c5a4c9dd2628ebe7b29a57063a8f0e4d607587bbe55497538dc2eb06ecbe3",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7087,
+          "historical_crlf_sha256": "8c52fd72b6fa143cb186474d6f68fd607aba981c0406129cae5b00fcea35286f",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/085-mistral-PRIV-016-1723431918/exp-20260903T155402.471582Z-e56751ef8b6741f1ad3207b45a6463d7/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7079,
+          "canonical_lf_sha256": "115defadcc11bbb84a30ded2a5bac4278d0d7ba91ae9ede8f1a1ca914103314c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7081,
+          "historical_crlf_sha256": "b771a13f32d771425c903e83ed74ce26e1510b5771109e5ee5dae2400936dff9",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/086-mistral-PRIV-016-1639806953/exp-20260903T155405.261867Z-a18267b909774b5ba9f8ff3da139e02c/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7062,
+          "canonical_lf_sha256": "28fd92b175e4652cce9e9ac5ebc8a3a6e8ce6a4fc56186fa1d62f4daa871f7b6",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7064,
+          "historical_crlf_sha256": "8f2726dd1a7a87b1d9e251c9fd13a12a64d972236564a604f335d91d919a35b2",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/087-mistral-PRIV-017-583010984/exp-20260903T155407.937617Z-b17e83a925224bb2878ed634752100b2/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7465,
+          "canonical_lf_sha256": "c494cb4255673c67fdd480bfef4bd04c2094c7627287d67a0efe9f3921ec9e20",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7467,
+          "historical_crlf_sha256": "619b0a510919e4205126dcea017ae1e7f864280edc729594f18b744e68b77cd3",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/088-mistral-PRIV-017-1723431918/exp-20260903T155411.108314Z-6c8d886cf7884cdf96823f9c99945843/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7127,
+          "canonical_lf_sha256": "12367fd90b14962ece4d0020d9e8f1d8b88428939a1c036462cce7065f5820cd",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7129,
+          "historical_crlf_sha256": "6ee3b1a98bf22c5ef8b903c26e673b404984f6524410555468b21a6e9a82eb42",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/089-mistral-PRIV-017-1639806953/exp-20260903T155414.890408Z-1f3db0188e4a4bcb9d950b2f1823e4b1/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5586,
+          "canonical_lf_sha256": "cee022d4a0600aaca62481c430248494c72ddaa59c3502ade53d527d758d877f",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5588,
+          "historical_crlf_sha256": "0172315f2f57894d11bebed18d5aaa282643cbe4d1ea83600fcda38dd334a73d",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/090-mistral-BUD-017-583010984/exp-20260903T155417.897672Z-38eed0702dcc4aa4b652a2b75afbf749/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5589,
+          "canonical_lf_sha256": "01c3e80212db93486a567b43cf9df0c8a31dc6ce31227b21772e1ae700441f2b",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5591,
+          "historical_crlf_sha256": "ae089df391d464e3a0352898b2cb2a10982fd7d2b5f3d6ce8e715c6f6da8ce32",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/091-mistral-BUD-017-1723431918/exp-20260903T155419.928080Z-637a4db804484fc7a53e19ee4cbec0a4/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5589,
+          "canonical_lf_sha256": "c746d8a7109aaef8896509ad1820eb2c38063992273ade762253ab858c38602c",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5591,
+          "historical_crlf_sha256": "7341b5d90dbb47427f484d8adaf73dc1d60d14564b28e6e39b9bc22862035e9d",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/092-mistral-BUD-017-1639806953/exp-20260903T155421.527948Z-295b5a2c51a34902b3af0b028dd2ae0f/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5613,
+          "canonical_lf_sha256": "2b94dd8508f3901feeb0e39aff0f3b0b048a147610075047362b62b9c53e5c47",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5615,
+          "historical_crlf_sha256": "a5c4e77f3f94c279bb5b3b5241bb19afb420ee90490e588e87011c7a88a6d2ba",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/093-mistral-BUD-018-583010984/exp-20260903T155423.201167Z-e847552a9d8a4afb8409fab00ffba7d3/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5618,
+          "canonical_lf_sha256": "4d42992e8e17d64629172c104682373540c9561b740ac6f8c972d507c31ef0cc",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5620,
+          "historical_crlf_sha256": "0610ce4c94b50e7dc00a1a97be359376a6d94e84f5c1a6a11f70ff2a3a18a06b",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/094-mistral-BUD-018-1723431918/exp-20260903T155425.160681Z-2f3e80a78c234a85a367efbcee5593f1/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5617,
+          "canonical_lf_sha256": "bd7c77b6f53ed63c45ba0455b6f24531f438c7a8c3c8f6812138566263a18db4",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5619,
+          "historical_crlf_sha256": "4070d344ef012d8834b372201eeb238c0209f1d0e1fa6e31917f6758f31ece7f",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/095-mistral-BUD-018-1639806953/exp-20260903T155426.791695Z-7d4736ad78b8446799a0d792172cfe43/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7374,
+          "canonical_lf_sha256": "22cfa5f47a103c01be86810cca1f686b6b9d052b606dd9f70d2f355fd36bc3c3",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7376,
+          "historical_crlf_sha256": "6c146129111ae97c4ab5f0e6d2e98c2caedc203411e0337144f3cf5870c4c144",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/096-mistral-BUD-016-583010984/exp-20260903T155428.373722Z-4a1058aa90f2461e9f1d8263c2f3b2a4/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7389,
+          "canonical_lf_sha256": "ae134b50de012f9a5223289bfdddddfe4c51084dc1dea2c8ba809dbb703b8418",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7391,
+          "historical_crlf_sha256": "d279e77a226bf912fa31361505db4a1cf32e8c3189eb2871b6b9ba169f4aeb86",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/097-mistral-BUD-016-1723431918/exp-20260903T155431.220879Z-1fd3fe401a8b4554bccdd16a5756d53b/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 7383,
+          "canonical_lf_sha256": "2d0e2f4c1dd01f21d0a3aa7369a41aab46213ed1c2567d689b83fe69c796df6b",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 7385,
+          "historical_crlf_sha256": "68f63cd1bd74d9bbcddf9336e499dc7ec7cec78288c2873dbbd8ce1c53a5cee5",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/098-mistral-BUD-016-1639806953/exp-20260903T155433.777528Z-36c34b0a225a41ea9b757b0ccc81cf82/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5940,
+          "canonical_lf_sha256": "1429b0f0e7614d928b9197c4d6e3540b96c321426e35aa5a7ae2ce4e5d8f1917",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5942,
+          "historical_crlf_sha256": "2482406f822286096eec9e608c883493d4f3a6c6ad3b5ef382f221a9d3562a68",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/099-mistral-FAULT-004-583010984/exp-20260903T155436.249648Z-7a569e10c04b467286055938822ddf16/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5945,
+          "canonical_lf_sha256": "6aa2ca183995c23d030b816211bb67f51c6280f9ec0364dcdddb000c0c419be9",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5947,
+          "historical_crlf_sha256": "a9acd94ec8c7f8d1a004b89ba47fe179bf277a083538ecff592e90b45e603718",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/100-mistral-FAULT-004-1723431918/exp-20260903T155438.093806Z-8479a9a90f4c4814ae60f5099d7a3f1e/successor-runs.csv"
+        },
+        {
+          "canonical_lf_bytes": 5947,
+          "canonical_lf_sha256": "24c48226631351c4acbff411419d500d9c2db8502d2de228f1cc72f6195bc827",
+          "cr_bytes_inserted": 2,
+          "historical_crlf_bytes": 5949,
+          "historical_crlf_sha256": "6445f9674f4efdc1c614b8a82162ef2197eb326ed623f6b31895e0509d9ef908",
+          "lf_terminators": 2,
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw/cells/101-mistral-FAULT-004-1639806953/exp-20260903T155439.705767Z-22815d2f1035417684a6b658f48c46dc/successor-runs.csv"
+        }
+      ],
+      "per_file_identity_digest": "9db01527622bd3390148ec8134241d5617883e1910e91ca12b453085d7babd9d"
+    },
+    "result_tree_byte_identical_between_bases_claimed": false,
+    "scientific_content_identical": true
+  },
+  "evidence_binding": {
+    "artifact_sha256": {
+      "successor-analysis.json": "96a89af5f71ad6d25dd52ac0f829570ce8dc47702ae8a603f1c82699b06d203c",
+      "successor-partial-manifest.json": "fd25897400caa721ca921b5033d25ae13a71388aff9f0884722ea21efcb43803",
+      "successor-run-manifest.json": "bf6f994538b85b0918980c5fddc8e49bfc58c7953a0bc1732a7c806bfc7f0837",
+      "successor-runs.jsonl": "1b97f5f9835a977f9e5076f2a73d7c3843281b29d9440326e2e66b6d4136103e"
+    },
+    "canonical_evidence_commit": "55ec4224ee615d94d39a3647d4a61ae115fa9640",
+    "canonical_evidence_commit_resolved_dynamically": true,
+    "canonical_main_at_fetch": "55ec4224ee615d94d39a3647d4a61ae115fa9640",
+    "pr_head_and_canonical_result_tree_equivalent": true,
+    "pr_head_evidence_commit": "7c2848ae28a0e43786915479d65ee60d6daa12d3",
+    "pr_head_is_canonical": false,
+    "raw_file_count": 408,
+    "raw_git_tree_sha": "cc843199c9b19d864f58d5d5ec8c380463c633c7",
+    "raw_namespace": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw",
+    "result_file_count": 412,
+    "result_git_tree_sha": "ea15f706415cd429779becbdd9c7dbc9f5695fd0",
+    "result_namespace": "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+    "result_tree_clean_against_commit": true
+  },
+  "experimental_results_changed": false,
+  "exposure_counts_changed": false,
+  "governing_policy": "docs/hash_basis_policy.md",
+  "historical_digests_overwritten": false,
+  "historical_records_modified": false,
+  "human_readable_record": "docs/post_phaseP_successor_qualification_hash_basis_amendment.md",
+  "machine_readable_record": "docs/post_phaseP_successor_qualification_hash_basis_amendment.json",
+  "materialization_bases": {
+    "canonical_lf_materialization": {
+      "eol_basis": "repository-enforced LF (.gitattributes: * text=auto eol=lf)",
+      "portable_and_clone_reproducible": true,
+      "raw_working_tree_digest": "f6a170a0ab271dbc2c4a50eb3130ce48aecb28eaf231bc885abe2c0684587cd7",
+      "reproduced_from_the_checkout": true,
+      "result_working_tree_digest": "956487194eb68baf1ec509068f5f3474611a61cf4224820dca0599091803bf14"
+    },
+    "historical_local_materialization": {
+      "bytes_written_to_disk": 0,
+      "eol_basis": "CRLF for the 102 per-cell successor-runs.csv files; every other evidence byte identical to the canonical materialization",
+      "overwritten_or_re_frozen": false,
+      "preserved_as_historical_observation": true,
+      "raw_working_tree_digest": "d5381b620cf20894cf1b2062027a919d5f887d4ef30477ee426b5ee99b498a61",
+      "reconstructed_from_canonical_evidence": true,
+      "reconstruction_performed_in_memory_only": true,
+      "result_working_tree_digest": "2059f30349a852f7c7d06add0d23f90b48527bbc0705dfaa3b6612b926976c62"
+    }
+  },
+  "policy_conformance": {
+    "amendment_v1_modified": false,
+    "blob_only_substitution_for_freeze_validation": false,
+    "canonical_tracked_text_representation": "LF",
+    "hash_basis_policy_modified": false,
+    "hash_time_eol_normalization": false,
+    "historical_digests_remain_truthful_observations": true,
+    "silent_re_freezing": false,
+    "supersession_recorded_additively_in_a_new_amendment": true,
+    "working_tree_hashing_is_the_attested_basis": true
+  },
+  "precedent": {
+    "amendment_id": "hash-basis-amendment-v1",
+    "followed_as_precedent": true,
+    "machine_record": "docs/hash_basis_amendment_v1.json",
+    "modified_by_this_amendment": false,
+    "record": "docs/hash_basis_amendment_v1.md"
+  },
+  "qualification_evidence_changed": false,
+  "record_kind": "successor_qualification_hash_basis_amendment",
+  "result_files_changed": 0,
+  "schema_version": 1,
+  "scientific_metrics_changed": false,
+  "scope": {
+    "does_not_supersede": [
+      "any scientific row",
+      "any metric",
+      "any classification",
+      "any exposure count",
+      "any task status",
+      "any verdict",
+      "any benchmark semantic",
+      "any frozen artifact digest recorded elsewhere"
+    ],
+    "result_namespace_files_modified": 0,
+    "supersedes": "the interpretation and hash basis of the two working-tree aggregate digests of the successor qualification evidence",
+    "tracked_files_modified": 0
+  },
+  "silent_re_freeze": false,
+  "statements_of_record": [
+    "The qualification evidence itself is unchanged; no byte beneath results/prospective-candidate-i5-m1-b76f40da2-qualification was modified by this amendment.",
+    "The committed Git tree identity of the evidence is unchanged: ea15f706415cd429779becbdd9c7dbc9f5695fd0 for the result subtree and cc843199c9b19d864f58d5d5ec8c380463c633c7 for the raw subtree.",
+    "The historical CRLF materialization really existed on one local machine, and its two aggregate digests (2059f30349a852f7c7d06add0d23f90b48527bbc0705dfaa3b6612b926976c62 and d5381b620cf20894cf1b2062027a919d5f887d4ef30477ee426b5ee99b498a61) are preserved unchanged as truthful historical observations.",
+    "The current canonical LF checkout is the portable, clone-reproducible basis, and reproduces 956487194eb68baf1ec509068f5f3474611a61cf4224820dca0599091803bf14 and f6a170a0ab271dbc2c4a50eb3130ce48aecb28eaf231bc885abe2c0684587cd7.",
+    "Only line-ending representation differs between the two materializations, over exactly 102 per-cell successor-runs.csv artifacts; no other byte differs.",
+    "No scientific row, metric, classification, exposure, verdict or benchmark semantic changes.",
+    "This amendment supersedes only the interpretation and basis of the two working-tree aggregate digests, and no scientific artifact."
+  ],
+  "verdict_changed": false
+}
