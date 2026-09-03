@@ -57,6 +57,9 @@ SUCCESSOR_CONFIG = PROJECT_ROOT / protocol.CANONICAL_EXPERIMENT_CONFIG_RELATIVE
 SUCCESSOR_MODELS = PROJECT_ROOT / protocol.CANONICAL_MODELS_RELATIVE
 RC4_MANIFEST = PROJECT_ROOT / protocol.CANONICAL_MANIFEST_RELATIVE
 EVIDENCE_ROOT = PROJECT_ROOT / driver.RUNTIME_EVIDENCE_NAMESPACE
+AUTHORIZATION_RECORD = (
+    PROJECT_ROOT / driver.EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE
+)
 
 #: The credential is checked BY NAME only.  This value is never sent anywhere,
 #: never printed and never written to an artifact; the offline seam constructs no
@@ -64,6 +67,20 @@ EVIDENCE_ROOT = PROJECT_ROOT / driver.RUNTIME_EVIDENCE_NAMESPACE
 OFFLINE_SEAM_ENV: Mapping[str, str] = {
     protocol.CREDENTIAL_ENV: "offline-seam-not-a-real-credential"
 }
+
+
+def authorization_copy(tmp_path: Path, mutate: Any) -> Path:
+    """Write a canonical temporary copy after applying one adversarial mutation."""
+
+    record = json.loads(AUTHORIZATION_RECORD.read_text(encoding="utf-8"))
+    mutate(record)
+    path = tmp_path / "execution-authorization.json"
+    path.write_text(
+        json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return path
 
 
 # ==========================================================================
@@ -638,11 +655,93 @@ def test_every_execution_authorization_constant_is_false() -> None:
     assert protocol.RANDOMIZATION_REALIZATION_AUTHORIZED is False
 
 
-def test_the_capability_cannot_be_minted() -> None:
-    """No capability, no provider, no probe, no inference, no namespace."""
+def test_the_canonical_later_authorization_validates() -> None:
+    authorization = driver.load_execution_authorization()
+    assert authorization.record["canonical_parent_commit"] == (
+        "a7d9410d4667059da2056994d4af2ff0b029884c"
+    )
+    assert authorization.record["candidate_identifier"] == (
+        "prospective-candidate-i5-m1-b76f40da2"
+    )
+    assert driver.execution_authorization_failures() == []
 
-    with pytest.raises(protocol.QualificationExecutionNotAuthorized):
-        driver.grant_execution_authorization()
+
+def test_missing_authorization_record_refuses(tmp_path: Path) -> None:
+    with pytest.raises(
+        driver.ExecutionAuthorizationInvalid,
+        match="EXECUTION_AUTHORIZATION_MISSING",
+    ):
+        driver.load_execution_authorization(tmp_path / "missing.json")
+
+
+@pytest.mark.parametrize("raw", [b"{", b"[]\n", b'{"unexpected":true}\n'])
+def test_malformed_authorization_refuses(tmp_path: Path, raw: bytes) -> None:
+    path = tmp_path / "malformed.json"
+    path.write_bytes(raw)
+    with pytest.raises(driver.ExecutionAuthorizationInvalid):
+        driver.load_execution_authorization(path)
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate", "expected_path"),
+    [
+        (
+            "parent",
+            lambda record: record.__setitem__("canonical_parent_commit", "0" * 40),
+            "$.canonical_parent_commit",
+        ),
+        (
+            "candidate",
+            lambda record: record.__setitem__("candidate_identifier", "wrong"),
+            "$.candidate_identifier",
+        ),
+        (
+            "freeze",
+            lambda record: record.__setitem__(
+                "candidate_freeze_record_digest", "0" * 64
+            ),
+            "$.candidate_freeze_record_digest",
+        ),
+        (
+            "frozen-input",
+            lambda record: record.__setitem__(
+                "frozen_execution_inputs_digest", "0" * 64
+            ),
+            "$.frozen_execution_inputs_digest",
+        ),
+        (
+            "driver",
+            lambda record: record.__setitem__("authorized_driver_sha256", "0" * 64),
+            "$.authorized_driver_sha256",
+        ),
+        (
+            "runtime-evidence",
+            lambda record: record.__setitem__(
+                "runtime_preflight_report_digest", "0" * 64
+            ),
+            "$.runtime_preflight_report_digest",
+        ),
+    ],
+)
+def test_wrong_authorization_binding_refuses(
+    tmp_path: Path, name: str, mutate: Any, expected_path: str
+) -> None:
+    path = authorization_copy(tmp_path, mutate)
+    with pytest.raises(
+        driver.ExecutionAuthorizationInvalid, match=expected_path.replace("$", r"\$")
+    ):
+        driver.load_execution_authorization(path)
+
+
+def test_later_record_supersedes_only_qualification_execution() -> None:
+    record = driver.load_execution_authorization().record
+    assert driver.check_base_protocol_historical_authorization() == []
+    assert all(value is False for value in record["base_protocol_historical_authorization"]["constants_that_must_stay_false"].values())
+    assert record["granted"]["qualification_execution"] is True
+    assert record["granted"]["model_inference"] is True
+    assert record["withheld"]["confirmatory_execution"] is False
+    assert record["withheld"]["confirmatory_randomization"] is False
+    assert record["withheld"]["stage_c_registration"] is False
 
 
 def test_the_capability_cannot_be_forged_by_passing_true() -> None:
@@ -664,27 +763,57 @@ def test_a_forged_capability_is_refused_at_every_real_primitive(
         driver.require_execution_authorization(supplied)
 
 
-def test_both_human_gates_open_still_refuses(
+def test_cli_flag_alone_refuses(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """THE CENTRAL CLAIM: the exercise gates do not substitute for authorization.
-
-    Both gates are opened -- the environment variable at exactly the required
-    value, and the flag on this process's command line -- and execution is still
-    refused, because the refusal is decided by the human record and the record
-    withholds it.  A green environment must never read as consent.
-    """
-
-    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
     monkeypatch.setattr(
         sys, "argv", ["run_successor_qualification.py", protocol.HUMAN_GATE_FLAG]
     )
-    assert driver.human_gate_refusal(execute_flag=True, env=os.environ) is None
-
-    with pytest.raises(protocol.QualificationExecutionNotAuthorized):
+    monkeypatch.delenv(protocol.HUMAN_GATE_ENV, raising=False)
+    with pytest.raises(driver.SuccessorExecutionRefused, match="GATE_CLOSED"):
         driver.grant_execution_authorization()
-    assert driver.main([protocol.HUMAN_GATE_FLAG]) == protocol.EXIT_GATE_CLOSED
-    assert not (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).exists()
+
+
+def test_environment_gate_alone_refuses(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+    monkeypatch.setattr(sys, "argv", ["run_successor_qualification.py"])
+    with pytest.raises(driver.SuccessorExecutionRefused, match="GATE_CLOSED"):
+        driver.grant_execution_authorization()
+
+
+def test_both_exercise_gates_without_the_canonical_record_refuse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+    monkeypatch.setattr(
+        driver,
+        "EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE",
+        "docs/does-not-exist-execution-authorization.json",
+    )
+    with no_network() as attempts:
+        assert driver.main([protocol.HUMAN_GATE_FLAG]) == protocol.EXIT_GATE_CLOSED
+    assert attempts == []
+
+
+def test_authorized_state_and_both_gates_reach_only_the_mocked_boundary(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+    reached: list[driver.SuccessorExecutionAuthorization] = []
+
+    def _mock_boundary(
+        *, authorization: driver.SuccessorExecutionAuthorization
+    ) -> int:
+        driver.require_execution_authorization(authorization)
+        reached.append(authorization)
+        return protocol.EXIT_OK
+
+    monkeypatch.setattr(driver, "execute_authorized_real_run", _mock_boundary)
+    with official_namespace(tmp_path / "uncreated-official-namespace"):
+        with no_network() as attempts:
+            assert driver.main([protocol.HUMAN_GATE_FLAG]) == protocol.EXIT_OK
+    assert len(reached) == 1
+    assert attempts == []
 
 
 def test_the_refusal_precedes_the_gates_being_read(
@@ -696,11 +825,16 @@ def test_the_refusal_precedes_the_gates_being_read(
     explosion is never reached, which is exactly what is asserted.
     """
 
-    def _explode() -> str | None:
+    def _explode(*args: Any, **kwargs: Any) -> str | None:
         raise AssertionError("a gate was read before the authorization was checked")
 
-    monkeypatch.setattr(driver, "_process_gate_refusal", _explode)
-    with pytest.raises(protocol.QualificationExecutionNotAuthorized):
+    monkeypatch.setattr(driver, "human_gate_refusal", _explode)
+    monkeypatch.setattr(
+        driver,
+        "EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE",
+        "docs/does-not-exist-execution-authorization.json",
+    )
+    with pytest.raises(driver.ExecutionAuthorizationInvalid):
         driver.grant_execution_authorization()
     assert driver.main([protocol.HUMAN_GATE_FLAG]) == protocol.EXIT_GATE_CLOSED
 
@@ -752,14 +886,16 @@ def test_no_credential_is_resolved_on_any_refused_path(
 
 
 def test_the_offline_preflight_reports_implemented_but_unreachable() -> None:
-    """The report says both halves of EXECUTABLE BUT LOCKED, machine-readably."""
+    """Authorization is valid, while contact and inference remain unperformed."""
 
     report = driver.offline_preflight_report()
     assert report["execution_path_implemented"] is True
-    assert report["execution_path_reachable"] is False
-    assert report["qualification_execution_authorized"] is False
-    assert report["provider_contact_authorized"] is False
-    assert report["model_inference_authorized"] is False
+    assert report["execution_authorization_failures"] == []
+    assert report["base_protocol_authorization_constants_changed"] is False
+    assert report["execution_path_reachable"] is True
+    assert report["qualification_execution_authorized"] is True
+    assert report["provider_contact_authorized"] is True
+    assert report["model_inference_authorized"] is True
     assert report["confirmatory_execution_authorized"] is False
     assert report["randomization_realization_authorized"] is False
     assert report["provider_contacted"] is False
@@ -1455,6 +1591,31 @@ def test_a_pre_existing_empty_namespace_still_refuses(tmp_path: Path) -> None:
     out.mkdir(parents=True)
     assert driver.check_output_namespace(out)
     assert "PROTOCOL_DEVIATION" in driver.check_output_namespace(out)[0]
+
+
+def test_namespace_creation_spends_the_record_for_a_second_capability(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The in-flight grant survives; the namespace permanently blocks a new one."""
+
+    out = tmp_path / "authorized-once"
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+    monkeypatch.setattr(
+        sys, "argv", ["run_successor_qualification.py", protocol.HUMAN_GATE_FLAG]
+    )
+    with official_namespace(out):
+        with no_network() as attempts:
+            first = driver.grant_execution_authorization()
+            out.mkdir(parents=True)
+            with pytest.raises(
+                driver.SuccessorExecutionRefused,
+                match="EXECUTION_AUTHORIZATION_SPENT",
+            ):
+                driver.grant_execution_authorization()
+            # Namespace creation spends the record against future invocations;
+            # it does not revoke the one already-running 102-cell capability.
+            driver.require_execution_authorization(first)
+    assert attempts == []
 
 
 def test_a_second_invocation_over_a_completed_run_refuses(tmp_path: Path) -> None:

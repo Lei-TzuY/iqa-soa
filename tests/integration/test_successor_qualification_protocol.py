@@ -230,15 +230,17 @@ def test_no_confirmatory_authorization_anywhere() -> None:
     assert protocol.protocol_summary()["reports_no_confirmatory_disposition"] is True
 
 
-def test_execution_is_refused_before_the_gates_are_consulted(
+def test_frozen_protocol_still_refuses_before_the_gates_are_consulted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Both gates open still yields a refusal, and yields it first."""
+    """The earlier protocol remains a denial; only the later driver record grants."""
 
     monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
     with pytest.raises(protocol.QualificationExecutionNotAuthorized):
         protocol.require_execution_authorization()
-    assert driver.main(["--execute-real-model"]) == protocol.EXIT_GATE_CLOSED
+    assert driver.load_execution_authorization().record["granted"][
+        "qualification_execution"
+    ] is True
 
 
 def test_driver_offline_preflight_reports_no_contact_and_no_rows() -> None:

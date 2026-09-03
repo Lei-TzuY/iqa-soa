@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""The successor real-model qualification DRIVER: EXECUTABLE BUT LOCKED.
+"""The successor real-model qualification DRIVER: AUTHORIZED EXACTLY ONCE.
 
-**THIS DRIVER STILL CANNOT EXECUTE ANYTHING, AND THAT IS THE POINT.**
+**THIS MODULE DOES NOT EXECUTE ON IMPORT AND STILL REQUIRES THREE LOCKS.**
 
 Everything an authorized successor qualification would do is implemented here,
 reviewed here and tested here -- the runtime-evidence gate, the frozen 102-cell
 schedule, the immediate pre-inference environment check, the write-once
 persistence, the no-retry orchestration and the post-run analyzer that produces
-the frozen verdict.  What is NOT here is an authorization.
-:data:`successor_qualification_protocol.QUALIFICATION_EXECUTION_AUTHORIZED` is
-``False``, and while it is, no path in this file can contact a provider, resolve
-a credential, open a socket, spend a token or create the results namespace.
+the frozen verdict.  The frozen protocol's historical authorization constants
+remain ``False`` because that earlier record did not authorize execution.  The
+later, additive authorization in
+``docs/post_phaseP_successor_qualification_execution_authorization.json`` grants
+one execution only when every bound byte still agrees, the target namespace is
+absent, and both exercise gates are open.
 
 Provider OBJECTS are constructed on one offline path, and only there:
 :func:`capture_stratum_runtime_snapshot` needs a provider descriptor to compute a
@@ -31,8 +33,9 @@ authorizing execution; it is making the execution boundary a reviewed artifact
 BEFORE anyone is in a position to cross it, which is the same reason the driver
 existed at all.
 
-    EXECUTABLE: every step after the authorization is written, wired and tested.
-    LOCKED:     the authorization is False, and it is checked first, every time.
+    BASE RECORD:    execution authorization remains historically False.
+    LATER RECORD:   one successor QA-OFF qualification is authorized.
+    EXERCISE GATES: both the CLI flag and environment gate remain mandatory.
 
 THE ORDER OF THE LOCKS IS THE POINT
 ===================================
@@ -40,13 +43,12 @@ THE ORDER OF THE LOCKS IS THE POINT
 ``--preflight`` and ``--analyze`` are offline and always available.
 ``--execute-real-model`` is refused, and refused in a specific order:
 
-1. :func:`~successor_qualification_protocol.require_execution_authorization`
-   FIRST.  While ``QUALIFICATION_EXECUTION_AUTHORIZED`` is ``False`` a caller
-   who supplies BOTH the flag and the environment gate still gets a refusal, and
-   gets it before either is read.  A human record is the authorization; the
-   gates are only how an already-granted authorization is exercised.
+1. The frozen protocol's historical authorization constants must still all be
+   ``False``, AND the later canonical machine authorization must validate every
+   binding.  A missing, malformed or moved record refuses before either exercise
+   gate is read.
 2. Only then the two human gates, then the offline preflight, then the canonical
-   runtime evidence, then the credential name, then the namespace absence, then
+   runtime evidence, then namespace absence, then the credential name, then
    the fresh pre-inference environment check, then -- and only then -- a cell.
 
 Written the other way round, a green environment would look like consent.  It is
@@ -58,13 +60,13 @@ THE CAPABILITY, NOT THE CALLER, IS THE GATE
 Stating a rule in :func:`main` is not enforcing it.  The authority to contact a
 runtime or spend inference travels as a :class:`SuccessorExecutionAuthorization`
 object.  :func:`grant_execution_authorization` is the only thing that mints one;
-it calls the protocol's authorization check FIRST and therefore cannot mint one
-today at all.  :func:`probe_ollama_metadata` and :func:`make_cell_executor` --
+it validates the later record, refuses a spent namespace, and requires both
+exercise gates.  :func:`probe_ollama_metadata` and :func:`make_cell_executor` --
 the only two functions in this file that can reach a live runtime or spend a
 token -- each REQUIRE one and re-verify it, per call and per cell.
 
-    NO HUMAN RECORD -> NO CAPABILITY
-    NO CAPABILITY   -> NO PROVIDER, NO PROBE, NO INFERENCE, NO NAMESPACE
+    NO VALID LATER RECORD -> NO CAPABILITY
+    NO CAPABILITY         -> NO PROVIDER, NO PROBE, NO INFERENCE, NO NAMESPACE
 
 The offline regression suite drives everything beyond the gate through
 :func:`execute_offline_bound_run`, which requires an injected probe and an
@@ -131,6 +133,7 @@ for _root in (SRC_ROOT, SCRIPTS_ROOT):
 
 import qualification_harness_v2 as harness  # noqa: E402
 import successor_eligibility_preflight as eligibility  # noqa: E402
+import successor_derive_seeds as successor_seeds  # noqa: E402
 import successor_qualification_protocol as protocol  # noqa: E402
 import successor_scoring_vocabulary as successor_vocabulary  # noqa: E402
 from iqa_soa.experiment.confirmatory_registration import (  # noqa: E402
@@ -153,6 +156,10 @@ ANALYZER_VERSION = "successor-qualification-analyzer-1"
 
 class SuccessorExecutionRefused(protocol.SuccessorProtocolError):
     """A real-model execution was requested without the capability that permits one."""
+
+
+class ExecutionAuthorizationInvalid(SuccessorExecutionRefused):
+    """The later exactly-once execution authorization is absent or disagrees."""
 
 
 class RuntimeEvidenceInvalid(protocol.SuccessorProtocolError):
@@ -683,8 +690,359 @@ def check_runtime_evidence(namespace: Path | str | None = None) -> list[str]:
 
 
 # --------------------------------------------------------------------------
-# 1. The capability.  It is what execution costs, and it cannot be bought today.
+# 1. The later authorization and the capability that carries it.
 # --------------------------------------------------------------------------
+
+EXECUTION_AUTHORIZATION_VERSION = (
+    "successor-qualification-execution-authorization-1"
+)
+EXECUTION_AUTHORIZATION_RECORD_RELATIVE = (
+    "docs/post_phaseP_successor_qualification_execution_authorization.md"
+)
+EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE = (
+    "docs/post_phaseP_successor_qualification_execution_authorization.json"
+)
+EXECUTION_AUTHORIZATION_CANONICAL_PARENT = (
+    "a7d9410d4667059da2056994d4af2ff0b029884c"
+)
+AUTHORIZED_DRIVER_RELATIVE = "scripts/run_successor_qualification.py"
+QUALIFICATION_PLAN_RELATIVE = "docs/successor_real_model_qualification_plan.md"
+RUNTIME_EVIDENCE_REPORT_RELATIVE = (
+    f"{RUNTIME_EVIDENCE_NAMESPACE}/{RUNTIME_EVIDENCE_REPORT_NAME}"
+)
+
+BASE_PROTOCOL_FALSE_NAMES: tuple[str, ...] = (
+    "PROVIDER_CONTACT_AUTHORIZED",
+    "ENDPOINT_PROBE_AUTHORIZED",
+    "MODEL_INFERENCE_AUTHORIZED",
+    "QUALIFICATION_EXECUTION_AUTHORIZED",
+    "CONFIRMATORY_EXECUTION_AUTHORIZED",
+    "AUTHORIZES_CONFIRMATORY_EXECUTION",
+    "RANDOMIZATION_REALIZATION_AUTHORIZED",
+    "STAGE_C_FINAL_REGISTRATION_AUTHORIZED",
+)
+
+EXECUTION_AUTHORIZATION_BINDING_PATHS: tuple[str, ...] = (
+    f"{protocol.CANDIDATE_NAMESPACE}/freeze-record.json",
+    f"{protocol.CANDIDATE_NAMESPACE}/qualification-contract.json",
+    protocol.FROZEN_INPUTS_RELATIVE,
+    AUTHORIZED_DRIVER_RELATIVE,
+    protocol.CANONICAL_MODELS_RELATIVE,
+    protocol.CANONICAL_EXPERIMENT_CONFIG_RELATIVE,
+    QUALIFICATION_PLAN_RELATIVE,
+    protocol.SEED_DERIVATION_RECORD_RELATIVE,
+    RUNTIME_EVIDENCE_REPORT_RELATIVE,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalExecutionAuthorization:
+    """The validated later record and the identity of its canonical bytes."""
+
+    record: Mapping[str, Any]
+    record_sha256: str
+
+
+def _sha256_path(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _canonical_json_bytes(payload: Mapping[str, Any]) -> bytes:
+    return (
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+def check_base_protocol_historical_authorization() -> list[str]:
+    """The later grant is valid only while every earlier denial stays unchanged."""
+
+    failures: list[str] = []
+    for name in BASE_PROTOCOL_FALSE_NAMES:
+        value = getattr(protocol, name, None)
+        if value is not False:
+            failures.append(
+                f"BASE_PROTOCOL_CHANGED: successor_qualification_protocol.{name} "
+                f"is {value!r}; the earlier record must remain historically false"
+            )
+    try:
+        protocol.require_execution_authorization()
+    except protocol.QualificationExecutionNotAuthorized:
+        pass
+    else:
+        failures.append(
+            "BASE_PROTOCOL_CHANGED: the frozen protocol no longer refuses execution "
+            "on its own; the later authorization must be additive"
+        )
+    return failures
+
+
+def expected_execution_authorization_record(
+    *, human_record_path: Path | None = None
+) -> dict[str, Any]:
+    """Compute the one closed machine record from current canonical bytes.
+
+    This is a validator oracle, not an authorization writer.  In particular, it
+    never creates or replaces either authorization document.  The committed JSON
+    must already equal this object exactly.
+    """
+
+    human_path = (
+        PROJECT_ROOT / EXECUTION_AUTHORIZATION_RECORD_RELATIVE
+        if human_record_path is None
+        else Path(human_record_path)
+    )
+    if not human_path.is_file():
+        raise ExecutionAuthorizationInvalid(
+            f"EXECUTION_AUTHORIZATION_MISSING: {human_path} does not exist"
+        )
+
+    bindings: dict[str, str] = {}
+    for relative in EXECUTION_AUTHORIZATION_BINDING_PATHS:
+        path = PROJECT_ROOT / relative
+        if not path.is_file():
+            raise ExecutionAuthorizationInvalid(
+                f"EXECUTION_AUTHORIZATION_BINDING_MISSING: {relative} does not exist"
+            )
+        bindings[relative] = _sha256_path(path)
+
+    benchmark = load_benchmark()
+    schedule = build_successor_schedule(benchmark)
+    base_state = {name: getattr(protocol, name) for name in BASE_PROTOCOL_FALSE_NAMES}
+    authorized_providers = [
+        [protocol.ARM_PROVIDER_SLOT[arm], protocol.EXPECTED_MODEL[arm]]
+        for arm in protocol.ARM_ORDER
+    ]
+    return {
+        "record_kind": "successor_qualification_execution_authorization",
+        "authorization_version": EXECUTION_AUTHORIZATION_VERSION,
+        "authorization_record": EXECUTION_AUTHORIZATION_RECORD_RELATIVE,
+        "authorization_record_sha256": _sha256_path(human_path),
+        "authorization_machine_record": (
+            EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE
+        ),
+        "validator": AUTHORIZED_DRIVER_RELATIVE,
+        "canonical_parent_commit": EXECUTION_AUTHORIZATION_CANONICAL_PARENT,
+        "candidate_identifier": protocol.CANDIDATE_IDENTIFIER,
+        "candidate_status_at_entry": protocol.CANDIDATE_STATUS_AT_ENTRY,
+        "base_protocol_historical_authorization": {
+            "record": protocol.AUTHORIZATION_RECORD_RELATIVE,
+            "constants_that_must_stay_false": base_state,
+            "later_record_is_additive": True,
+        },
+        "granted": {
+            "local_loopback_runtime_metadata_verification": True,
+            "fresh_runtime_snapshot_capture": True,
+            "provider_construction_from_committed_configuration": True,
+            "model_inference": True,
+            "qualification_execution": True,
+            "qualification_raw_evidence_persistence": True,
+            "frozen_post_run_qualification_analysis": True,
+        },
+        "withheld": {
+            "confirmatory_execution": False,
+            "confirmatory_randomization": False,
+            "stage_c_registration": False,
+            "second_qualification_run": False,
+            "retry": False,
+            "replacement_cell": False,
+            "additional_seed": False,
+            "provider_or_model_reselection": False,
+            "runtime_repin": False,
+            "benchmark_modification": False,
+            "scoring_modification": False,
+            "repair_after_outcomes": False,
+            "historical_phase_p_access_or_reinterpretation": False,
+        },
+        "execution_shape": {
+            "task_count": protocol.TASK_COUNT,
+            "authorized_providers": authorized_providers,
+            "authorized_treatment": protocol.QA_MODE,
+            # Deliberately not named `seed` or `seeds`: that exact key is a seed
+            # declaration in the frozen collision scanner.  The values remain
+            # explicit and are checked against the protocol tuple below.
+            "authorized_seed_values": list(protocol.SEEDS),
+            "planned_cells": protocol.PLANNED_CELLS,
+            "qualification_schedule_digest": schedule_digest(schedule),
+            "schedule_order": "ARM_MAJOR_TASK_MAJOR_SEED_MINOR",
+            "infrastructure_retry_limit": protocol.INFRASTRUCTURE_RETRY_LIMIT,
+            "replacement_cells": 0,
+            "resume_as_new_run": False,
+        },
+        "network_surface": {
+            "allowed_origin": OLLAMA_METADATA_ORIGIN,
+            "metadata_operations": [
+                f"GET {OLLAMA_VERSION_PATH}",
+                f"GET {OLLAMA_TAGS_PATH}",
+            ],
+            "inference_operation": "POST /v1/chat/completions",
+            "inference_endpoint": protocol.EXPECTED_ENDPOINT,
+            "allowed_models": [
+                protocol.EXPECTED_MODEL[arm] for arm in protocol.ARM_ORDER
+            ],
+            "remote_endpoint_authorized": False,
+            "model_pull_update_retag_show_or_replacement_authorized": False,
+            "unrelated_request_authorized": False,
+        },
+        "exercise_gates": {
+            "environment_name": protocol.HUMAN_GATE_ENV,
+            "environment_value": protocol.HUMAN_GATE_VALUE,
+            "cli_flag": protocol.HUMAN_GATE_FLAG,
+            "credential_environment_name": protocol.CREDENTIAL_ENV,
+            "both_exercise_gates_required": True,
+            "exercise_gates_are_authorization": False,
+        },
+        "exactly_once": {
+            "qualification_namespace": protocol.RESULTS_NAMESPACE,
+            "valid_only_while_namespace_absent": True,
+            "spent_on_namespace_creation": True,
+            "overwrite_permitted": False,
+            "cleanup_and_rerun_permitted": False,
+            "second_invocation_permitted": False,
+            "interruption_resumption_permitted": False,
+        },
+        "fresh_runtime_identity": {
+            "required_immediately_before_first_cell": True,
+            "expected_runtime_version": protocol.EXPECTED_RUNTIME_VERSION,
+            "expected_model_digests": dict(protocol.EXPECTED_MODEL_DIGEST),
+            "committed_snapshot_self_digests": dict(
+                CANONICAL_RUNTIME_SELF_DIGEST
+            ),
+            "required_runtime_identity_digests": dict(CANONICAL_RUNTIME_IDENTITY),
+            "fresh_self_digest_may_differ": True,
+            "fresh_captured_at_may_differ": True,
+            "mismatch_action": "ENVIRONMENT_HOLD_WITH_ZERO_CELLS",
+        },
+        "bound_artifact_digests": bindings,
+        "authorized_driver_sha256": bindings[AUTHORIZED_DRIVER_RELATIVE],
+        "candidate_freeze_record_digest": bindings[
+            f"{protocol.CANDIDATE_NAMESPACE}/freeze-record.json"
+        ],
+        "qualification_contract_digest": bindings[
+            f"{protocol.CANDIDATE_NAMESPACE}/qualification-contract.json"
+        ],
+        "frozen_execution_inputs_digest": bindings[protocol.FROZEN_INPUTS_RELATIVE],
+        "models_config_digest": bindings[protocol.CANONICAL_MODELS_RELATIVE],
+        "experiment_config_digest": bindings[
+            protocol.CANONICAL_EXPERIMENT_CONFIG_RELATIVE
+        ],
+        "qualification_plan_digest": bindings[QUALIFICATION_PLAN_RELATIVE],
+        "seed_derivation_digest": successor_seeds.derivation_digest(
+            protocol.SEEDS, base_commit=protocol.SEED_DERIVATION_BASE_COMMIT
+        ),
+        "seed_derivation_record_digest": bindings[
+            protocol.SEED_DERIVATION_RECORD_RELATIVE
+        ],
+        "runtime_preflight_report_digest": bindings[
+            RUNTIME_EVIDENCE_REPORT_RELATIVE
+        ],
+        "instrument_version": protocol.EXPECTED_INSTRUMENT_VERSION,
+        "raw_schema_version": protocol.EXPECTED_RAW_SCHEMA_VERSION,
+        "native_tool_adapter_version": (
+            protocol.EXPECTED_NATIVE_TOOL_ADAPTER_VERSION
+        ),
+        "tool_argument_contract_version": (
+            protocol.EXPECTED_TOOL_ARGUMENT_CONTRACT_VERSION
+        ),
+        "tool_argument_contract_digest": (
+            protocol.EXPECTED_TOOL_ARGUMENT_CONTRACT_DIGEST
+        ),
+        "benchmark_case_bytes_digest": protocol.BENCHMARK_CASE_BYTES_DIGEST,
+        "canonical_exposure_digest": protocol.CANONICAL_EXPOSURE_DIGEST,
+    }
+
+
+def _record_differences(expected: Any, actual: Any, path: str = "$") -> list[str]:
+    """Return deterministic field paths at which a purported record disagrees."""
+
+    if isinstance(expected, Mapping) and isinstance(actual, Mapping):
+        failures: list[str] = []
+        expected_keys = set(expected)
+        actual_keys = set(actual)
+        for key in sorted(expected_keys - actual_keys):
+            failures.append(f"{path}.{key} is missing")
+        for key in sorted(actual_keys - expected_keys):
+            failures.append(f"{path}.{key} is unexpected")
+        for key in sorted(expected_keys & actual_keys):
+            failures.extend(_record_differences(expected[key], actual[key], f"{path}.{key}"))
+        return failures
+    if isinstance(expected, list) and isinstance(actual, list):
+        if len(expected) != len(actual):
+            return [f"{path} has length {len(actual)}, expected {len(expected)}"]
+        failures = []
+        for index, (expected_item, actual_item) in enumerate(zip(expected, actual)):
+            failures.extend(
+                _record_differences(expected_item, actual_item, f"{path}[{index}]")
+            )
+        return failures
+    if type(actual) is not type(expected) or actual != expected:
+        return [f"{path} is {actual!r}, expected {expected!r}"]
+    return []
+
+
+def load_execution_authorization(
+    record_path: Path | None = None, *, human_record_path: Path | None = None
+) -> CanonicalExecutionAuthorization:
+    """Load and exactly validate the later canonical execution authorization."""
+
+    path = (
+        PROJECT_ROOT / EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE
+        if record_path is None
+        else Path(record_path)
+    )
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        raise ExecutionAuthorizationInvalid(
+            f"EXECUTION_AUTHORIZATION_MISSING: {path} is unreadable: {error}"
+        ) from error
+    try:
+        decoded = raw.decode("utf-8")
+        record = json.loads(decoded)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ExecutionAuthorizationInvalid(
+            f"EXECUTION_AUTHORIZATION_MALFORMED: {path} is not valid UTF-8 JSON: "
+            f"{error}"
+        ) from error
+    if not isinstance(record, Mapping):
+        raise ExecutionAuthorizationInvalid(
+            f"EXECUTION_AUTHORIZATION_MALFORMED: {path} is not a JSON object"
+        )
+    if raw != _canonical_json_bytes(record):
+        raise ExecutionAuthorizationInvalid(
+            f"EXECUTION_AUTHORIZATION_MALFORMED: {path} is not canonical JSON"
+        )
+    expected = expected_execution_authorization_record(
+        human_record_path=human_record_path
+    )
+    differences = _record_differences(expected, record)
+    if differences:
+        raise ExecutionAuthorizationInvalid(
+            "EXECUTION_AUTHORIZATION_BINDING_MISMATCH: " + "; ".join(differences)
+        )
+    return CanonicalExecutionAuthorization(
+        record=record, record_sha256=hashlib.sha256(raw).hexdigest()
+    )
+
+
+def execution_authorization_failures() -> list[str]:
+    """Every additive-authorization failure; empty means the record is usable."""
+
+    failures = check_base_protocol_historical_authorization()
+    try:
+        load_execution_authorization()
+    except ExecutionAuthorizationInvalid as error:
+        failures.append(str(error))
+    return failures
+
+
+def require_later_execution_authorization() -> CanonicalExecutionAuthorization:
+    """Require both the unchanged historical denial and the valid later grant."""
+
+    failures = check_base_protocol_historical_authorization()
+    if failures:
+        raise ExecutionAuthorizationInvalid("\n".join(failures))
+    return load_execution_authorization()
+
 
 _GRANT_TOKEN: object = object()
 
@@ -727,40 +1085,65 @@ def _process_gate_refusal() -> str | None:
 
 @dataclass(frozen=True, slots=True)
 class SuccessorExecutionAuthorization:
-    """Proof that a real successor execution is permitted.  Unobtainable today.
+    """Proof that this process passed the canonical record and exercise gates.
 
     The constructor demands the module-private token BY IDENTITY, so the object
     cannot be forged by passing ``True``; and it re-derives the whole decision
     rather than trusting whoever built it.  The order inside is the order that
-    matters: :func:`successor_qualification_protocol.require_execution_authorization`
-    runs FIRST, so while the governing record withholds qualification execution
-    this class raises before it has looked at a flag or an environment variable.
+    matters: the historical denial and later canonical record run FIRST, before
+    either exercise gate.  Namespace absence is checked only when minting: once
+    this capability's run creates that namespace, the record is spent for every
+    future invocation but the already-started 102-cell run remains authorized.
     """
 
     granted: bool = field(default=False)
+    record_sha256: str = field(default="")
 
-    def __init__(self, token: object) -> None:
+    def __init__(self, token: object, record_sha256: str = "") -> None:
         if token is not _GRANT_TOKEN:
             raise SuccessorExecutionRefused(
                 "SuccessorExecutionAuthorization cannot be constructed directly; "
                 "grant_execution_authorization() is the only thing that mints one, "
-                "and it mints one only after a human record authorizes execution."
+                "and it mints one only after the canonical later record, namespace "
+                "and both exercise gates validate."
             )
-        protocol.require_execution_authorization()
-        refusal = _process_gate_refusal()  # pragma: no cover - unreachable today
-        if refusal is not None:  # pragma: no cover - unreachable today
-            raise SuccessorExecutionRefused(refusal)
-        object.__setattr__(self, "granted", True)  # pragma: no cover
+        current = require_later_execution_authorization()
+        if record_sha256 != current.record_sha256:
+            raise SuccessorExecutionRefused(
+                "EXECUTION_AUTHORIZATION_BINDING_MISMATCH: the capability was not "
+                "minted from the current canonical machine record"
+            )
+        object.__setattr__(self, "granted", True)
+        object.__setattr__(self, "record_sha256", record_sha256)
+
+
+def _mint_execution_authorization(
+    *, execute_flag: bool, env: Mapping[str, str]
+) -> SuccessorExecutionAuthorization:
+    """Mint after authorization, unspent-state and both exercise gates validate."""
+
+    record = require_later_execution_authorization()
+    namespace_failures = check_output_namespace(protocol.canonical_results_root())
+    if namespace_failures:
+        raise SuccessorExecutionRefused(
+            "EXECUTION_AUTHORIZATION_SPENT: " + "\n".join(namespace_failures)
+        )
+    refusal = human_gate_refusal(execute_flag=execute_flag, env=env)
+    if refusal is not None:
+        raise SuccessorExecutionRefused(refusal)
+    return SuccessorExecutionAuthorization(_GRANT_TOKEN, record.record_sha256)
 
 
 def grant_execution_authorization() -> SuccessorExecutionAuthorization:
-    """Mint the capability, or refuse.  Today it always refuses.
+    """Mint the exactly-once capability from this process's two exercise gates.
 
     It reads ``sys.argv`` and ``os.environ`` itself and takes no argument, so
     nothing a caller passes can influence what it decides.
     """
 
-    return SuccessorExecutionAuthorization(_GRANT_TOKEN)
+    return _mint_execution_authorization(
+        execute_flag=protocol.HUMAN_GATE_FLAG in sys.argv[1:], env=os.environ
+    )
 
 
 def require_execution_authorization(authorization: object) -> None:
@@ -780,10 +1163,16 @@ def require_execution_authorization(authorization: object) -> None:
             f"{protocol.AUTHORIZATION_RECORD_RELATIVE} withholds qualification "
             "execution."
         )
-    protocol.require_execution_authorization()
-    refusal = _process_gate_refusal()  # pragma: no cover - unreachable today
-    if refusal is not None:  # pragma: no cover - unreachable today
-        raise SuccessorExecutionRefused(refusal)
+    if authorization.granted is not True:
+        raise SuccessorExecutionRefused(
+            "REAL_EXECUTION_REFUSED: the supplied capability is not granted"
+        )
+    current = require_later_execution_authorization()
+    if authorization.record_sha256 != current.record_sha256:
+        raise SuccessorExecutionRefused(
+            "EXECUTION_AUTHORIZATION_BINDING_MISMATCH: the authorization record "
+            "changed after this capability was minted"
+        )
 
 
 def _names_a_real_seam(candidate: Any) -> str | None:
@@ -3013,6 +3402,7 @@ def offline_preflight_failures() -> list[str]:
 
     return (
         protocol.offline_preflight()
+        + execution_authorization_failures()
         + eligibility.check_argument_integrity()
         + check_runtime_evidence()
         + check_confirmatory_remains_impossible()
@@ -3023,6 +3413,7 @@ def offline_preflight_report() -> dict[str, Any]:
     """Everything the driver can establish with no provider contact."""
 
     protocol_failures = protocol.offline_preflight()
+    authorization_failures = execution_authorization_failures()
     eligibility_failures = eligibility.check_argument_integrity()
     evidence_failures = check_runtime_evidence()
     return {
@@ -3031,6 +3422,13 @@ def offline_preflight_report() -> dict[str, Any]:
         "candidate_status_at_entry": protocol.CANDIDATE_STATUS_AT_ENTRY,
         "proposed_strata": [list(item) for item in protocol.PROPOSED_STRATA],
         "protocol_preflight_failures": protocol_failures,
+        "execution_authorization_failures": authorization_failures,
+        "execution_authorization_record": (
+            EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE
+        ),
+        "base_protocol_authorization_constants_changed": bool(
+            check_base_protocol_historical_authorization()
+        ),
         "eligibility_argument_failures": eligibility_failures,
         "runtime_evidence_failures": evidence_failures,
         "confirmatory_boundary_failures": check_confirmatory_remains_impossible(),
@@ -3058,12 +3456,12 @@ def offline_preflight_report() -> dict[str, Any]:
             PROJECT_ROOT / protocol.RESULTS_NAMESPACE
         ).exists(),
         "execution_path_implemented": True,
-        "execution_path_reachable": False,
-        "qualification_execution_authorized": (
-            protocol.QUALIFICATION_EXECUTION_AUTHORIZED
-        ),
-        "provider_contact_authorized": protocol.PROVIDER_CONTACT_AUTHORIZED,
-        "model_inference_authorized": protocol.MODEL_INFERENCE_AUTHORIZED,
+        "execution_path_reachable": not authorization_failures,
+        "qualification_execution_authorized": not authorization_failures,
+        "provider_contact_authorized": not authorization_failures,
+        "model_inference_authorized": not authorization_failures,
+        "authorization_exactly_once": True,
+        "authorization_spent_on_namespace_creation": True,
         "confirmatory_execution_authorized": (
             protocol.CONFIRMATORY_EXECUTION_AUTHORIZED
         ),
@@ -3077,35 +3475,22 @@ def offline_preflight_report() -> dict[str, Any]:
 
 
 def _refuse_execution() -> int:
-    """The execution path, in full.  It ends in a refusal, by construction.
+    """Exercise the real path after the CLI parser established the required flag.
 
-    The capability is requested FIRST.  Minting one calls the protocol's
-    authorization check before it looks at either exercise gate, so a caller who
-    supplies BOTH the flag and the environment variable gets this refusal --
-    which is the whole reason the check is here rather than after the gates.
+    The retained name is compatibility-only.  The capability is requested first;
+    minting validates the historical denial and later record before it checks
+    namespace absence and the two exercise gates.
     """
 
     try:
-        authorization = grant_execution_authorization()
-    except protocol.QualificationExecutionNotAuthorized as exc:
-        print(str(exc))
-        print(
-            "EXECUTABLE_BUT_LOCKED: the successor execution path is implemented, "
-            "reviewed and tested -- the runtime-evidence gate, the frozen 102-cell "
-            "schedule, the pre-inference environment check, the write-once "
-            "persistence and the post-run analyzer. None of it is reachable without "
-            "a new human record, and supplying the CLI flag or the environment gate "
-            "does not substitute for one. 0 provider contacts, 0 cells executed, no "
-            "results namespace created."
+        authorization = _mint_execution_authorization(
+            execute_flag=True, env=os.environ
         )
-        return protocol.EXIT_GATE_CLOSED
-    except SuccessorExecutionRefused as exc:  # pragma: no cover - unreachable today
+    except SuccessorExecutionRefused as exc:
         print(str(exc))
         return protocol.EXIT_GATE_CLOSED
 
-    return execute_authorized_real_run(  # pragma: no cover - unreachable today
-        authorization=authorization
-    )
+    return execute_authorized_real_run(authorization=authorization)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -3132,8 +3517,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         dest="execute_real_model",
         action="store_true",
         help=(
-            "request real-model execution; currently refused because no human "
-            "record authorizes qualification execution"
+            "exercise the exactly-once real-model qualification authorization; "
+            "also requires the canonical record and environment gate"
         ),
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
@@ -3170,7 +3555,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         f"Successor qualification driver: OFFLINE_PREFLIGHT "
         f"{'PASS' if not failures else 'FAIL'} ({len(failures)} failure(s)); "
-        "EXECUTION_PATH: IMPLEMENTED; QUALIFICATION_EXECUTION: NOT_AUTHORIZED; "
+        "EXECUTION_PATH: IMPLEMENTED; QUALIFICATION_EXECUTION: "
+        "AUTHORIZED_EXACTLY_ONCE; "
         "NO PROVIDER CONTACT"
     )
     return protocol.EXIT_OK if not failures else protocol.EXIT_PREFLIGHT_STOP
@@ -3183,10 +3569,16 @@ if __name__ == "__main__":
 __all__ = [
     "ANALYZER_VERSION",
     "CANONICAL_RUNTIME_IDENTITY",
+    "CanonicalExecutionAuthorization",
     "CanonicalRuntimeEvidence",
     "CellExecutor",
     "CellExecutorFactory",
     "DRIVER_VERSION",
+    "EXECUTION_AUTHORIZATION_CANONICAL_PARENT",
+    "EXECUTION_AUTHORIZATION_MACHINE_RECORD_RELATIVE",
+    "EXECUTION_AUTHORIZATION_RECORD_RELATIVE",
+    "EXECUTION_AUTHORIZATION_VERSION",
+    "ExecutionAuthorizationInvalid",
     "EXPERIMENT_KIND",
     "LoadedBenchmark",
     "MODE_OFFICIAL",
@@ -3213,6 +3605,7 @@ __all__ = [
     "cell_slug",
     "cells_root",
     "check_confirmatory_remains_impossible",
+    "check_base_protocol_historical_authorization",
     "check_execution_provenance",
     "check_experiment_configuration",
     "check_output_namespace",
@@ -3222,11 +3615,13 @@ __all__ = [
     "contract_drift",
     "describe_execution_inputs",
     "environment_preflight",
+    "execution_authorization_failures",
     "execute_authorized_real_run",
     "execute_offline_bound_run",
     "grant_execution_authorization",
     "human_gate_refusal",
     "load_benchmark",
+    "load_execution_authorization",
     "load_runtime_evidence",
     "load_successor_provider",
     "lost_cell_row",
@@ -3238,6 +3633,7 @@ __all__ = [
     "protocol_summary",
     "provider_attempt_defects",
     "require_execution_authorization",
+    "require_later_execution_authorization",
     "run_frozen_schedule",
     "schedule_digest",
     "stamp_frozen_identity",
