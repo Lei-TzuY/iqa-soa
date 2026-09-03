@@ -63,7 +63,7 @@ neither successor-only outcome, so the meaning is inexpressible there.
 | Binding | Value |
 |---|---|
 | Candidate | `prospective-candidate-i5-m1-b76f40da2` |
-| Freeze record digest | `d9a81b49a83fe58662396398a3d5fd08668dc627362806999a7791990c43bf46` |
+| Freeze record digest | `c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc` |
 | Qualification contract digest | `46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6` |
 | Benchmark version | `pilot-v7-rc4` |
 | Benchmark case-bytes digest | `76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea` |

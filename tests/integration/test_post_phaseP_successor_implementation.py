@@ -35,6 +35,7 @@ for _root in (PROJECT_ROOT / "src", PROJECT_ROOT / "scripts"):
     if str(_root) not in sys.path:  # pragma: no cover - import shim
         sys.path.insert(0, str(_root))
 
+import instrument_revision  # noqa: E402
 import successor_offline_acceptance_evidence as evidence  # noqa: E402
 import successor_scoring_vocabulary as sv  # noqa: E402
 import successor_sink_applicability as sa  # noqa: E402
@@ -406,9 +407,37 @@ def test_the_c3_instrument_boundary_is_asserted_and_unchanged() -> None:
     assert current["tool_argument_contract_version"] == (
         scope.EXPECTED_TOOL_ARGUMENT_CONTRACT_VERSION
     )
-    # The strongest available proof that C3 did not move: the tree it lives in
-    # still hashes to the value the merged C3 revision record pinned.
-    assert rc4_validator.tree_digest("src/iqa_soa") == current["src_iqa_soa_tree"]
+    # C3 did not move.  The C3 record is now a SUPERSEDED link -- the approved
+    # chain gained a benchmark-identity link after it -- so its pin is proved
+    # where it is actually true, at the commit its successor started from, not
+    # against a tree a later APPROVED revision has legitimately moved past.
+    successor = json.loads(
+        (
+            PROJECT_ROOT
+            / "docs"
+            / "post_phaseP_runtime_snapshot_benchmark_identity_instrument_revision.json"
+        ).read_text(encoding="utf-8")
+    )
+    successor_parent = successor["parent_commit"]
+    assert instrument_revision.tree_digest_at_commit(
+        successor_parent, "src/iqa_soa"
+    ) == current["src_iqa_soa_tree"]
+    # Custody carries forward: the successor binds exactly that digest as its
+    # parent, and the LIVE tree is the approved head of the chain.
+    assert successor["previous_instrument"]["src_iqa_soa_tree"] == (
+        current["src_iqa_soa_tree"]
+    )
+    assert rc4_validator.tree_digest("src/iqa_soa") == (
+        successor["current_instrument"]["src_iqa_soa_tree"]
+    )
+    # And every C3 boundary constant is held unchanged across that new link.
+    for key in (
+        "instrument_version",
+        "raw_schema_version",
+        "native_tool_adapter_version",
+        "tool_argument_contract_version",
+    ):
+        assert successor["current_instrument"][key] == current[key], key
 
 
 def test_no_canonical_exposure_definition_moved(cases: list[Any]) -> None:

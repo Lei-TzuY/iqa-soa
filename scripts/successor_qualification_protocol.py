@@ -160,7 +160,7 @@ QUALIFICATION_CONTRACT_RELATIVE = f"{CANDIDATE_NAMESPACE}/qualification-contract
 #: artifacts, as recorded by the freeze itself.  Read as pins, recomputed by
 #: :func:`check_candidate_freeze`, never rewritten here.
 FREEZE_RECORD_DIGEST = (
-    "d9a81b49a83fe58662396398a3d5fd08668dc627362806999a7791990c43bf46"
+    "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc"
 )
 QUALIFICATION_CONTRACT_DIGEST = (
     "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6"

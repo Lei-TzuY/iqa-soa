@@ -1673,11 +1673,12 @@ def test_the_instrument_is_the_head_of_an_approved_revision_chain() -> None:
 
     Phase O is no longer the head: the prospective post-Phase-P confirmatory
     implementation legitimately changed ``src/iqa_soa`` and appended a third
-    approved link, and the accepted C3 provider-observability repair appended a
-    fourth. That is the chain working as designed, so this test requires the whole
-    chain and every hand-off in it rather than the two-link prefix it required
-    while Phase O was current. Phase O's own record is untouched and still
-    describes the tree it actually approved.
+    approved link, the accepted C3 provider-observability repair appended a
+    fourth, and the RuntimeSnapshotV1 benchmark-identity capture correction
+    appended a fifth. That is the chain working as designed, so this test requires
+    the whole chain and every hand-off in it rather than the two-link prefix it
+    required while Phase O was current. Phase O's own record is untouched and
+    still describes the tree it actually approved.
     """
 
     assert instrument_revision.check_instrument_provenance() == []
@@ -1687,6 +1688,7 @@ def test_the_instrument_is_the_head_of_an_approved_revision_chain() -> None:
         "O",
         "POST_PHASEP_CONFIRMATORY",
         "POST_PHASEP_PROVIDER_OBSERVABILITY",
+        "POST_PHASEP_RUNTIME_SNAPSHOT_BENCHMARK_IDENTITY",
     ]
     # Custody link 1: Phase M's result is Phase O's parent.
     assert chain[0]["current_instrument"]["src_iqa_soa_tree"] == (
@@ -1707,8 +1709,19 @@ def test_the_instrument_is_the_head_of_an_approved_revision_chain() -> None:
             chain[3]["parent_commit"], "src/iqa_soa"
         )
     )
-    # And only the HEAD link is asserted against the live working tree.
+    # Custody link 4: C3's result is the benchmark-identity link's parent, and
+    # C3 -- now superseded itself -- is proved at the commit ITS successor
+    # started from rather than against the live tree.
     assert chain[3]["current_instrument"]["src_iqa_soa_tree"] == (
+        instrument_revision.tree_digest_at_commit(
+            chain[4]["parent_commit"], "src/iqa_soa"
+        )
+    )
+    assert chain[4]["previous_instrument"]["src_iqa_soa_tree"] == (
+        chain[3]["current_instrument"]["src_iqa_soa_tree"]
+    )
+    # And only the HEAD link is asserted against the live working tree.
+    assert chain[4]["current_instrument"]["src_iqa_soa_tree"] == (
         instrument_revision.tree_digest("src/iqa_soa")
     )
     assert chain[2]["parent_commit"] == PHASE_O_SUCCESSOR_COMMIT

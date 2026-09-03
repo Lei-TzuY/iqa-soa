@@ -27,8 +27,8 @@
     "benchmark/pilot-v7-rc4/manifest.json": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
     "benchmark/pilot-v7-rc4/qualification-contract.json": "ac600e6d84be5aa46f9c39d51311b0da6c68847a2083a57bdb901c38e45433cc",
     "candidates/prospective-candidate-i5-m1-b76f40da2/candidate-manifest.json": "e1dffabf908192aa37a5984aab7d719f33612833207974ab5dda26db8ff723f2",
-    "candidates/prospective-candidate-i5-m1-b76f40da2/digest-manifest.json": "bed26aecc7ca64be72dd1ac34f0a8dab3538b27de95535572bf9334be3483d6c",
-    "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json": "d9a81b49a83fe58662396398a3d5fd08668dc627362806999a7791990c43bf46",
+    "candidates/prospective-candidate-i5-m1-b76f40da2/digest-manifest.json": "9b3576b2a1c87d087ac863968523a33d5e297efd8a7a5943417156d86018f026",
+    "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json": "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc",
     "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
     "configs/policies/default.xml": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5",
     "configs/successor-models.yaml": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
@@ -38,11 +38,11 @@
     "docs/post_phaseP_qualification_methodology_decision.md": "12bacc0dcba8468a1e1ade4aca785555f941813df01908719a7f8d4e4e967d29",
     "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md": "cff940697c110b6b7e507ab051127c9d62676fccec2f868d9434bf45aa4d042b",
     "docs/successor_prospective_seed_derivation.json": "08afb9ec753358ed1f75d1db645cfe179b1a952dcdc51a29aa23c82f8d70a05e",
-    "docs/successor_real_model_qualification_plan.md": "e8ae2fb7d27e56629458e2feb7eb569dc088b44118cfead30763e53234ad6c27",
+    "docs/successor_real_model_qualification_plan.md": "8a813904f1d17f935ff1778d792405682cc6ab05cd140f8ca87fa1fdd0f33e21",
     "scripts/run_successor_qualification.py": "2487a87b180bf4e3bbfc0408c66733ffcdea17c21042a607a90a373c51e1f26e",
     "scripts/successor_derive_seeds.py": "cc1221a16d453486597317b8ff95b8f2456ff8bfd36eadf64021bdc9e9b3acde",
     "scripts/successor_eligibility_preflight.py": "5094e38f56097fb26302e0be9dc3e27b3fccb61be8819663a75b9ea73c99a8bb",
-    "scripts/successor_qualification_protocol.py": "8ccaaf4f263c27db3ab7c613c884abad66ec56b96c87d254da89817c669d056b",
+    "scripts/successor_qualification_protocol.py": "ddf82fc080d4c462f0230a8f646a6f08fc020ffac5b7818a3b58a97b98eb3cea",
     "scripts/successor_scoring_vocabulary.py": "767b225f43bea2d5474cbcd7334be6ec09867d272add54c1f627d79f56c62457",
     "scripts/successor_sink_applicability.py": "24f4a62cfc8bd7cd9333e8768b00ea3899253b9459e35ce0b90d16eb329719e5",
     "scripts/validate_successor_scope.py": "d4d7a335b29d0114407a87cd76fd390efbff89977b6c4991bdc7b09bd545c0ac"
@@ -90,6 +90,6 @@
   "tool_argument_contract_version": "tool-arguments-1",
   "trees": {
     "benchmark/pilot-v7-rc4": "3c9659240498a1f9d7684fae26963b9b3538d7485f428271a36485145ba04a0d",
-    "src/iqa_soa": "205a21edc5fcdbb8a9bc501d3b915273925bfff06bf0849a11d5b0b47b17ac4c"
+    "src/iqa_soa": "ab63e8b151119fbfaf5346c41ee7f409b6b1918823ce8a57a98910ff447ef778"
   }
 }

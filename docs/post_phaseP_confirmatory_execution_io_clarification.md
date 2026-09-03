@@ -223,6 +223,9 @@ Two digest primitives are used; neither is caller-configurable:
 
 `package_source_sha256` reuses the repository's existing package-source tree-digest semantics from `runner.py` over the `iqa_soa` Python package. WU5 may extract that helper without changing its algorithm; it must not invent a second package-tree hash.
 
+> **CORRECTED — see `docs/post_phaseP_runtime_snapshot_benchmark_identity_correction.md`.**
+> The two primitives above are stated as originally frozen and are retained here unaltered. `file_sha256` was applied to `config.benchmark_path`, which is a benchmark SOURCE ROOT and is a directory under every production configuration, so that one application was unsatisfiable. `benchmark_sha256` is now derived with `benchmark_source_sha256` — the repository's existing directory-capable path-tree digest, restricted to the frozen benchmark source set `{.json, .md, .yaml}` — exactly as `package_source_sha256` reuses that same algorithm for the package. `file_sha256` remains the primitive for `config.source_path`, `config.policy_path`, `config.models_path` and `config.ablations_path`, which are genuine single files. No other primitive, field or schema changes.
+
 ### 4.4 Exact source/preimage table
 
 The capture procedure constructs the existing twenty `RuntimeSnapshotV1` fields from exactly these sources.
@@ -350,6 +353,16 @@ raw_jsonl = config.raw_jsonl
 raw_csv = config.raw_csv
 evidence_subdir = config.evidence_subdir
 ```
+
+> **CORRECTED — `benchmark_sha256` only.** The preimage above is reproduced as originally frozen. The line `benchmark_sha256 = file_sha256(config.benchmark_path)` could not be computed against a real configuration, because `ExperimentConfig.benchmark_path` is a benchmark source root and production configs (`configs/successor-qualification.yaml`: `benchmark_path: benchmark`) set it to a directory. The binding derivation is now
+>
+> ```text
+> benchmark_sha256 = benchmark_source_sha256(config.benchmark_path)
+>                  = path_tree_sha256(config.benchmark_path,
+>                                     include_suffixes = {".json", ".md", ".yaml"})
+> ```
+>
+> where `path_tree_sha256` is the unchanged `runner._path_digest` already used by `ExperimentRunner` for its own `benchmark_sha256`, so no second benchmark identity exists. The field NAME, this object's KEY SET, and the `RuntimeSnapshotV1` schema are all unchanged; only this one derivation moves. See `docs/post_phaseP_runtime_snapshot_benchmark_identity_correction.md` for the exact algorithm, the fail-closed cases and the instrument-version determination (instrument 5 and raw schema 6 both unchanged). Every other line of the preimage remains exactly as frozen.
 
 These fields form one canonical JSON object with exactly the names above and no `output_root`: WU5 writes only to the validated `output_path`, so a machine-specific legacy output-root location is not part of the confirmatory execution identity. The source file digest is still included, so any textual configuration edit remains detectable.
 

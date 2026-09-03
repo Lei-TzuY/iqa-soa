@@ -109,6 +109,19 @@ RECORD_PATH = PROJECT_ROOT / RECORD_RELATIVE
 #: post-Phase-P confirmatory revision was the approved head.
 PARENT_COMMIT = "883c425daf2e6462877f0626f5fce0664ac85ca9"
 
+#: The commit at which POST_PHASEP_PROVIDER_OBSERVABILITY STOPPED being the
+#: approved head: the parent of the RuntimeSnapshotV1 benchmark-identity revision
+#: that superseded it.  Its own claims -- what it changed, to what bytes, and what
+#: its record said -- are historical facts about the window
+#: ``PARENT_COMMIT .. SUCCESSOR_COMMIT``, and every test below that asks such a
+#: question now asks it over that window rather than against today's tree.
+SUCCESSOR_COMMIT = "a24d8924e7bd3e42c07530aab074236db7478447"
+
+#: The successor link this record is now the parent of.
+SUCCESSOR_RECORD_RELATIVE = (
+    "docs/post_phaseP_runtime_snapshot_benchmark_identity_instrument_revision.json"
+)
+
 #: Stated here independently of the writer, so a widened writer constant cannot
 #: quietly widen the approved set too.
 APPROVED_SRC_FILES = (
@@ -558,27 +571,61 @@ def test_a_schema_six_manifest_is_readable_and_so_is_every_older_one() -> None:
 # ==========================================================================
 
 
-def test_the_record_is_exactly_reproducible_from_the_live_tree() -> None:
-    """T-22.  A reviewer re-runs the writer and compares; no digest is pasted."""
+def test_the_committed_record_was_never_rewritten() -> None:
+    """The record is byte-identical to the version its successor superseded.
 
-    expected = json.dumps(writer.build_record(), indent=2, sort_keys=True) + "\n"
-    assert RECORD_PATH.read_text(encoding="utf-8") == expected
+    While this was the head, T-22 regenerated the record with
+    ``writer.build_record()`` and required the committed bytes to match. Running
+    that writer now would hash the LIVE post-repair tree and demand a record
+    describing work this revision did not do -- exactly the in-place rewrite of a
+    superseded revision the whole mechanism forbids.
+
+    The question a superseded record has to answer instead is "were you left
+    alone?", answered from immutable bytes: the working-tree record must equal the
+    version committed at the commit its successor started from. The writer is
+    still bound here, by its declared parent, so a record regenerated against some
+    other parent could not pass silently.
+    """
+
+    committed = _blob(SUCCESSOR_COMMIT, RECORD_RELATIVE)
+    assert RECORD_PATH.read_bytes() == committed
+    assert writer.PARENT_COMMIT == PARENT_COMMIT
+    parsed = json.loads(committed.decode("utf-8"))
+    assert parsed["phase"] == "POST_PHASEP_PROVIDER_OBSERVABILITY"
+    assert parsed["parent_commit"] == PARENT_COMMIT
 
 
-def test_the_record_is_the_head_of_the_approved_chain(
+def test_the_record_is_the_fourth_link_of_the_approved_chain(
     record: Mapping[str, Any],
 ) -> None:
+    """The chain gained a fifth link; this one keeps its position and bytes.
+
+    It is no longer the head, and that is the chain working as designed rather
+    than a defect in it. Custody is still asserted in both directions: the
+    confirmatory link's corrected result is this link's parent, and this link's
+    result is the successor's parent.
+    """
+
     chain = instrument_revision.load_revision_chain()
     assert [link["phase"] for link in chain] == [
         "M",
         "O",
         "POST_PHASEP_CONFIRMATORY",
         "POST_PHASEP_PROVIDER_OBSERVABILITY",
+        "POST_PHASEP_RUNTIME_SNAPSHOT_BENCHMARK_IDENTITY",
     ]
-    assert instrument_revision.REVISION_PATH == RECORD_PATH
-    assert chain[-1] == record
+    assert instrument_revision.REVISION_CHAIN[3] == RECORD_PATH
+    assert chain[3] == record
+    assert instrument_revision.REVISION_PATH == instrument_revision.REVISION_CHAIN[-1]
+    assert instrument_revision.REVISION_PATH != RECORD_PATH
+    # Custody hand-off onward: this link's pinned tree is what the successor binds
+    # as its parent, and it is provable from committed bytes at the successor's
+    # own parent commit.
+    assert chain[4]["previous_instrument"]["src_iqa_soa_tree"] == (
+        record["current_instrument"]["src_iqa_soa_tree"]
+    )
     assert record["current_instrument"]["src_iqa_soa_tree"] == (
-        instrument_revision.tree_digest("src/iqa_soa")
+        instrument_revision.tree_digest_at_commit(SUCCESSOR_COMMIT, "src/iqa_soa")
     )
     assert record["parent_commit"] == PARENT_COMMIT
     # Custody: it binds the predecessor's AUTHORITATIVE digest -- the one provable
@@ -599,8 +646,19 @@ def test_the_record_is_the_head_of_the_approved_chain(
 def test_the_approved_set_is_exactly_the_observed_src_change_set(
     record: Mapping[str, Any],
 ) -> None:
+    """Proved over this link's OWN window, not against today's tree.
+
+    While this was the head the window ended at the working tree. A later
+    approved revision has legitimately moved ``src/iqa_soa`` past it, so the
+    window now ends at ``SUCCESSOR_COMMIT`` -- the last commit at which this link
+    was the approved head. Asking the question against today's tree would demand
+    that this record account for a successor's changes, which is precisely the
+    conflation the chain exists to prevent.
+    """
+
     observed = subprocess.run(
-        ["git", "diff", "--name-only", PARENT_COMMIT, "--", "src/iqa_soa"],
+        ["git", "diff", "--name-only", PARENT_COMMIT, SUCCESSOR_COMMIT,
+         "--", "src/iqa_soa"],
         cwd=PROJECT_ROOT, capture_output=True, text=True, check=False,
     ).stdout.split()
     assert sorted(observed) == sorted(APPROVED_SRC_FILES)
@@ -614,8 +672,11 @@ def test_every_approved_file_carries_its_real_hash_and_a_distinct_reason(
     changed = record["changed_files"]
     for name in APPROVED_SRC_FILES:
         entry = changed[name]
-        assert entry["sha256"] == instrument_revision.sha256_of(
-            PROJECT_ROOT / name
+        # Proved from the COMMITTED blob at the commit this link was last the
+        # approved head. A superseded link's per-file pins describe the bytes it
+        # actually approved, not whatever the working tree holds today.
+        assert entry["sha256"] == instrument_revision.sha256_of_blob_at_commit(
+            SUCCESSOR_COMMIT, name
         ), name
         assert len(entry["reason"].strip()) >= 20, name
     assert len({entry["reason"] for entry in changed.values()}) == len(changed)
@@ -757,11 +818,20 @@ def test_the_writer_refuses_a_predecessor_custody_state_it_cannot_prove(
     it assert a digest the commit does not contain and it refuses too.
     """
 
+    # This writer is superseded, so its FIRST refusal on today's tree is now the
+    # change-set check (proved separately below). Hold that constant at its own
+    # approved set so the custody behaviour under test is actually reached.
+    monkeypatch.setattr(
+        writer.ir, "_changed_files_since", lambda _c, _r: list(APPROVED_SRC_FILES)
+    )
     monkeypatch.setattr(writer.ir, "CUSTODY_CORRECTION_PATH", tmp_path / "absent.json")
     with pytest.raises(SystemExit, match="custody correction does not hold"):
         writer.build_record()
 
     monkeypatch.undo()
+    monkeypatch.setattr(
+        writer.ir, "_changed_files_since", lambda _c, _r: list(APPROVED_SRC_FILES)
+    )
     monkeypatch.setattr(
         writer.ir,
         "verify_custody_correction",
@@ -776,6 +846,19 @@ def test_the_writer_refuses_a_predecessor_custody_state_it_cannot_prove(
     )
     with pytest.raises(SystemExit, match="corrected tree"):
         writer.build_record()
+
+
+def test_the_writer_now_refuses_because_the_change_set_moved_past_it() -> None:
+    """Re-running the superseded writer on today's tree REFUSES, as it should.
+
+    This is the property that makes the record safe to leave alone: the writer
+    that produced it cannot silently regenerate it over a later tree, because the
+    observed change set is no longer its approved set.
+    """
+
+    with pytest.raises(SystemExit) as excinfo:
+        writer.build_record()
+    assert "not the approved set" in str(excinfo.value)
 
 
 def test_the_record_states_the_predecessor_custody_correction(

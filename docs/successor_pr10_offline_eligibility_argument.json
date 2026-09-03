@@ -135,7 +135,7 @@
             "check_status": "NOT_CHECKED",
             "offline_evidence_refs": [
               {
-                "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+                "content_digest": "5a7a627b83d9b02886ee8f57fce2758dd9959be4a2816faceb345d68fb9bd6ad",
                 "evidence_kind": "REPOSITORY_PATH",
                 "locator": "src/iqa_soa/experiment/confirmatory.py"
               },
@@ -166,7 +166,7 @@
           "established_offline": "The LOCAL half is structural and already holds. Implementation design section 5.E freezes ProviderFactory.create_for_position, and src/iqa_soa/experiment/confirmatory.py obtains exactly one new AgentProvider per position and never reuses an instance across two position_id values, so sandbox, tool registry and session objects are fresh per position by construction rather than by argument.",
           "offline_evidence_refs": [
             {
-              "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+              "content_digest": "5a7a627b83d9b02886ee8f57fce2758dd9959be4a2816faceb345d68fb9bd6ad",
               "evidence_kind": "REPOSITORY_PATH",
               "locator": "src/iqa_soa/experiment/confirmatory.py"
             },
@@ -243,7 +243,7 @@
               "locator": "configs/successor-qualification.yaml"
             },
             {
-              "content_digest": "8ccaaf4f263c27db3ab7c613c884abad66ec56b96c87d254da89817c669d056b",
+              "content_digest": "ddf82fc080d4c462f0230a8f646a6f08fc020ffac5b7818a3b58a97b98eb3cea",
               "evidence_kind": "REPOSITORY_PATH",
               "locator": "scripts/successor_qualification_protocol.py"
             },
@@ -370,7 +370,7 @@
             "check_status": "NOT_CHECKED",
             "offline_evidence_refs": [
               {
-                "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+                "content_digest": "5a7a627b83d9b02886ee8f57fce2758dd9959be4a2816faceb345d68fb9bd6ad",
                 "evidence_kind": "REPOSITORY_PATH",
                 "locator": "src/iqa_soa/experiment/confirmatory.py"
               },
@@ -401,7 +401,7 @@
           "established_offline": "The LOCAL half is structural and already holds. Implementation design section 5.E freezes ProviderFactory.create_for_position, and src/iqa_soa/experiment/confirmatory.py obtains exactly one new AgentProvider per position and never reuses an instance across two position_id values, so sandbox, tool registry and session objects are fresh per position by construction rather than by argument.",
           "offline_evidence_refs": [
             {
-              "content_digest": "7a5c7ed906fc90e2f90b8f00187738025d4034e4e3d32f93924b3f75b70d9dad",
+              "content_digest": "5a7a627b83d9b02886ee8f57fce2758dd9959be4a2816faceb345d68fb9bd6ad",
               "evidence_kind": "REPOSITORY_PATH",
               "locator": "src/iqa_soa/experiment/confirmatory.py"
             },
@@ -478,7 +478,7 @@
               "locator": "configs/successor-qualification.yaml"
             },
             {
-              "content_digest": "8ccaaf4f263c27db3ab7c613c884abad66ec56b96c87d254da89817c669d056b",
+              "content_digest": "ddf82fc080d4c462f0230a8f646a6f08fc020ffac5b7818a3b58a97b98eb3cea",
               "evidence_kind": "REPOSITORY_PATH",
               "locator": "scripts/successor_qualification_protocol.py"
             },

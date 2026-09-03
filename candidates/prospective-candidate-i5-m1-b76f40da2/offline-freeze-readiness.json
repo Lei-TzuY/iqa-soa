@@ -758,7 +758,7 @@
           "presence_states_are_declared_not_derived": true,
           "provider_object_constructed": false,
           "raw_schema_version": 6,
-          "src_iqa_soa_tree_digest": "1d0f1371099536322a4988334ea9d6ac9445c2feec85bc0b3df26d8ada1184ac",
+          "src_iqa_soa_tree_digest": "5d1126cff3d75c182e840e32bbd97baeabc787e469a3d66265d31f073b05ea3c",
           "telemetry_added": false,
           "tool_argument_contract_version": "tool-arguments-1"
         },

@@ -60,6 +60,7 @@ from iqa_soa.experiment.runner import (
     ExperimentRunner,
     PositionExecutionError,
     PositionFailureOrigin,
+    benchmark_source_sha256,
     load_experiment_config,
     load_policy,
     package_source_sha256,
@@ -198,6 +199,28 @@ def _file_sha256(path: Path) -> str:
         raise ConfirmatoryExecutionError(f"cannot read runtime identity input: {path}") from error
 
 
+def _benchmark_source_sha256(path: Path) -> str:
+    """Digest the benchmark SOURCE ROOT named by ``config.benchmark_path``.
+
+    ``benchmark_path`` is a benchmark source root, not one file: every
+    production configuration points it at a directory and the benchmark loaders
+    treat it as a root.  The file-only digest this field originally used could
+    therefore never be computed against a real configuration.  The repository
+    already owns exactly one benchmark identity for this input -- the tree
+    digest ``ExperimentRunner`` records as ``benchmark_sha256`` -- so the
+    correction reuses it instead of inventing a second one.  Unreadable, missing
+    or empty benchmark source fails closed; it never degrades to a digest over
+    nothing.
+    """
+
+    try:
+        return benchmark_source_sha256(path)
+    except (ExperimentConfigError, OSError) as error:
+        raise ConfirmatoryExecutionError(
+            f"cannot read runtime identity benchmark source: {path}"
+        ) from error
+
+
 def _canonical_decimal(value: float) -> str:
     decimal = Decimal(str(value))
     if not decimal.is_finite():
@@ -325,7 +348,7 @@ def capture_runtime_snapshot_v1(
             "schema_version": "ExperimentExecutionConfigIdentityV1",
             "config_schema_version": config.schema_version,
             "source_config_sha256": _file_sha256(config.source_path),
-            "benchmark_sha256": _file_sha256(config.benchmark_path),
+            "benchmark_sha256": _benchmark_source_sha256(config.benchmark_path),
             "policy_sha256": _file_sha256(config.policy_path),
             "models_sha256": models_config_digest,
             "ablations_sha256": _file_sha256(config.ablations_path),
