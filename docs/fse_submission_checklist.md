@@ -177,3 +177,47 @@ v0.1 references above; v0.1-v0.4 are retained unmodified).
 See section 5 of `docs/fse2027_post_successor_manuscript_gap_audit.md` (G1-G9).
 The binding one is G1: no candidate has yet satisfied QA-OFF qualification, so
 no confirmatory registration, assignment, execution, or inference exists.
+
+---
+
+## Current status (2026-09-04, second pass) - `[TBD]` burn-down
+
+The sections above are retained unchanged. This section records the placeholder
+burn-down only; it authorizes no execution and changes no result.
+
+**Manuscript of record:** `FSE_2027_IQA_SOA_Draft_v0.6.docx` (supersedes v0.5 for
+planning; v0.1-v0.5 are retained unmodified on disk).
+**Burn-down audit:** `docs/fse2027_tbd_burndown_audit.md`.
+
+### Placeholder totals
+
+| Category | Count |
+| --- | ---: |
+| `CAN_FILL_NOW` | 0 |
+| `STRUCTURAL_PLACEHOLDER` | 10 |
+| `REQUIRES_NEW_EVIDENCE` | 79 |
+| `WITHDRAW` | 0 |
+| Total inventoried (v0.5) | 89 |
+
+Markers fell from 89 to 79 (bare `[TBD]`: 82 to 74). The ten resolved markers are
+the author line, three draft/abstract self-references, the five confirmatory
+registration rows in Section 7.1 - now stated as explicit absences ("Not
+registered", "Not evaluated", "Not applicable") - and the Appendix A checklist
+self-reference. All 79 remaining markers sit in Sections 7.3-7.6 and are
+`REQUIRES_NEW_EVIDENCE`: 24 in 7.3, 14 in 7.4, 17 in 7.5, 24 in 7.6.
+
+`CAN_FILL_NOW` is zero because every already-known fact class (qualification
+status, 102/102 cells, 0 retries, 3 invalidated cells, 7/17 and 10/17 task
+counts, confirmatory eligibility and execution state, diagnostics, artifact
+availability, architecture, deterministic validation, frozen task inventory,
+established limitations) had already been backfilled in v0.5. `WITHDRAW` is zero
+because no placeholder belongs to a superseded analysis.
+
+### Unchanged lifecycle state
+
+- Successor QA-OFF qualification - COMPLETE / **`HOLD`**; 102 scheduled, 102
+  observed, 0 retries, 3 invalidated, 7 of 17 tasks qualified.
+- Confirmatory eligibility - **NO**. Confirmatory execution - **NOT ENTERED**.
+- Rerun / retry / replacement / rescoring - **NOT AUTHORIZED**.
+- No QA treatment effect, p-value, confidence interval, effect size, significance
+  claim, or provider/model ranking is reported anywhere in v0.6.
