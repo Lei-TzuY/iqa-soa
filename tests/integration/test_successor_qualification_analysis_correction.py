@@ -1332,19 +1332,127 @@ def test_the_correction_refuses_a_non_equivalent_pr_head_tree(
 # ---------------------------------------------------------------------------
 
 
-def test_the_persisted_machine_records_match_the_machinery(
+def test_persisted_machine_records_match_stable_machinery_and_generation_context(
     record: dict[str, Any], diagnosis: dict[str, Any], amendment: dict[str, Any]
 ) -> None:
-    """The persisted docs are exactly what the correction module renders."""
+    """Creation-time HEAD/main remain truthful; every evidence identity is exact."""
 
-    for relative, payload in (
+    def _difference_paths(
+        left: Any, right: Any, path: tuple[str, ...] = ()
+    ) -> set[tuple[str, ...]]:
+        if isinstance(left, dict) and isinstance(right, dict):
+            differences: set[tuple[str, ...]] = set()
+            for key in left.keys() | right.keys():
+                child = (*path, key)
+                if key not in left or key not in right:
+                    differences.add(child)
+                else:
+                    differences.update(_difference_paths(left[key], right[key], child))
+            return differences
+        if isinstance(left, list) and isinstance(right, list):
+            if len(left) != len(right):
+                return {(*path, "<length>")}
+            differences = set()
+            for index, (left_item, right_item) in enumerate(zip(left, right)):
+                differences.update(
+                    _difference_paths(left_item, right_item, (*path, f"[{index}]"))
+                )
+            return differences
+        return {path} if left != right else set()
+
+    def _value_at(payload: dict[str, Any], location: tuple[str, ...]) -> Any:
+        value: Any = payload
+        for key in location:
+            value = value[key]
+        return value
+
+    def _replace_at(
+        payload: dict[str, Any], location: tuple[str, ...], value: str
+    ) -> None:
+        parent: Any = payload
+        for key in location[:-1]:
+            parent = parent[key]
+        parent[location[-1]] = value
+
+    def _git_revision(revision: str) -> str:
+        completed = subprocess.run(
+            ["git", "rev-parse", revision],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return completed.stdout.strip()
+
+    correction_context = {
+        ("evidence_identity", "head_commit"),
+        ("evidence_identity", "canonical_main_at_fetch"),
+    }
+    amendment_context = {("evidence_binding", "canonical_main_at_fetch")}
+    expected_differences = {
+        correction.CORRECTION_MACHINE_RECORD_RELATIVE: correction_context,
+        correction.DIAGNOSIS_MACHINE_RECORD_RELATIVE: correction_context,
+        correction.HASH_BASIS_AMENDMENT_MACHINE_RECORD_RELATIVE: amendment_context,
+    }
+    payloads = (
         (correction.CORRECTION_MACHINE_RECORD_RELATIVE, record),
         (correction.DIAGNOSIS_MACHINE_RECORD_RELATIVE, diagnosis),
         (correction.HASH_BASIS_AMENDMENT_MACHINE_RECORD_RELATIVE, amendment),
-    ):
+    )
+    actual_head = _git_revision("HEAD")
+    actual_main = _git_revision("origin/main")
+    loaded: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+
+    for relative, payload in payloads:
         path = PROJECT_ROOT / relative
         assert path.is_file(), relative
-        assert path.read_text(encoding="utf-8") == correction.canonical_json(payload)
+        persisted = json.loads(path.read_text(encoding="utf-8"))
+        generated = json.loads(correction.canonical_json(payload))
+        locations = expected_differences[relative]
+
+        assert _difference_paths(persisted, generated) == locations
+        for location in locations:
+            assert _value_at(persisted, location) == BOUND_CANONICAL_EVIDENCE_COMMIT
+            expected_live = actual_head if location[-1] == "head_commit" else actual_main
+            assert _value_at(generated, location) == expected_live
+
+        stable_persisted = json.loads(correction.canonical_json(persisted))
+        stable_generated = json.loads(correction.canonical_json(generated))
+        for location in locations:
+            _replace_at(stable_persisted, location, "<GENERATION_CONTEXT>")
+            _replace_at(stable_generated, location, "<GENERATION_CONTEXT>")
+        assert stable_persisted == stable_generated
+        loaded[relative] = (persisted, generated)
+
+    expected_artifacts = {
+        protocol.ANALYSIS_NAME: BOUND_ANALYSIS_SHA256,
+        protocol.RUN_MANIFEST_NAME: BOUND_RUN_MANIFEST_SHA256,
+        protocol.RAW_RECORD_NAME: BOUND_RAW_RECORD_SHA256,
+        protocol.PARTIAL_MANIFEST_NAME: BOUND_PARTIAL_MANIFEST_SHA256,
+    }
+    for relative in (
+        correction.CORRECTION_MACHINE_RECORD_RELATIVE,
+        correction.DIAGNOSIS_MACHINE_RECORD_RELATIVE,
+    ):
+        for payload in loaded[relative]:
+            identity = payload["evidence_identity"]
+            assert (
+                identity["canonical_evidence_commit"]
+                == BOUND_CANONICAL_EVIDENCE_COMMIT
+            )
+            assert identity["result_tree"]["git_tree_sha"] == BOUND_RESULT_TREE_GIT_SHA
+            assert (
+                identity["raw_evidence_tree"]["git_tree_sha"]
+                == BOUND_RAW_TREE_GIT_SHA
+            )
+            assert identity["artifact_sha256"] == expected_artifacts
+
+    for payload in loaded[correction.HASH_BASIS_AMENDMENT_MACHINE_RECORD_RELATIVE]:
+        binding = payload["evidence_binding"]
+        assert binding["canonical_evidence_commit"] == BOUND_CANONICAL_EVIDENCE_COMMIT
+        assert binding["result_git_tree_sha"] == BOUND_RESULT_TREE_GIT_SHA
+        assert binding["raw_git_tree_sha"] == BOUND_RAW_TREE_GIT_SHA
+        assert binding["artifact_sha256"] == expected_artifacts
 
 
 def test_the_prose_records_exist_and_are_outside_the_result_namespace() -> None:

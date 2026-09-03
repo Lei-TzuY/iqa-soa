@@ -44,7 +44,7 @@ from iqa_soa.experiment.confirmatory_registration import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def test_offline_preflight_passes_with_no_contact(
+def test_post_execution_offline_preflight_reports_spent_gates_with_no_contact(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _refuse(*args: object, **kwargs: object) -> None:
@@ -53,7 +53,10 @@ def test_offline_preflight_passes_with_no_contact(
     monkeypatch.setattr(socket, "socket", _refuse)
     monkeypatch.setattr(socket, "create_connection", _refuse)
     monkeypatch.setattr(socket, "getaddrinfo", _refuse)
-    assert protocol.offline_preflight() == []
+    failures = protocol.offline_preflight()
+    assert len(failures) == 5
+    assert sum(item.startswith("SEED_DERIVATION:") for item in failures) == 4
+    assert sum(item.startswith("RESULT_ARTIFACT:") for item in failures) == 1
 
 
 def test_protocol_binds_the_frozen_candidate() -> None:
@@ -187,10 +190,33 @@ def test_successor_namespace_is_accepted_and_is_not_historical() -> None:
     assert protocol.RESULTS_NAMESPACE not in protocol.FORBIDDEN_RESULTS_NAMESPACES
 
 
-def test_no_result_artifact_is_fabricated() -> None:
-    assert not (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).exists()
-    assert protocol.check_no_result_artifact_exists() == []
-    assert protocol.protocol_summary()["results_namespace_created"] is False
+def test_post_execution_namespace_spends_exactly_once_authorization(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def _refuse(*args: object, **kwargs: object) -> None:
+        raise AssertionError("a spent execution reached a provider or result writer")
+
+    monkeypatch.setattr(socket, "socket", _refuse)
+    monkeypatch.setattr(socket, "create_connection", _refuse)
+    monkeypatch.setattr(socket, "getaddrinfo", _refuse)
+    for seam in (
+        "load_successor_provider",
+        "_append_row",
+        "_write_run_manifest",
+        "write_analysis",
+        "_drive_bound_run",
+    ):
+        monkeypatch.setattr(driver, seam, _refuse)
+    monkeypatch.setenv(protocol.HUMAN_GATE_ENV, protocol.HUMAN_GATE_VALUE)
+
+    assert (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).exists()
+    assert protocol.protocol_summary()["results_namespace_created"] is True
+    failures = protocol.check_no_result_artifact_exists()
+    assert len(failures) == 1
+    assert failures[0].startswith("RESULT_ARTIFACT:")
+    assert driver.main([protocol.HUMAN_GATE_FLAG]) == protocol.EXIT_GATE_CLOSED
+    assert "EXECUTION_AUTHORIZATION_SPENT:" in capsys.readouterr().out
+    assert driver.check_confirmatory_remains_impossible() == []
 
 
 def test_noncanonical_scientific_input_is_refused() -> None:
@@ -243,15 +269,36 @@ def test_frozen_protocol_still_refuses_before_the_gates_are_consulted(
     ] is True
 
 
-def test_driver_offline_preflight_reports_no_contact_and_no_rows() -> None:
-    assert driver.main([]) == protocol.EXIT_OK
+def test_driver_post_execution_preflight_reports_no_contact_and_no_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _refuse(*args: object, **kwargs: object) -> None:
+        raise AssertionError("the offline preflight reached a provider or result writer")
+
+    monkeypatch.setattr(socket, "socket", _refuse)
+    monkeypatch.setattr(socket, "create_connection", _refuse)
+    monkeypatch.setattr(socket, "getaddrinfo", _refuse)
+    for seam in (
+        "load_successor_provider",
+        "_append_row",
+        "_write_run_manifest",
+        "write_analysis",
+        "_drive_bound_run",
+    ):
+        monkeypatch.setattr(driver, seam, _refuse)
+
+    assert driver.main([]) == protocol.EXIT_PREFLIGHT_STOP
     report = driver.offline_preflight_report()
-    assert report["protocol_preflight_failures"] == []
+    failures = report["protocol_preflight_failures"]
+    assert len(failures) == 5
+    assert sum(item.startswith("SEED_DERIVATION:") for item in failures) == 4
+    assert sum(item.startswith("RESULT_ARTIFACT:") for item in failures) == 1
     assert report["eligibility_argument_failures"] == []
     assert report["provider_contacted"] is False
     assert report["model_inference_performed"] is False
     assert report["rows_written"] == 0
-    assert report["results_namespace_created"] is False
+    assert report["results_namespace_created"] is True
+    assert report["authorization_spent_on_namespace_creation"] is True
 
 
 def test_retries_are_fixed_at_zero() -> None:
@@ -266,12 +313,35 @@ def test_persistence_is_fail_closed_with_no_overwrite() -> None:
     assert protocol.PERSISTENCE_POLICY["fail_closed"] is True
 
 
-def test_seed_derivation_is_prospective_and_complete() -> None:
+def test_seed_derivation_is_prospective_and_complete_in_frozen_pre_execution_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     assert len(protocol.SEEDS) == 3
     assert protocol.PLANNED_CELLS == 17 * 2 * 3
     assert protocol.SEED_SELECTION_STATUS == (
         "DERIVED_PROSPECTIVELY_BEFORE_ANY_SUCCESSOR_OUTCOME"
     )
+
+    record_path = PROJECT_ROOT / protocol.SEED_DERIVATION_RECORD_RELATIVE
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    frozen_scan = {
+        int(seed): list(sources)
+        for seed, sources in record["collision_checks"][
+            "committed_seeds_discovered"
+        ].items()
+    }
+
+    def _frozen_pre_execution_scan(root: Path | None = None) -> dict[int, list[str]]:
+        del root
+        return frozen_scan
+
+    _rewrite(
+        tmp_path / protocol.SEED_DERIVATION_RECORD_RELATIVE,
+        record_path.read_text(encoding="utf-8"),
+    )
+    monkeypatch.setattr(derivation, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(derivation, "scan_committed_seeds", _frozen_pre_execution_scan)
+    monkeypatch.setattr(protocol, "PROJECT_ROOT", tmp_path)
     assert protocol.check_seed_derivation() == []
 
 
@@ -811,22 +881,15 @@ def test_the_preflight_fails_closed_on_a_held_runtime() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_no_fake_results_exist_anywhere_this_work_may_write() -> None:
-    """The successor namespace is absent, and no successor artifact name exists."""
+def test_pre_execution_gate_passes_in_isolated_empty_namespace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Namespace absence is pre-execution only; the production gate is unchanged."""
 
-    assert not (PROJECT_ROOT / protocol.RESULTS_NAMESPACE).exists()
-    assert not (PROJECT_ROOT / protocol.EXPERIMENT_OUTPUT_ROOT).exists()
+    monkeypatch.setattr(protocol, "PROJECT_ROOT", tmp_path)
+    assert not (tmp_path / protocol.RESULTS_NAMESPACE).exists()
     assert protocol.check_no_result_artifact_exists() == []
-    for name in (
-        protocol.RAW_RECORD_NAME,
-        protocol.RAW_CSV_NAME,
-        protocol.RUN_MANIFEST_NAME,
-        protocol.PARTIAL_MANIFEST_NAME,
-        protocol.ANALYSIS_NAME,
-    ):
-        assert not list((PROJECT_ROOT / "docs").rglob(name))
-        assert not list((PROJECT_ROOT / "configs").rglob(name))
-        assert not list((PROJECT_ROOT / "candidates").rglob(name))
+    assert protocol.protocol_summary()["results_namespace_created"] is False
 
 
 def test_no_runtime_snapshot_was_captured_or_synthesized_for_the_config() -> None:
@@ -890,8 +953,8 @@ def test_the_authorization_record_states_both_human_decisions() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_the_derivation_recomputes_exactly_and_deterministically() -> None:
-    """Two independent runs agree, and agree with the committed record."""
+def test_the_pre_execution_derivation_recomputes_exactly_and_deterministically() -> None:
+    """Two independent runs agree with the frozen pre-execution record."""
 
     first, first_trail = derivation.derive_seeds()
     second, second_trail = derivation.derive_seeds()
@@ -906,7 +969,13 @@ def test_the_derivation_recomputes_exactly_and_deterministically() -> None:
         (PROJECT_ROOT / derivation.RECORD_RELATIVE).read_text(encoding="utf-8")
     )
     assert record["seeds"] == first
-    assert derivation.check_record() == []
+    frozen_scan = {
+        int(seed): list(sources)
+        for seed, sources in record["collision_checks"][
+            "committed_seeds_discovered"
+        ].items()
+    }
+    assert derivation.build_record(scanned=frozen_scan) == record
 
 
 def test_every_candidate_recomputes_from_its_material() -> None:
