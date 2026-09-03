@@ -1,0 +1,94 @@
+{
+  "ablations_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\ablations.yaml",
+  "benchmark_manifest_path": "C:\\Users\\User\\Desktop\\FSE\\benchmark\\pilot-v7-rc4\\manifest.json",
+  "benchmark_path": "C:\\Users\\User\\Desktop\\FSE\\benchmark",
+  "benchmark_version": "pilot-v7-rc4",
+  "case_ids": [
+    "BEN-002"
+  ],
+  "completed_at": "2026-09-03T15:44:15.402447+00:00",
+  "config_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\successor-qualification.yaml",
+  "created_at": "2026-09-03T15:43:43.757701+00:00",
+  "expected_record_count": 1,
+  "experiment_id": "exp-20260903T154343.756889Z-8147224626da434280501a495ef256cd",
+  "experiment_kind": "real_model_connectivity_smoke",
+  "infrastructure_retry_limit": 0,
+  "input_digests": {
+    "ablation_config_sha256": "78e5ecb22ca8dcee1a72370d716956e1163873e9914a0c80fb1ceee2ecf62495",
+    "benchmark_manifest_sha256": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
+    "benchmark_sha256": "538eaac4f6472c23a061b84a5f85f44ebde33476d2f1e54892ecdd77a9dcddb6",
+    "experiment_config_sha256": "80a716dc8959da62f7b1308cc642f9b1cb0b1ea2a97db0cefd30e1f1f424d659",
+    "model_config_sha256": "4bab6e4f6b83349daa2f08b07a850e37121b6aeaf32f46ca89d2b31bc14b86dd",
+    "qa_xml_policy_sha256": "b04bec81ab961aa06b2e8e52ddbd2c5e25b6b2d366b47fda3ee60690a7275982",
+    "qa_xml_schema_sha256": "424662b471d844b489971ae882af5f21f8ebe49387a00c4af0cccc21a0df2240",
+    "resource_budget_policy_sha256": "e80cbf51bb75c1691a5a934fa261fd87bd6e02597214080480eae984aaba8a3b",
+    "selected_case_set_sha256": "bfee99b0cc240b60b67e60d68a3c90afa6cf84fc573de5437afa0de9e76853d1"
+  },
+  "instrument_version": "5",
+  "max_total_runs": 1,
+  "native_tool_adapter_version": "native-tools-adapter-3",
+  "policy_path": "C:\\Users\\User\\Desktop\\FSE\\configs\\policies\\default.xml",
+  "provider": {
+    "api_key_env": "SUCCESSOR_OLLAMA_API_KEY",
+    "base_url_env": null,
+    "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+    "max_output_tokens": 1024,
+    "model": "qwen3.5:27b",
+    "model_env": null,
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "protocol": "native_tools",
+    "provider": "openai_compatible",
+    "seed": null,
+    "supports_seed": true,
+    "temperature": 0.2,
+    "tool_argument_contract_digest": "eedff86135a533a21e19caef4ba9b05334bf54040aa38486e706e28716bd4634",
+    "tool_argument_contract_version": "tool-arguments-1",
+    "tool_contract_policy": "none",
+    "top_p": 1.0
+  },
+  "provider_runtime": {
+    "capabilities": [
+      "completion",
+      "vision",
+      "tools",
+      "thinking"
+    ],
+    "model_digest": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e",
+    "model_identifier": "qwen3.5:27b",
+    "model_modified_at": "2026-05-21T02:04:41.6981175+08:00",
+    "probe_error": null,
+    "runtime": "ollama",
+    "runtime_version": "0.32.13",
+    "template_sha256": "b507b9c2f6ca642bffcd06665ea7c91f235fd32daeefdf875a0f938db05fb315"
+  },
+  "raw_csv": "successor-runs.csv",
+  "raw_jsonl": "successor-runs.jsonl",
+  "raw_schema_version": 6,
+  "record_count": 1,
+  "repetitions": 1,
+  "resource_budget_policy": {
+    "policy_id": "ordinary-provider-resource-telemetry-v1",
+    "strict_budget_categories": [
+      "budget"
+    ],
+    "telemetry_only_limits": [
+      "max_cost",
+      "max_runtime_ms",
+      "max_tokens"
+    ]
+  },
+  "schema_version": 2,
+  "seeds": [
+    583010984
+  ],
+  "shuffle_treatments": false,
+  "software": {
+    "artifact_version": "0.2.0",
+    "package_source_sha256": "7241f2f07cbc786ed320e55528f5d2d3c365c96f2c274fc5ad2e6e486855044a",
+    "python_version": "3.13.5"
+  },
+  "status": "complete",
+  "treatments": [
+    "off"
+  ]
+}

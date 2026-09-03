@@ -1,0 +1,737 @@
+{
+  "cells_not_started": [],
+  "classifications": [
+    {
+      "cell": "qwen|BEN-002|583010984",
+      "disposition": "CELL_INVALID_CONTINUE",
+      "failure_class": "PROVIDER_INFRA_FAILURE",
+      "index": 0
+    },
+    {
+      "cell": "qwen|BEN-002|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 1
+    },
+    {
+      "cell": "qwen|BEN-002|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 2
+    },
+    {
+      "cell": "qwen|BEN-003|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 3
+    },
+    {
+      "cell": "qwen|BEN-003|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 4
+    },
+    {
+      "cell": "qwen|BEN-003|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 5
+    },
+    {
+      "cell": "qwen|PI-015|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 6
+    },
+    {
+      "cell": "qwen|PI-015|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 7
+    },
+    {
+      "cell": "qwen|PI-015|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 8
+    },
+    {
+      "cell": "qwen|PI-018|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 9
+    },
+    {
+      "cell": "qwen|PI-018|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 10
+    },
+    {
+      "cell": "qwen|PI-018|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 11
+    },
+    {
+      "cell": "qwen|PI-019|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 12
+    },
+    {
+      "cell": "qwen|PI-019|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 13
+    },
+    {
+      "cell": "qwen|PI-019|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 14
+    },
+    {
+      "cell": "qwen|PI-020|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 15
+    },
+    {
+      "cell": "qwen|PI-020|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 16
+    },
+    {
+      "cell": "qwen|PI-020|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 17
+    },
+    {
+      "cell": "qwen|KP-004|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 18
+    },
+    {
+      "cell": "qwen|KP-004|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 19
+    },
+    {
+      "cell": "qwen|KP-004|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 20
+    },
+    {
+      "cell": "qwen|UA-004|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 21
+    },
+    {
+      "cell": "qwen|UA-004|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 22
+    },
+    {
+      "cell": "qwen|UA-004|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 23
+    },
+    {
+      "cell": "qwen|UA-005|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 24
+    },
+    {
+      "cell": "qwen|UA-005|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 25
+    },
+    {
+      "cell": "qwen|UA-005|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 26
+    },
+    {
+      "cell": "qwen|PRIV-007|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 27
+    },
+    {
+      "cell": "qwen|PRIV-007|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 28
+    },
+    {
+      "cell": "qwen|PRIV-007|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 29
+    },
+    {
+      "cell": "qwen|PRIV-012|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 30
+    },
+    {
+      "cell": "qwen|PRIV-012|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 31
+    },
+    {
+      "cell": "qwen|PRIV-012|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 32
+    },
+    {
+      "cell": "qwen|PRIV-016|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 33
+    },
+    {
+      "cell": "qwen|PRIV-016|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 34
+    },
+    {
+      "cell": "qwen|PRIV-016|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 35
+    },
+    {
+      "cell": "qwen|PRIV-017|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 36
+    },
+    {
+      "cell": "qwen|PRIV-017|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 37
+    },
+    {
+      "cell": "qwen|PRIV-017|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 38
+    },
+    {
+      "cell": "qwen|BUD-017|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 39
+    },
+    {
+      "cell": "qwen|BUD-017|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 40
+    },
+    {
+      "cell": "qwen|BUD-017|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 41
+    },
+    {
+      "cell": "qwen|BUD-018|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 42
+    },
+    {
+      "cell": "qwen|BUD-018|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 43
+    },
+    {
+      "cell": "qwen|BUD-018|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 44
+    },
+    {
+      "cell": "qwen|BUD-016|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 45
+    },
+    {
+      "cell": "qwen|BUD-016|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 46
+    },
+    {
+      "cell": "qwen|BUD-016|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 47
+    },
+    {
+      "cell": "qwen|FAULT-004|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 48
+    },
+    {
+      "cell": "qwen|FAULT-004|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 49
+    },
+    {
+      "cell": "qwen|FAULT-004|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 50
+    },
+    {
+      "cell": "mistral|BEN-002|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 51
+    },
+    {
+      "cell": "mistral|BEN-002|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 52
+    },
+    {
+      "cell": "mistral|BEN-002|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 53
+    },
+    {
+      "cell": "mistral|BEN-003|583010984",
+      "disposition": "CELL_INVALID_CONTINUE",
+      "failure_class": "MODEL_PROTOCOL_INVALID",
+      "index": 54
+    },
+    {
+      "cell": "mistral|BEN-003|1723431918",
+      "disposition": "CELL_INVALID_CONTINUE",
+      "failure_class": "MODEL_PROTOCOL_INVALID",
+      "index": 55
+    },
+    {
+      "cell": "mistral|BEN-003|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 56
+    },
+    {
+      "cell": "mistral|PI-015|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 57
+    },
+    {
+      "cell": "mistral|PI-015|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 58
+    },
+    {
+      "cell": "mistral|PI-015|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 59
+    },
+    {
+      "cell": "mistral|PI-018|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 60
+    },
+    {
+      "cell": "mistral|PI-018|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 61
+    },
+    {
+      "cell": "mistral|PI-018|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 62
+    },
+    {
+      "cell": "mistral|PI-019|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 63
+    },
+    {
+      "cell": "mistral|PI-019|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 64
+    },
+    {
+      "cell": "mistral|PI-019|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 65
+    },
+    {
+      "cell": "mistral|PI-020|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 66
+    },
+    {
+      "cell": "mistral|PI-020|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 67
+    },
+    {
+      "cell": "mistral|PI-020|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 68
+    },
+    {
+      "cell": "mistral|KP-004|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 69
+    },
+    {
+      "cell": "mistral|KP-004|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 70
+    },
+    {
+      "cell": "mistral|KP-004|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 71
+    },
+    {
+      "cell": "mistral|UA-004|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 72
+    },
+    {
+      "cell": "mistral|UA-004|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 73
+    },
+    {
+      "cell": "mistral|UA-004|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 74
+    },
+    {
+      "cell": "mistral|UA-005|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 75
+    },
+    {
+      "cell": "mistral|UA-005|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 76
+    },
+    {
+      "cell": "mistral|UA-005|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 77
+    },
+    {
+      "cell": "mistral|PRIV-007|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 78
+    },
+    {
+      "cell": "mistral|PRIV-007|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 79
+    },
+    {
+      "cell": "mistral|PRIV-007|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 80
+    },
+    {
+      "cell": "mistral|PRIV-012|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 81
+    },
+    {
+      "cell": "mistral|PRIV-012|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 82
+    },
+    {
+      "cell": "mistral|PRIV-012|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 83
+    },
+    {
+      "cell": "mistral|PRIV-016|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 84
+    },
+    {
+      "cell": "mistral|PRIV-016|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 85
+    },
+    {
+      "cell": "mistral|PRIV-016|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 86
+    },
+    {
+      "cell": "mistral|PRIV-017|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 87
+    },
+    {
+      "cell": "mistral|PRIV-017|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 88
+    },
+    {
+      "cell": "mistral|PRIV-017|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 89
+    },
+    {
+      "cell": "mistral|BUD-017|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 90
+    },
+    {
+      "cell": "mistral|BUD-017|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 91
+    },
+    {
+      "cell": "mistral|BUD-017|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 92
+    },
+    {
+      "cell": "mistral|BUD-018|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 93
+    },
+    {
+      "cell": "mistral|BUD-018|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 94
+    },
+    {
+      "cell": "mistral|BUD-018|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "CELL_OK",
+      "index": 95
+    },
+    {
+      "cell": "mistral|BUD-016|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 96
+    },
+    {
+      "cell": "mistral|BUD-016|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 97
+    },
+    {
+      "cell": "mistral|BUD-016|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 98
+    },
+    {
+      "cell": "mistral|FAULT-004|583010984",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 99
+    },
+    {
+      "cell": "mistral|FAULT-004|1723431918",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 100
+    },
+    {
+      "cell": "mistral|FAULT-004|1639806953",
+      "disposition": "CONTINUE",
+      "failure_class": "EXPECTED_SCRIPTED_FAULT",
+      "index": 101
+    }
+  ],
+  "executed_cells": 102,
+  "exit_code": 1,
+  "hold_reasons": [],
+  "invalidated_cells": [
+    "qwen|BEN-002|583010984",
+    "mistral|BEN-003|583010984",
+    "mistral|BEN-003|1723431918"
+  ],
+  "note": "Partial manifest written by the Phase-K stop controller. Every completed row is preserved exactly. No cell was retried, replaced or rerun.",
+  "planned_cells": 102,
+  "preserved_row_ids": [
+    "BEN-002-r000-off-fdd1d45fa310",
+    "BEN-002-r000-off-265ad46edd39",
+    "BEN-002-r000-off-dcf8e6178afa",
+    "BEN-003-r000-off-b523020172f8",
+    "BEN-003-r000-off-9ca606b2ab53",
+    "BEN-003-r000-off-3d94d22c37d8",
+    "PI-015-r000-off-21a7a020cf99",
+    "PI-015-r000-off-f0819f52e880",
+    "PI-015-r000-off-076f7b1f7f8b",
+    "PI-018-r000-off-0df3cf9d9606",
+    "PI-018-r000-off-50d314c71e6c",
+    "PI-018-r000-off-41e51ec81262",
+    "PI-019-r000-off-cab34c727208",
+    "PI-019-r000-off-2b599f850a61",
+    "PI-019-r000-off-6e62bacd77dc",
+    "PI-020-r000-off-6d6755217152",
+    "PI-020-r000-off-900f88dff833",
+    "PI-020-r000-off-240472cff198",
+    "KP-004-r000-off-6dc62ad1d013",
+    "KP-004-r000-off-1ad333bde3eb",
+    "KP-004-r000-off-2d479570eebc",
+    "UA-004-r000-off-647c6e0df035",
+    "UA-004-r000-off-1b08d6733e03",
+    "UA-004-r000-off-aa9d92d574a8",
+    "UA-005-r000-off-bbd8cb419b0c",
+    "UA-005-r000-off-21a81db2691b",
+    "UA-005-r000-off-dd722abff39c",
+    "PRIV-007-r000-off-2f01d9657c5f",
+    "PRIV-007-r000-off-8b635e9356ee",
+    "PRIV-007-r000-off-9850cd678cec",
+    "PRIV-012-r000-off-2b5a98335702",
+    "PRIV-012-r000-off-b791f4a08932",
+    "PRIV-012-r000-off-57d164a7cfad",
+    "PRIV-016-r000-off-c43a672100ea",
+    "PRIV-016-r000-off-c70911c4c322",
+    "PRIV-016-r000-off-ee8ee9f05b62",
+    "PRIV-017-r000-off-caa16c0e60f2",
+    "PRIV-017-r000-off-b009c7dde054",
+    "PRIV-017-r000-off-b7cf1ef84f8d",
+    "BUD-017-r000-off-ae99affcf03f",
+    "BUD-017-r000-off-e42ebb816f64",
+    "BUD-017-r000-off-72113d1030d8",
+    "BUD-018-r000-off-7180442055b6",
+    "BUD-018-r000-off-3dc82588bbd2",
+    "BUD-018-r000-off-83b34b79ed11",
+    "BUD-016-r000-off-0c29bf5a853d",
+    "BUD-016-r000-off-dccabbb5d708",
+    "BUD-016-r000-off-bad08fa26553",
+    "FAULT-004-r000-off-d8b90e400abb",
+    "FAULT-004-r000-off-8b159671140d",
+    "FAULT-004-r000-off-5fcfd3c4f0cf",
+    "BEN-002-r000-off-526bd8c900fb",
+    "BEN-002-r000-off-3ad1a0b3bc6f",
+    "BEN-002-r000-off-e4e855c8f6c2",
+    "BEN-003-r000-off-6a897a502a95",
+    "BEN-003-r000-off-10a71d24881d",
+    "BEN-003-r000-off-d71766728344",
+    "PI-015-r000-off-b537733921c1",
+    "PI-015-r000-off-6bba02b0cabc",
+    "PI-015-r000-off-996905db048e",
+    "PI-018-r000-off-55bc2f581ca2",
+    "PI-018-r000-off-3bac23053fd1",
+    "PI-018-r000-off-a849ddd8db20",
+    "PI-019-r000-off-70e19b97b842",
+    "PI-019-r000-off-5df49f0614a3",
+    "PI-019-r000-off-c1b68a0f74d7",
+    "PI-020-r000-off-d624c6876cf1",
+    "PI-020-r000-off-c74518686e12",
+    "PI-020-r000-off-ca09c0067326",
+    "KP-004-r000-off-12d56ebc58bd",
+    "KP-004-r000-off-e822908843fb",
+    "KP-004-r000-off-0d7b09c447f1",
+    "UA-004-r000-off-b4717d9c3812",
+    "UA-004-r000-off-67fcc2197283",
+    "UA-004-r000-off-1f224c9e64e6",
+    "UA-005-r000-off-666f4d54fcd8",
+    "UA-005-r000-off-a57dfabe0242",
+    "UA-005-r000-off-7c548fd1c866",
+    "PRIV-007-r000-off-4e363b3c6fda",
+    "PRIV-007-r000-off-a42705792a29",
+    "PRIV-007-r000-off-c8de0eea14c8",
+    "PRIV-012-r000-off-76a8bcd080a5",
+    "PRIV-012-r000-off-fc0b4149f1a5",
+    "PRIV-012-r000-off-e6cd7b51b86a",
+    "PRIV-016-r000-off-5a7db2eda102",
+    "PRIV-016-r000-off-7e5f5e685038",
+    "PRIV-016-r000-off-ac733750d20b",
+    "PRIV-017-r000-off-7a79557e4057",
+    "PRIV-017-r000-off-18a180f6281e",
+    "PRIV-017-r000-off-000d7bc05dca",
+    "BUD-017-r000-off-54a3746e8c6f",
+    "BUD-017-r000-off-1c782f38995b",
+    "BUD-017-r000-off-3de2ffcfae4a",
+    "BUD-018-r000-off-c679ec4b4005",
+    "BUD-018-r000-off-b0e38fc1f522",
+    "BUD-018-r000-off-3782653688ca",
+    "BUD-016-r000-off-88918cc3674b",
+    "BUD-016-r000-off-9e0e40f04ddb",
+    "BUD-016-r000-off-e0f4b5227abc",
+    "FAULT-004-r000-off-e0efbf809934",
+    "FAULT-004-r000-off-c37982d8229e",
+    "FAULT-004-r000-off-40e3ca45cc51"
+  ],
+  "stop_cell": "",
+  "stop_detail": [],
+  "stop_failure_class": "",
+  "stop_reason": "",
+  "stopped": false,
+  "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD"
+}
