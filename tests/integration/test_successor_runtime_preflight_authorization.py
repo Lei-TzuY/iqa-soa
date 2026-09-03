@@ -36,8 +36,62 @@ import successor_runtime_preflight_authorization as preflight  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def test_offline_validation_passes() -> None:
-    assert preflight.offline_validation() == []
+#: The frozen-input record this authorization was BOUND to when it ran.  It moved
+#: after the capture, when the successor qualification execution path was
+#: implemented and ``docs/successor_frozen_execution_inputs.json`` was recomputed
+#: by the protocol's own machinery.  Recorded here so the spent-authorization
+#: tests below name exactly what changed rather than accepting any drift.
+PRE_CAPTURE_FROZEN_INPUTS_DIGEST = (
+    "f8c8ee086ca52ba3b4b93ceb3d72c5e9d2691b7d2152a6fba45185bc5f778ce2"
+)
+
+
+def test_the_contact_authorization_is_spent() -> None:
+    """HISTORICALIZED.  This authorization was exercised once and is now spent.
+
+    It authorized exactly two metadata GETs and one ``RuntimeSnapshotV1`` capture
+    per stratum.  That happened, at canonical main ``9f7a8b5``, and its evidence
+    is committed under ``results/`` where it is immutable.
+
+    Two of its preconditions therefore no longer hold, and BOTH failures are the
+    correct, desired behaviour rather than a regression:
+
+    * the evidence namespace now EXISTS -- which is what "written once, never
+      appended to" means once it has been written; and
+    * ``docs/successor_frozen_execution_inputs.json`` has moved, because the
+      successor qualification execution path was implemented after the capture
+      and the frozen-input record was recomputed by the protocol's own machinery.
+
+    A one-shot authorization that could still be exercised after being spent, and
+    after the tree it was bound to moved, would be the defect.  Asserting the
+    EXACT failure set -- rather than merely "some failures" -- is what keeps this
+    a check: any third failure is a real regression and fails here.
+    """
+
+    failures = preflight.offline_validation()
+    assert len(failures) == 2, failures
+    assert any(
+        item.startswith("BINDING: docs/successor_frozen_execution_inputs.json")
+        and PRE_CAPTURE_FROZEN_INPUTS_DIGEST in item
+        for item in failures
+    ), failures
+    assert any(
+        item.startswith("NAMESPACE:")
+        and preflight.RUNTIME_PREFLIGHT_EVIDENCE_NAMESPACE in item
+        for item in failures
+    ), failures
+
+
+def test_the_spent_authorization_cannot_authorize_a_second_contact() -> None:
+    """The strongest form of one-shot: it now refuses BY ITS OWN RULES.
+
+    ``require_no_hold`` sees ``FROZEN_INPUT_DIGEST_MISMATCH`` and refuses, so no
+    second capture can be authorized through this module by any route -- without
+    anybody having to remember not to run it again.
+    """
+
+    with pytest.raises(preflight.RuntimePreflightHold):
+        preflight.require_no_hold()
 
 
 def test_module_opens_no_socket() -> None:
@@ -233,20 +287,28 @@ def test_only_two_scopes_are_granted() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_capture_is_authorized_for_exactly_the_two_frozen_strata() -> None:
+def test_capture_scope_is_exactly_the_two_frozen_strata() -> None:
+    """The SCOPE is unchanged; what changed is that the grant is spent."""
+
     assert preflight.AUTHORIZED_CAPTURE_STRATA == protocol.PROPOSED_STRATA
     assert len(preflight.AUTHORIZED_CAPTURE_STRATA) == 2
+    assert preflight.AUTHORIZED_CAPTURE_CALLABLE == (
+        "iqa_soa.experiment.confirmatory.capture_runtime_snapshot_v1"
+    )
+    assert preflight.EXPERIMENT_CONFIG_RELATIVE == "configs/successor-qualification.yaml"
+    assert preflight.MODELS_CONFIG_RELATIVE == "configs/successor-models.yaml"
+
+
+def test_a_second_capture_of_a_frozen_stratum_is_now_refused() -> None:
+    """HISTORICALIZED.  Even the two strata it DID cover cannot be recaptured."""
+
     for slot, model in preflight.AUTHORIZED_CAPTURE_STRATA:
-        authorized = preflight.authorize_runtime_snapshot_capture(
-            provider_slot=slot,
-            model=model,
-            completed_metadata_paths=["/api/version", "/api/tags"],
-        )
-        assert authorized.capture_callable == (
-            "iqa_soa.experiment.confirmatory.capture_runtime_snapshot_v1"
-        )
-        assert authorized.experiment_config == "configs/successor-qualification.yaml"
-        assert authorized.models_config == "configs/successor-models.yaml"
+        with pytest.raises(preflight.RuntimePreflightHold):
+            preflight.authorize_runtime_snapshot_capture(
+                provider_slot=slot,
+                model=model,
+                completed_metadata_paths=["/api/version", "/api/tags"],
+            )
 
 
 @pytest.mark.parametrize(
@@ -388,8 +450,19 @@ def test_a_held_condition_refuses_the_capture() -> None:
         preflight.require_no_hold(["LIVE_RUNTIME_VERSION_MISMATCH"])
 
 
-def test_no_offline_hold_condition_currently_holds() -> None:
-    assert preflight.offline_hold_conditions() == ()
+def test_the_only_offline_hold_condition_is_the_spent_binding() -> None:
+    """HISTORICALIZED.  Exactly one condition holds, and it is the expected one.
+
+    ``QUALIFICATION_RESULT_NAMESPACE_EXISTS`` must NOT be among them: the
+    successor qualification namespace is still absent, which is the write-once
+    precondition the whole execution path rests on.
+    """
+
+    conditions = preflight.offline_hold_conditions()
+    assert conditions == (preflight.FROZEN_INPUT_DIGEST_MISMATCH,)
+    assert preflight.QUALIFICATION_RESULT_NAMESPACE_EXISTS not in conditions
+    assert preflight.CANDIDATE_FREEZE_INVALID not in conditions
+    assert not (PROJECT_ROOT / preflight.QUALIFICATION_RESULTS_NAMESPACE).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -397,15 +470,58 @@ def test_no_offline_hold_condition_currently_holds() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_every_bound_artifact_still_matches() -> None:
-    assert preflight.binding_failures() == []
-    assert preflight.check_bindings() == []
+def test_every_scientific_binding_except_the_recomputed_record_still_matches() -> None:
+    """HISTORICALIZED.  Exactly one bound artifact moved, and it is the derived one.
+
+    The candidate freeze, the qualification contract, the successor
+    ``ExperimentConfig``, the successor model configuration, the qualification
+    protocol, the seed derivation and the governing authorization record are all
+    byte-identical to what this authorization contacted the runtime under.  The
+    only artifact that moved is
+    ``docs/successor_frozen_execution_inputs.json`` -- a DERIVED record, whose
+    recomputation is exactly what implementing the execution path requires and
+    what the protocol's own machinery performs.
+    """
+
+    failures = preflight.binding_failures()
+    assert len(failures) == 1, failures
+    assert failures[0].startswith(
+        "BINDING: docs/successor_frozen_execution_inputs.json"
+    )
+    assert preflight.check_bindings() == failures
 
 
 def test_bound_digests_are_recomputed_from_disk() -> None:
+    moved: list[str] = []
     for relative, expected in preflight.BOUND_ARTIFACT_DIGESTS.items():
         actual = hashlib.sha256((PROJECT_ROOT / relative).read_bytes()).hexdigest()
-        assert actual == expected, relative
+        if actual != expected:
+            moved.append(relative)
+    assert moved == ["docs/successor_frozen_execution_inputs.json"]
+    assert (
+        preflight.BOUND_ARTIFACT_DIGESTS["docs/successor_frozen_execution_inputs.json"]
+        == PRE_CAPTURE_FROZEN_INPUTS_DIGEST
+    )
+
+
+def test_the_committed_runtime_evidence_is_unchanged() -> None:
+    """The captured evidence is immutable, and stays exactly as it was written."""
+
+    namespace = PROJECT_ROOT / preflight.RUNTIME_PREFLIGHT_EVIDENCE_NAMESPACE
+    assert namespace.is_dir()
+    report = json.loads(
+        (namespace / "runtime-preflight-report.json").read_text(encoding="utf-8")
+    )
+    assert report["canonical_main_commit"] == "9f7a8b578b6f8d5de96e12e6725d9f3b8bcec51a"
+    assert report["execution_boundary"]["MODEL_INFERENCE_PERFORMED"] is False
+    assert report["execution_boundary"]["QUALIFICATION_EXECUTION_PERFORMED"] is False
+    snapshots = report["capture"]["snapshots"]
+    assert snapshots["qwen_native_none"]["runtime_identity_digest"] == (
+        "3c49ab568c75b07b8c640cd4862003725b4552948cdba594ddd753af4911d30b"
+    )
+    assert snapshots["mistral_native_trailing_user"]["runtime_identity_digest"] == (
+        "5ff8e0922b589522682b3e2d9efd3b55b0e014221011669247d421996d742e48"
+    )
 
 
 def test_benchmark_and_exposure_digests_are_unchanged() -> None:
