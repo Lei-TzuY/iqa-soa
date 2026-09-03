@@ -1,0 +1,210 @@
+{
+  "accepted_runtime_versions": [
+    "0.32.13"
+  ],
+  "allowed_host": "127.0.0.1",
+  "allowed_http_operations": [
+    "GET /api/version",
+    "GET /api/tags"
+  ],
+  "allowed_method": "GET",
+  "allowed_origin": "http://127.0.0.1:11434",
+  "allowed_paths": [
+    "/api/version",
+    "/api/tags"
+  ],
+  "allowed_port": 11434,
+  "allowed_request_headers": [],
+  "allowed_scheme": "http",
+  "allowed_urls": [
+    "http://127.0.0.1:11434/api/version",
+    "http://127.0.0.1:11434/api/tags"
+  ],
+  "authorization_record": "docs/post_phaseP_successor_runtime_preflight_contact_authorization.md",
+  "authorization_record_sha256": "a444585878f6d7b5a742628bc31160e95d2c7db65606f34f59acbe92aebdacc3",
+  "authorization_version": "successor-runtime-preflight-contact-authorization-1",
+  "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+  "benchmark_version": "pilot-v7-rc4",
+  "bound_artifact_digests": {
+    "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json": "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc",
+    "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
+    "configs/successor-models.yaml": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+    "configs/successor-qualification.yaml": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+    "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md": "cff940697c110b6b7e507ab051127c9d62676fccec2f868d9434bf45aa4d042b",
+    "docs/successor_frozen_execution_inputs.json": "f8c8ee086ca52ba3b4b93ceb3d72c5e9d2691b7d2152a6fba45185bc5f778ce2",
+    "docs/successor_prospective_seed_derivation.json": "08afb9ec753358ed1f75d1db645cfe179b1a952dcdc51a29aa23c82f8d70a05e",
+    "scripts/successor_qualification_protocol.py": "ddf82fc080d4c462f0230a8f646a6f08fc020ffac5b7818a3b58a97b98eb3cea"
+  },
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_namespace": "candidates/prospective-candidate-i5-m1-b76f40da2",
+  "candidate_qualification_status": "NOT_YET_QUALIFIED",
+  "candidate_refrozen": false,
+  "candidate_status_at_entry": "FROZEN_NOT_YET_QUALIFIED",
+  "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+  "canonical_main_commit": "469b0c5916ae74f098da8ab2a45955297a04120b",
+  "capture_callable": "iqa_soa.experiment.confirmatory.capture_runtime_snapshot_v1",
+  "capture_experiment_config": "configs/successor-qualification.yaml",
+  "capture_models_config": "configs/successor-models.yaml",
+  "capture_strata": [
+    [
+      "mistral_native_trailing_user",
+      "mistral-small3.2:24b"
+    ],
+    [
+      "qwen_native_none",
+      "qwen3.5:27b"
+    ]
+  ],
+  "confirmatory_executed": false,
+  "credential_env_checked_by_name_only": "SUCCESSOR_OLLAMA_API_KEY",
+  "expected_model_identity": {
+    "mistral-small3.2:24b": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+    "qwen3.5:27b": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e"
+  },
+  "expected_runtime_version": "0.32.13",
+  "fail_closed_action": "HOLD_WITH_ZERO_INFERENCE",
+  "fail_closed_conditions": [
+    "LIVE_RUNTIME_VERSION_MISMATCH",
+    "QWEN_MODEL_DIGEST_MISMATCH",
+    "MISTRAL_MODEL_DIGEST_MISMATCH",
+    "ENDPOINT_NOT_LOOPBACK",
+    "UNEXPECTED_HTTP_OPERATION_REQUIRED",
+    "FROZEN_INPUT_DIGEST_MISMATCH",
+    "CANDIDATE_FREEZE_INVALID",
+    "QUALIFICATION_RESULT_NAMESPACE_EXISTS",
+    "RUNTIME_SNAPSHOT_CAPTURE_FAILED"
+  ],
+  "forbidden_artifact_kinds": [
+    "qualification_result_row",
+    "confirmatory_result_row",
+    "randomization_artifact",
+    "assignment_manifest",
+    "eligibility_manifest",
+    "benchmark_outcome",
+    "raw_run_record"
+  ],
+  "forbidden_results_namespaces": [
+    "results/phaseP-rc4-qualification",
+    "results/phaseL-rc3-requalification",
+    "results/phaseI-rc2-requalification",
+    "results/phaseF-qualification",
+    "results/phaseD-qualification"
+  ],
+  "forbidden_top_level_prefixes": [
+    "FSE-"
+  ],
+  "granted": {
+    "RUNTIME_PREFLIGHT_METADATA_CONTACT_AUTHORIZED": true,
+    "RUNTIME_SNAPSHOT_CAPTURE_AUTHORIZED": true,
+    "RUNTIME_SNAPSHOT_PERSISTENCE_AUTHORIZED": true
+  },
+  "historical_row_access_authorized": false,
+  "model_inference_performed": false,
+  "permitted_artifact_kinds": [
+    "RuntimeSnapshotV1",
+    "runtime_preflight_metadata_observation",
+    "runtime_preflight_report"
+  ],
+  "persistence_policy": {
+    "fail_closed": true,
+    "merge_permitted": false,
+    "overwrite_permitted": false,
+    "resume_permitted": false,
+    "write_once": true
+  },
+  "phase_p_status": "UNQUALIFIED",
+  "phase_p_terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+  "phase_p_verdict": "HOLD",
+  "provider_contacted": false,
+  "qualification_constants_that_must_stay_false": {
+    "CONFIRMATORY_EXECUTION_AUTHORIZED": false,
+    "ENDPOINT_PROBE_AUTHORIZED": false,
+    "MODEL_INFERENCE_AUTHORIZED": false,
+    "PROVIDER_CONTACT_AUTHORIZED": false,
+    "QUALIFICATION_EXECUTION_AUTHORIZED": false,
+    "RANDOMIZATION_REALIZATION_AUTHORIZED": false,
+    "STAGE_C_FINAL_REGISTRATION_AUTHORIZED": false
+  },
+  "qualification_executed": false,
+  "qualification_results_namespace": "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+  "randomization_realized": false,
+  "record_kind": "successor_runtime_preflight_contact_authorization",
+  "refused_hosts": [
+    "localhost",
+    "::1",
+    "0.0.0.0",
+    "127.0.0.2",
+    "host.docker.internal",
+    "ollama",
+    "api.openai.com",
+    "api.anthropic.com"
+  ],
+  "refused_methods": [
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "HEAD",
+    "OPTIONS",
+    "TRACE",
+    "CONNECT"
+  ],
+  "refused_paths": [
+    "/api/generate",
+    "/api/chat",
+    "/v1/chat/completions",
+    "/v1/completions",
+    "/v1/embeddings",
+    "/v1/models",
+    "/api/show",
+    "/api/pull",
+    "/api/push",
+    "/api/create",
+    "/api/copy",
+    "/api/delete",
+    "/api/blobs",
+    "/api/embed",
+    "/api/embeddings",
+    "/api/ps"
+  ],
+  "refused_request_headers": [
+    "authorization",
+    "proxy-authorization",
+    "api-key",
+    "x-api-key",
+    "openai-api-key",
+    "cookie"
+  ],
+  "repair_during_preflight_authorized": false,
+  "request_body_permitted": false,
+  "runtime_preflight_evidence_namespace": "results/prospective-candidate-i5-m1-b76f40da2-runtime-preflight",
+  "runtime_version_comparison": "EXACT_STRING_EQUALITY",
+  "runtime_version_resolution": "RESTORE_FROZEN_RUNTIME",
+  "seed_derivation_algorithm": "successor-qualification-seed-derivation-1",
+  "seed_derivation_digest": "97674242a12d05ccac8fe1ee1c1ef3885f2a999da538f1ccc3d2a429b62d4b3b",
+  "seed_derivation_record": "docs/successor_prospective_seed_derivation.json",
+  "upstream_authorization_record": "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md",
+  "validator": "scripts/successor_runtime_preflight_authorization.py",
+  "withheld": {
+    "BENCHMARK_OUTCOME_AUTHORIZED": false,
+    "BENCHMARK_PROMPT_AUTHORIZED": false,
+    "CANDIDATE_REFREEZE_AUTHORIZED": false,
+    "CONFIRMATORY_EXECUTION_AUTHORIZED": false,
+    "CONFIRMATORY_RESULT_ROW_AUTHORIZED": false,
+    "CREDENTIAL_TRANSMISSION_AUTHORIZED": false,
+    "MODEL_INFERENCE_AUTHORIZED": false,
+    "MODEL_PULL_AUTHORIZED": false,
+    "MODEL_REPLACEMENT_AUTHORIZED": false,
+    "MODEL_RETAG_AUTHORIZED": false,
+    "MODEL_UPDATE_AUTHORIZED": false,
+    "PRODUCTION_RANDOMIZATION_AUTHORIZED": false,
+    "QUALIFICATION_EXECUTION_AUTHORIZED": false,
+    "QUALIFICATION_RESULT_ROW_AUTHORIZED": false,
+    "RANDOMIZATION_ARTIFACT_AUTHORIZED": false,
+    "REMOTE_PROVIDER_ACCESS_AUTHORIZED": false,
+    "REPAIR_DURING_PREFLIGHT_AUTHORIZED": false,
+    "RUNTIME_REPIN_AUTHORIZED": false,
+    "STAGE_B_ELIGIBILITY_DISPOSITION_AUTHORIZED": false,
+    "STAGE_C_FINAL_REGISTRATION_AUTHORIZED": false
+  }
+}
