@@ -193,41 +193,70 @@ assignment realization remain unauthorized.
 ## 6. Execution preconditions, in order
 
 An authorized execution would have to clear all of the following, in this order.
-None of it is authorized today, and steps 5 onward are not implemented because
-implementing them would require the contact they depend on.
+Every step is now IMPLEMENTED in `scripts/run_successor_qualification.py` and
+covered by `tests/integration/test_successor_qualification_execution.py`. None of
+it is authorized, and none of it is reachable: step 1 refuses before step 2 is
+read, so the driver is executable but locked.
 
 1. **Authorization.** `successor_qualification_protocol.require_execution_authorization()`.
    Checked **before** the CLI flag and the environment gate, so a caller who
    supplies both still gets a refusal. A human record is the authorization; the
    gates are only how an already-granted authorization is exercised.
 2. **Human gates.** `--execute-real-model` **and**
-   `IQA_SOA_SUCCESSOR_QUALIFICATION_HUMAN_GATE=AUTHORIZED`. Both required.
-3. **Offline preflight.** Authorization state, candidate freeze digests,
-   instrument pins, provider config, selected strata, scoring profile,
-   historical isolation, frozen inputs, absence of any pre-existing result
-   artifact, and the full successor scope validator. Any failure is a
-   `PREFLIGHT_STOP`.
-4. **Credential presence, by name only.** `SUCCESSOR_OLLAMA_API_KEY`. Absent is a
+   `IQA_SOA_SUCCESSOR_QUALIFICATION_HUMAN_GATE=AUTHORIZED`. Both required, and
+   both inert while step 1 refuses.
+3. **Canonical scientific input binding.** `--config` and `--manifest` are
+   ASSERTIONS, not choices: each is proven canonical by PATH and by the SHA-256
+   the frozen-input record accepted. There is no noncanonical execution mode.
+4. **Offline preflight.** Authorization state, candidate freeze digests,
+   instrument pins, provider config, ExperimentConfig, selected strata, seed
+   derivation, runtime-version policy, scoring profile, historical isolation,
+   frozen inputs, absence of any pre-existing result artifact, the full
+   successor scope validator, and the confirmatory-boundary check. Any failure
+   is a `PREFLIGHT_STOP`.
+5. **Canonical runtime evidence.** The committed preflight evidence at
+   `results/prospective-candidate-i5-m1-b76f40da2-runtime-preflight/` is loaded,
+   its capture commit `9f7a8b5` bound, and every `RuntimeSnapshotV1` self-digest
+   and identity digest RECOMPUTED from the persisted invariant fields. It is
+   IMMUTABLE OBSERVED EVIDENCE: no timestamp, self-digest or provenance field is
+   ever rewritten, and evidence the driver cannot validate is a stop rather than
+   something to recapture.
+6. **Schedule and provenance truth.** The frozen 102-cell schedule is built from
+   the frozen manifest's own task order, and the summary this run would persist
+   is required to describe the schedule it would execute.
+7. **Namespace ABSENCE.** The ENTIRE results namespace must not exist. Checked
+   before any provider object is constructed, so a second invocation costs zero
+   contact and zero inference.
+8. **Credential presence, by name only.** `SUCCESSOR_OLLAMA_API_KEY`. Absent is a
    `CREDENTIAL_STOP`. The value is never read into a message, never printed and
    never written to an artifact.
-5. **Runtime preflight (NOT IMPLEMENTED, NOT AUTHORIZED).** Per proposed
-   stratum: verify model, model digest, runtime version, tool contract policy
-   and protocol against the pins, and capture one real `RuntimeSnapshotV1`. Any
-   disagreement — **or any missing observation** — is an `ENVIRONMENT_HOLD`.
+9. **Immediate pre-inference environment check.** Per stratum, BEFORE the first
+   model request: verify model, model digest, runtime version, tool contract
+   policy and protocol against the pins, then freshly call the
+   repository-owned `RuntimeSnapshotV1` capture once and require its
+   `runtime_identity_digest` to equal the canonical preflight identity —
+   `3c49ab56…` for qwen, `5ff8e092…` for mistral. `captured_at` and
+   `self_digest` naturally differ; the identity must not. A PRIOR observation is
+   never accepted in place of a fresh one. Any disagreement — **or any missing
+   observation** — is an `ENVIRONMENT_HOLD` with **zero cells executed**.
    The runtime version is compared by **exact string equality** against the
    single accepted version `0.32.13`; a non-string observation is refused rather
-   than coerced. The environment has reported `0.33.0`, which is an
+   than coerced. The environment previously reported `0.33.0`, which is an
    `ENVIRONMENT_HOLD` whose recorded human resolution is
-   `RESTORE_FROZEN_RUNTIME` (governing record section 5A). The preflight fails
-   closed and must never downgrade the runtime, update Ollama, repin the
-   protocol, pull a model, replace a model or retag a model.
-6. **Schedule.** Arm-major → task-major → seed-minor, over the 102 cells fixed
-   by section 5.
-7. **Execution.** Zero retries. A provider or model failure is a recorded
-   outcome, never a reason to rerun.
+   `RESTORE_FROZEN_RUNTIME` (governing record section 5A). The check fails
+   closed and never downgrades the runtime, updates Ollama, repins the
+   protocol, pulls a model, replaces a model or retags a model.
+10. **The frozen schedule.** Arm-major → task-major → seed-minor, over the 102
+   cells fixed by section 5, QA OFF only, owned by the stop controller so a stop
+   cannot be stepped past. Zero retries: a provider or model failure is a
+   recorded outcome, never a reason to rerun. An interruption writes the frozen
+   fail-closed partial manifest and is never resumed.
 
 Exit codes: `0` OK, `1` verdict hold, `2` preflight stop, `3` schedule stopped,
-`4` credential stop, `5` environment hold, `6` gate closed.
+`4` credential stop, `5` environment hold, `6` gate closed. A pre-existing
+namespace exits `3`: the write-once precondition is a schedule stop, reported
+distinctly from a generic preflight failure so a second invocation is legible as
+what it is.
 
 ---
 
@@ -236,8 +265,12 @@ Exit codes: `0` OK, `1` verdict hold, `2` preflight stop, `3` schedule stopped,
 Namespace: `results/prospective-candidate-i5-m1-b76f40da2-qualification`.
 
 **It does not exist and nothing here creates it.** An authorized driver creates
-it only after every gate and precondition passes. A pre-existing raw record is a
-`PROTOCOL_DEVIATION`, never something to append to.
+it only after every gate and precondition passes. Persistence is WRITE-ONCE BY
+ABSENCE: the ENTIRE namespace must be absent, checked before any provider object
+is constructed, so a second invocation costs zero contact and zero inference. A
+pre-existing namespace — even an empty one, even one holding an interrupted
+run's partial manifest — is a `PROTOCOL_DEVIATION`, never something to append
+to, resume or repair.
 
 | Artifact | Name |
 |---|---|
@@ -275,11 +308,23 @@ observation, and `CURRENT_PROVIDER_ELIGIBILITY: UNASSESSED` stands.
 
 ## 9. Next real action
 
-**Restore the execution environment to Ollama `0.32.13`**, then a separately
-authorized **runtime preflight**: per proposed stratum, verify the model digest,
-runtime version, tool contract policy and protocol against the pins in section 4,
-and capture one real `RuntimeSnapshotV1`.
+The runtime preflight named here as the next action HAS HAPPENED. It was
+authorized by
+`docs/post_phaseP_successor_runtime_preflight_contact_authorization.md`, ran once
+at canonical main `9f7a8b5` against a restored Ollama `0.32.13`, and its evidence
+is committed and immutable at
+`results/prospective-candidate-i5-m1-b76f40da2-runtime-preflight/`. Both frozen
+strata presented their pinned model identities and a real `RuntimeSnapshotV1`.
+That authorization is now SPENT: it was one-shot, and it refuses a second
+contact by its own rules.
 
-It requires provider contact and therefore a new human record. It requires no
-further methodology decision — which is precisely what this plan and its
-authorization were written to achieve.
+The execution path is likewise no longer outstanding — it is implemented,
+reviewed and tested, and it is locked.
+
+**The next real action is a NEW HUMAN RECORD authorizing qualification
+execution.** Nothing else is missing: the schedule, the environment check, the
+persistence contract and the analyzer are all in place and all offline-tested.
+No further methodology decision is required — which is precisely what this plan
+and its authorization were written to achieve. Until that record exists,
+`QUALIFICATION_EXECUTION_AUTHORIZED` stays `False`, and supplying the CLI flag
+and the environment gate together still yields a refusal.
