@@ -1,0 +1,178 @@
+{
+  "authorization_canonical_main_commit": "469b0c5916ae74f098da8ab2a45955297a04120b",
+  "authorization_machine_record": "docs/post_phaseP_successor_runtime_preflight_contact_authorization.json",
+  "authorization_machine_record_sha256": "d4eb1203b878a2736e690baacbbb21ed3a4cbec655f8fe01ed7164694295ff2c",
+  "authorization_record": "docs/post_phaseP_successor_runtime_preflight_contact_authorization.md",
+  "authorization_record_sha256": "a444585878f6d7b5a742628bc31160e95d2c7db65606f34f59acbe92aebdacc3",
+  "authorization_version": "successor-runtime-preflight-contact-authorization-1",
+  "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+  "benchmark_version": "pilot-v7-rc4",
+  "bound_artifact_digests_observed": {
+    "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json": "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc",
+    "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
+    "configs/successor-models.yaml": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+    "configs/successor-qualification.yaml": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+    "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md": "cff940697c110b6b7e507ab051127c9d62676fccec2f868d9434bf45aa4d042b",
+    "docs/successor_frozen_execution_inputs.json": "f8c8ee086ca52ba3b4b93ceb3d72c5e9d2691b7d2152a6fba45185bc5f778ce2",
+    "docs/successor_prospective_seed_derivation.json": "08afb9ec753358ed1f75d1db645cfe179b1a952dcdc51a29aa23c82f8d70a05e",
+    "scripts/successor_qualification_protocol.py": "ddf82fc080d4c462f0230a8f646a6f08fc020ffac5b7818a3b58a97b98eb3cea"
+  },
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_namespace": "candidates/prospective-candidate-i5-m1-b76f40da2",
+  "candidate_qualification_status": "NOT_YET_QUALIFIED",
+  "candidate_status_at_entry": "FROZEN_NOT_YET_QUALIFIED",
+  "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+  "canonical_main_commit": "9f7a8b578b6f8d5de96e12e6725d9f3b8bcec51a",
+  "capture": {
+    "capture_callable": "iqa_soa.experiment.confirmatory.capture_runtime_snapshot_v1",
+    "capture_strata": [
+      [
+        "mistral_native_trailing_user",
+        "mistral-small3.2:24b"
+      ],
+      [
+        "qwen_native_none",
+        "qwen3.5:27b"
+      ]
+    ],
+    "directory_valued_benchmark_capture": "PASS",
+    "field_override_supplied": false,
+    "identity_copied_into_snapshot": false,
+    "snapshot_manually_instantiated": false,
+    "snapshots": {
+      "mistral_native_trailing_user": {
+        "artifact": "runtime-snapshot-mistral_native_trailing_user.json",
+        "captured_at": "2026-09-03T09:53:38Z",
+        "field_count": 20,
+        "model": "mistral-small3.2:24b",
+        "runtime_identity_digest": "5ff8e0922b589522682b3e2d9efd3b55b0e014221011669247d421996d742e48",
+        "self_digest": "b2c3ea571ad71a7bf02650079e41b6ed5068be85de30b903284dffbffd97161b",
+        "self_digest_validated": true
+      },
+      "qwen_native_none": {
+        "artifact": "runtime-snapshot-qwen_native_none.json",
+        "captured_at": "2026-09-03T09:53:38Z",
+        "field_count": 20,
+        "model": "qwen3.5:27b",
+        "runtime_identity_digest": "3c49ab568c75b07b8c640cd4862003725b4552948cdba594ddd753af4911d30b",
+        "self_digest": "5f2ff4e2eaf6852ca87b861e1e93d0d179b5df0956f7f5760d27e37fa89b1d2c",
+        "self_digest_validated": true
+      }
+    },
+    "timestamp_synthesized": false
+  },
+  "execution_boundary": {
+    "BENCHMARK_PROMPT_SENT": false,
+    "CANDIDATE_REFROZEN": false,
+    "CONFIRMATORY_EXECUTION_AUTHORIZED": false,
+    "CONFIRMATORY_EXECUTION_PERFORMED": false,
+    "MODEL_INFERENCE_AUTHORIZED": false,
+    "MODEL_INFERENCE_PERFORMED": false,
+    "PRODUCTION_RANDOMIZATION_AUTHORIZED": false,
+    "QUALIFICATION_EXECUTION_AUTHORIZED": false,
+    "QUALIFICATION_EXECUTION_PERFORMED": false,
+    "RANDOMIZATION_REALIZED": false,
+    "REPAIR_PERFORMED": false
+  },
+  "experiment_config": "configs/successor-qualification.yaml",
+  "experiment_config_sha256": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+  "freeze_record": "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json",
+  "freeze_record_sha256": "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc",
+  "frozen_execution_inputs": "docs/successor_frozen_execution_inputs.json",
+  "frozen_execution_inputs_sha256": "f8c8ee086ca52ba3b4b93ceb3d72c5e9d2691b7d2152a6fba45185bc5f778ce2",
+  "historical_boundary": {
+    "forbidden_results_namespaces": [
+      "results/phaseP-rc4-qualification",
+      "results/phaseL-rc3-requalification",
+      "results/phaseI-rc2-requalification",
+      "results/phaseF-qualification",
+      "results/phaseD-qualification"
+    ],
+    "forbidden_top_level_prefixes": [
+      "FSE-"
+    ],
+    "historical_row_access_authorized": false,
+    "phase_p_evidence_touched": false,
+    "phase_p_status": "UNQUALIFIED",
+    "phase_p_terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "phase_p_verdict": "HOLD"
+  },
+  "metadata_contact": {
+    "allowed_origin": "http://127.0.0.1:11434",
+    "credential_transmitted": false,
+    "expected_model_identities": {
+      "mistral-small3.2:24b": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+      "qwen3.5:27b": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e"
+    },
+    "expected_runtime_version": "0.32.13",
+    "fail_closed_conditions_triggered": [],
+    "http_operations_performed": [
+      "GET /api/version",
+      "GET /api/tags"
+    ],
+    "live_model_identities": {
+      "mistral-small3.2:24b": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+      "qwen3.5:27b": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e"
+    },
+    "live_runtime_version": "0.32.13",
+    "model_identity_match": true,
+    "request_body_sent": false,
+    "request_headers_sent": [],
+    "runtime_version_comparison": "EXACT_STRING_EQUALITY",
+    "runtime_version_match": true
+  },
+  "models_config": "configs/successor-models.yaml",
+  "models_config_sha256": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+  "pr10_state": {
+    "CONFIRMATORY_ELIGIBLE": "NO",
+    "PROPOSED_STRATUM": "YES",
+    "PROVIDER_QUALIFIED": "NO",
+    "RUNTIME_CONFIGURATION_FROZEN": "NOT_ESTABLISHED_HERE",
+    "RUNTIME_IDENTITY_MATCH": "YES",
+    "note": "This capture establishes only that the live runtime presents the prospectively pinned version and both pinned model identities, and that a real RuntimeSnapshotV1 was captured for each frozen stratum. It enters no Stage, records no eligibility disposition, and does not discharge RUNTIME_CONFIGURATION_FROZEN, which is a separate later human decision. scripts/successor_eligibility_preflight.py and docs/successor_pr10_offline_eligibility_argument.json are unmodified.",
+    "offline_pr10_argument_unmodified": true,
+    "stage_b_disposition_recorded": false,
+    "stage_b_entered": false,
+    "stage_c_final_registration": false
+  },
+  "provenance": {
+    "evidence_namespace": "results/prospective-candidate-i5-m1-b76f40da2-runtime-preflight",
+    "forbidden_artifact_kinds": [
+      "qualification_result_row",
+      "confirmatory_result_row",
+      "randomization_artifact",
+      "assignment_manifest",
+      "eligibility_manifest",
+      "benchmark_outcome",
+      "raw_run_record"
+    ],
+    "permitted_artifact_kinds": [
+      "RuntimeSnapshotV1",
+      "runtime_preflight_metadata_observation",
+      "runtime_preflight_report"
+    ],
+    "persisted_at": "2026-09-03T09:55:42Z",
+    "persistence_policy": {
+      "fail_closed": true,
+      "merge_permitted": false,
+      "overwrite_permitted": false,
+      "resume_permitted": false,
+      "write_once": true
+    },
+    "python_version": "3.13.5"
+  },
+  "qualification_contract": "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json",
+  "qualification_contract_sha256": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
+  "qualification_protocol": "scripts/successor_qualification_protocol.py",
+  "qualification_protocol_sha256": "ddf82fc080d4c462f0230a8f646a6f08fc020ffac5b7818a3b58a97b98eb3cea",
+  "qualification_results_namespace": "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+  "qualification_results_namespace_exists": false,
+  "record_kind": "runtime_preflight_report",
+  "schema_version": "successor-runtime-preflight-evidence-1",
+  "seed_derivation_algorithm": "successor-qualification-seed-derivation-1",
+  "seed_derivation_digest": "97674242a12d05ccac8fe1ee1c1ef3885f2a999da538f1ccc3d2a429b62d4b3b",
+  "seed_derivation_record": "docs/successor_prospective_seed_derivation.json",
+  "seed_derivation_record_sha256": "08afb9ec753358ed1f75d1db645cfe179b1a952dcdc51a29aa23c82f8d70a05e",
+  "upstream_authorization_record": "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md",
+  "upstream_authorization_record_sha256": "cff940697c110b6b7e507ab051127c9d62676fccec2f868d9434bf45aa4d042b"
+}

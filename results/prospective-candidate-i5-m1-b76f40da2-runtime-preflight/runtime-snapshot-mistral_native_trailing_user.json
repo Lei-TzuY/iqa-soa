@@ -1,0 +1,36 @@
+{
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "capture_callable": "iqa_soa.experiment.confirmatory.capture_runtime_snapshot_v1",
+  "capture_kind": "PRE_EXECUTION_PROVENANCE",
+  "model": "mistral-small3.2:24b",
+  "provider_slot": "mistral_native_trailing_user",
+  "record_kind": "RuntimeSnapshotV1",
+  "snapshot": {
+    "artifact_version": "0.2.0",
+    "captured_at": "2026-09-03T09:53:38Z",
+    "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+    "environment_fingerprint": "e41763870828a49846cf5c222fe38be47f7f89bc32b2bd5981e7f39aedf3e676",
+    "experiment_config_digest": "6fdd0fb944ff571a8d987af8d8156539089916bf5e498fdc43ed880d14a7706d",
+    "model": "mistral-small3.2:24b",
+    "models_config_digest": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "package_source_sha256": "7241f2f07cbc786ed320e55528f5d2d3c365c96f2c274fc5ad2e6e486855044a",
+    "prompt_digest": "2c8c2b965b0c29fd9ef52898d004299d0b2ceb07f8893323375f190fb54869bf",
+    "provider_config_digest": "c0375e89d530c8011f3eec5b1e4c6e42796b6a6304f806ecd4ff89528bfc2cce",
+    "provider_name": "openai_compatible",
+    "provider_parameters_digest": "e59016173de89c7def3499a3ec8eaea01afffb5a7aeba8ef12348c824a04c1cc",
+    "python_version": "3.13.5",
+    "retry_policy": {
+      "backoff_kind": "NONE",
+      "initial_delay_seconds": "0",
+      "max_attempts": 1,
+      "max_delay_seconds": "0",
+      "retryable_error_classes": []
+    },
+    "runtime_identity_digest": "5ff8e0922b589522682b3e2d9efd3b55b0e014221011669247d421996d742e48",
+    "schema_version": "RuntimeSnapshotV1",
+    "self_digest": "b2c3ea571ad71a7bf02650079e41b6ed5068be85de30b903284dffbffd97161b",
+    "timeout_seconds": "600",
+    "tool_contract_policy": "trailing_user"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "capture_callable": "iqa_soa.experiment.confirmatory.capture_runtime_snapshot_v1",
+  "capture_kind": "PRE_EXECUTION_PROVENANCE",
+  "model": "qwen3.5:27b",
+  "provider_slot": "qwen_native_none",
+  "record_kind": "RuntimeSnapshotV1",
+  "snapshot": {
+    "artifact_version": "0.2.0",
+    "captured_at": "2026-09-03T09:53:38Z",
+    "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+    "environment_fingerprint": "e41763870828a49846cf5c222fe38be47f7f89bc32b2bd5981e7f39aedf3e676",
+    "experiment_config_digest": "6fdd0fb944ff571a8d987af8d8156539089916bf5e498fdc43ed880d14a7706d",
+    "model": "qwen3.5:27b",
+    "models_config_digest": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "package_source_sha256": "7241f2f07cbc786ed320e55528f5d2d3c365c96f2c274fc5ad2e6e486855044a",
+    "prompt_digest": "2c8c2b965b0c29fd9ef52898d004299d0b2ceb07f8893323375f190fb54869bf",
+    "provider_config_digest": "94c86b487cd83b9d17e3985268623e9a393f1479c3c27eb73910c48ce7ab768f",
+    "provider_name": "openai_compatible",
+    "provider_parameters_digest": "ee8d2f083d0e1034bad378d1fb660e0bf00e9b20b6602bc414a2404d34abd6ff",
+    "python_version": "3.13.5",
+    "retry_policy": {
+      "backoff_kind": "NONE",
+      "initial_delay_seconds": "0",
+      "max_attempts": 1,
+      "max_delay_seconds": "0",
+      "retryable_error_classes": []
+    },
+    "runtime_identity_digest": "3c49ab568c75b07b8c640cd4862003725b4552948cdba594ddd753af4911d30b",
+    "schema_version": "RuntimeSnapshotV1",
+    "self_digest": "5f2ff4e2eaf6852ca87b861e1e93d0d179b5df0956f7f5760d27e37fa89b1d2c",
+    "timeout_seconds": "600",
+    "tool_contract_policy": "none"
+  }
+}
