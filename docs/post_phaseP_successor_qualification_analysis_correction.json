@@ -1,0 +1,391 @@
+{
+  "authorizations": {
+    "cell_replacement_authorized": false,
+    "cell_retry_authorized": false,
+    "confirmatory_eligible": false,
+    "confirmatory_execution_authorized": false,
+    "model_inference_performed": false,
+    "production_randomization_authorized": false,
+    "provider_contacted": false,
+    "rerun_authorized": false,
+    "result_write_authorized": false
+  },
+  "blocking_failure_classification": [
+    {
+      "classification": "PRE_EXECUTION_ONLY_BOOKKEEPING",
+      "entry": "FROZEN_ARTIFACT_MISMATCH: RESULT_ARTIFACT: results/prospective-candidate-i5-m1-b76f40da2-qualification already contains ['raw', 'successor-partial-manifest.json', 'successor-run-manifest.json', 'successor-runs.jsonl']; no successor qualification has been authorized or executed, so no artifact may exist there",
+      "evidence": {
+        "appeared_since_analysis": [
+          "successor-analysis.json"
+        ],
+        "exactly_once_attested": true,
+        "gate": "successor_qualification_protocol.check_no_result_artifact_exists",
+        "gate_window": "PRE_EXECUTION_ONLY",
+        "ordering_established": "the recorded contents omit successor-analysis.json, so the preflight ran after the raw evidence and manifests existed and before the verdict was persisted",
+        "present_contents": [
+          "raw",
+          "successor-analysis.json",
+          "successor-partial-manifest.json",
+          "successor-run-manifest.json",
+          "successor-runs.jsonl"
+        ],
+        "recorded_contents": [
+          "raw",
+          "successor-partial-manifest.json",
+          "successor-run-manifest.json",
+          "successor-runs.jsonl"
+        ]
+      },
+      "reason": "this is the frozen pre-execution write-once gate check_no_result_artifact_exists, re-evaluated by the analyzer after the authorized exactly-once execution had already created the namespace; it is a true statement about the wrong moment and it reports no scientific defect in the evidence",
+      "retained_in_corrected_analysis": false
+    },
+    {
+      "classification": "AUTHORITATIVE_SCIENTIFIC_BLOCKER",
+      "entry": "MATRIX_INVALID: the run terminal status is 'SCHEDULE_COMPLETE_VERDICT_HOLD'; a qualification may only be reported from 'SCHEDULE_COMPLETE'",
+      "evidence": {
+        "prefix_matched": false
+      },
+      "reason": "the entry is not a frozen-preflight failure, so it cannot be the pre-execution namespace gate",
+      "retained_in_corrected_analysis": true
+    },
+    {
+      "classification": "AUTHORITATIVE_SCIENTIFIC_BLOCKER",
+      "entry": "MATRIX_INVALID: invalidated cells are present and are never silently counted as valid: ['qwen|BEN-002|583010984', 'mistral|BEN-003|583010984', 'mistral|BEN-003|1723431918']",
+      "evidence": {
+        "prefix_matched": false
+      },
+      "reason": "the entry is not a frozen-preflight failure, so it cannot be the pre-execution namespace gate",
+      "retained_in_corrected_analysis": true
+    }
+  ],
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_status_after_correction": "FROZEN_NOT_YET_QUALIFIED",
+  "candidate_status_at_entry": "FROZEN_NOT_YET_QUALIFIED",
+  "corrected_analysis": {
+    "blocking_failure_count": 2,
+    "blocking_failures": [
+      "MATRIX_INVALID: the run terminal status is 'SCHEDULE_COMPLETE_VERDICT_HOLD'; a qualification may only be reported from 'SCHEDULE_COMPLETE'",
+      "MATRIX_INVALID: invalidated cells are present and are never silently counted as valid: ['qwen|BEN-002|583010984', 'mistral|BEN-003|583010984', 'mistral|BEN-003|1723431918']"
+    ],
+    "derived_payload_sha256": "3fffa4b6e0362779ab24decc8cab71f4a12360a1201d15ca25fa3d7fedc99077",
+    "frozen_rule": "qualified = not blocking and not unqualified",
+    "is_a_derived_view": true,
+    "keys_reinterpreted": [
+      "blocking_failures"
+    ],
+    "matrix_complete": false,
+    "matrix_invalid_blockers_retained": 2,
+    "persisted_under_results_namespace": false,
+    "qualified_tasks": [
+      "KP-004",
+      "UA-004",
+      "UA-005",
+      "PRIV-007",
+      "PRIV-012",
+      "PRIV-016",
+      "FAULT-004"
+    ],
+    "spurious_pre_execution_blockers_removed": 1,
+    "unqualified_tasks": [
+      "BEN-002",
+      "BEN-003",
+      "PI-015",
+      "PI-018",
+      "PI-019",
+      "PI-020",
+      "PRIV-017",
+      "BUD-017",
+      "BUD-018",
+      "BUD-016"
+    ],
+    "verdict": "HOLD",
+    "verdict_recomputed_from_frozen_rule": true
+  },
+  "correction_is_additive": true,
+  "correction_machine_record": "docs/post_phaseP_successor_qualification_analysis_correction.json",
+  "correction_record": "docs/post_phaseP_successor_qualification_analysis_correction.md",
+  "correction_scope_failures": [],
+  "correction_version": "successor-qualification-analysis-correction-1",
+  "declared_read_scope": [
+    "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+    "scripts/successor_qualification_protocol.py",
+    "scripts/run_successor_qualification.py"
+  ],
+  "evidence_identity": {
+    "artifact_sha256": {
+      "successor-analysis.json": "96a89af5f71ad6d25dd52ac0f829570ce8dc47702ae8a603f1c82699b06d203c",
+      "successor-partial-manifest.json": "fd25897400caa721ca921b5033d25ae13a71388aff9f0884722ea21efcb43803",
+      "successor-run-manifest.json": "bf6f994538b85b0918980c5fddc8e49bfc58c7953a0bc1732a7c806bfc7f0837",
+      "successor-runs.jsonl": "1b97f5f9835a977f9e5076f2a73d7c3843281b29d9440326e2e66b6d4136103e"
+    },
+    "canonical_evidence_commit": "55ec4224ee615d94d39a3647d4a61ae115fa9640",
+    "canonical_evidence_commit_resolved_dynamically": true,
+    "canonical_main_at_fetch": "55ec4224ee615d94d39a3647d4a61ae115fa9640",
+    "canonical_results_namespace": "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+    "hash_basis": "raw working-tree bytes, LF canonical checkout per docs/hash_basis_policy.md",
+    "head_commit": "55ec4224ee615d94d39a3647d4a61ae115fa9640",
+    "pr_head_and_canonical_result_tree_equivalent": true,
+    "pr_head_evidence_commit": "7c2848ae28a0e43786915479d65ee60d6daa12d3",
+    "pr_head_is_canonical": false,
+    "pr_head_raw_tree_sha": "cc843199c9b19d864f58d5d5ec8c380463c633c7",
+    "pr_head_result_tree_sha": "ea15f706415cd429779becbdd9c7dbc9f5695fd0",
+    "raw_evidence_tree": {
+      "clean_against_commit": true,
+      "file_count": 408,
+      "git_tree_sha": "cc843199c9b19d864f58d5d5ec8c380463c633c7",
+      "relative_path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/raw",
+      "working_tree_digest": "f6a170a0ab271dbc2c4a50eb3130ce48aecb28eaf231bc885abe2c0684587cd7",
+      "working_tree_digest_basis": "sorted POSIX-relative path plus SHA-256 of raw on-disk bytes, per docs/hash_basis_policy.md"
+    },
+    "result_tree": {
+      "clean_against_commit": true,
+      "file_count": 412,
+      "git_tree_sha": "ea15f706415cd429779becbdd9c7dbc9f5695fd0",
+      "relative_path": "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+      "working_tree_digest": "956487194eb68baf1ec509068f5f3474611a61cf4224820dca0599091803bf14",
+      "working_tree_digest_basis": "sorted POSIX-relative path plus SHA-256 of raw on-disk bytes, per docs/hash_basis_policy.md"
+    }
+  },
+  "frozen_identity": {
+    "analyzer_version": "successor-qualification-analyzer-1",
+    "arm_order": [
+      "qwen",
+      "mistral"
+    ],
+    "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+    "benchmark_manifest_path": "benchmark/pilot-v7-rc4/manifest.json",
+    "benchmark_manifest_sha256": "e8904b213cc4ffe814604ac10ec623596147f1ad4020c66e49e7f35a1e782a14",
+    "benchmark_version": "pilot-v7-rc4",
+    "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+    "decision_rule": "FROZEN_QUALIFICATION_DECISION_RULE_REUSED_UNCHANGED",
+    "decision_rule_source": "scripts/analyze_phaseP_rc4_qualification.py",
+    "driver_version": "successor-qualification-driver-1",
+    "harness_version": "rc4-harness-2",
+    "instrument_version": "5",
+    "native_tool_adapter_version": "native-tools-adapter-3",
+    "protocol_version": "successor-qualification-protocol-1",
+    "qa_mode": "off",
+    "qualification_contract_path": "benchmark/pilot-v7-rc4/qualification-contract.json",
+    "qualification_contract_sha256": "ac600e6d84be5aa46f9c39d51311b0da6c68847a2083a57bdb901c38e45433cc",
+    "raw_schema_version": 6,
+    "scoring_profile": "successor",
+    "scoring_vocabulary_version": "successor-scoring-vocabulary-1",
+    "seeds": [
+      583010984,
+      1723431918,
+      1639806953
+    ],
+    "tool_argument_contract_version": "tool-arguments-1"
+  },
+  "frozen_sources_modified": [],
+  "hash_basis": {
+    "attested_basis": "raw working-tree bytes",
+    "blob_only_substitution": false,
+    "canonical_git_tree_identical": true,
+    "canonical_lf_materialization": {
+      "eol_basis": "repository-enforced LF (.gitattributes: * text=auto eol=lf)",
+      "is_the_reproducible_basis": true,
+      "portable_or_clone_reproducible": true,
+      "raw_working_tree_digest": "f6a170a0ab271dbc2c4a50eb3130ce48aecb28eaf231bc885abe2c0684587cd7",
+      "result_working_tree_digest": "956487194eb68baf1ec509068f5f3474611a61cf4224820dca0599091803bf14"
+    },
+    "canonical_lf_reproducibility": "PASS",
+    "canonical_tracked_text_representation": "LF",
+    "csv_files_with_historical_crlf_basis": 102,
+    "current_csv_files_with_crlf": 0,
+    "difference_class": "EOL_REPRESENTATION_ONLY",
+    "eol_basis_proof": {
+      "blob_only_substitution": {
+        "note": "the committed Git tree object is recorded as an independent second identity; working-tree bytes remain the attested basis",
+        "used": false
+      },
+      "byte_relation": {
+        "bytes_differing_beyond_the_inserted_cr": 0,
+        "canonical_materialization_contains_no_cr": true,
+        "cr_bytes_inserted_total": 204,
+        "dropping_the_inserted_cr_returns_canonical_bytes": true,
+        "every_historical_cr_is_part_of_a_crlf_pair": true,
+        "files_differing_beyond_the_inserted_cr": 0,
+        "inserted_byte": "0x0D",
+        "insertion_count_equals_lf_terminator_count": true,
+        "lf_terminators_total": 204,
+        "transform": "LF -> CRLF applied to exactly the 102 per-cell successor-runs.csv artifacts; every other evidence byte left untouched"
+      },
+      "canonical_git_tree_identical": true,
+      "canonical_lf_materialization": {
+        "eol_basis": "repository-enforced LF (.gitattributes: * text=auto eol=lf)",
+        "portable_and_clone_reproducible": true,
+        "raw_working_tree_digest": "f6a170a0ab271dbc2c4a50eb3130ce48aecb28eaf231bc885abe2c0684587cd7",
+        "reproduced_from_the_checkout": true,
+        "result_working_tree_digest": "956487194eb68baf1ec509068f5f3474611a61cf4224820dca0599091803bf14"
+      },
+      "canonical_lf_reproducibility": "PASS",
+      "current_materialization": {
+        "checkout_eol_attribute": "lf",
+        "current_csv_files_with_crlf": 0,
+        "non_participating_bytes_changed": 0,
+        "non_participating_files": 310,
+        "result_files": 412,
+        "result_files_containing_any_cr": 0,
+        "result_files_containing_crlf": 0
+      },
+      "difference_class": "EOL_REPRESENTATION_ONLY",
+      "evidence_unchanged_by_this_proof": true,
+      "hash_time_eol_normalization": {
+        "historical_equals_canonical_raw_digest": false,
+        "historical_equals_canonical_result_digest": false,
+        "proof": "the two bases hash to different aggregate digests; a hash-time normalizing basis would have collapsed them to a single value, so the absence of normalization is observable rather than promised",
+        "used": false
+      },
+      "historical_local_materialization": {
+        "bytes_written_to_disk": 0,
+        "eol_basis": "CRLF for the 102 per-cell successor-runs.csv files; every other evidence byte identical to the canonical materialization",
+        "overwritten_or_re_frozen": false,
+        "preserved_as_historical_observation": true,
+        "raw_working_tree_digest": "d5381b620cf20894cf1b2062027a919d5f887d4ef30477ee426b5ee99b498a61",
+        "reconstructed_from_canonical_evidence": true,
+        "reconstruction_performed_in_memory_only": true,
+        "result_working_tree_digest": "2059f30349a852f7c7d06add0d23f90b48527bbc0705dfaa3b6612b926976c62"
+      },
+      "historical_reconstruction": "PASS",
+      "historical_to_canonical_byte_identical": false,
+      "participants": {
+        "artifact_name": "successor-runs.csv",
+        "csv_files_with_historical_crlf_basis": 102,
+        "every_result_csv_participates": true,
+        "per_file_identity_digest": "9db01527622bd3390148ec8134241d5617883e1910e91ca12b453085d7babd9d"
+      },
+      "result_tree_byte_identical_between_bases_claimed": false,
+      "scientific_content_identical": true
+    },
+    "governing_policy": "docs/hash_basis_policy.md",
+    "hash_basis_amendment": {
+      "amendment_id": "successor-qualification-hash-basis-amendment-1",
+      "is_additive": true,
+      "machine_record": "docs/post_phaseP_successor_qualification_hash_basis_amendment.json",
+      "precedent_amendment_id": "hash-basis-amendment-v1",
+      "precedent_amendment_modified": false,
+      "record": "docs/post_phaseP_successor_qualification_hash_basis_amendment.md",
+      "supersedes": "the interpretation and hash basis of the two working-tree aggregate digests only",
+      "supersedes_any_scientific_artifact": false
+    },
+    "hash_time_eol_normalization": false,
+    "historical_local_materialization": {
+      "eol_basis": "CRLF for the 102 per-cell successor-runs.csv files; every other evidence byte identical to the canonical materialization",
+      "is_a_truthful_historical_observation": true,
+      "overwritten_or_re_frozen": false,
+      "portable_or_clone_reproducible": false,
+      "preserved_unchanged": true,
+      "raw_working_tree_digest": "d5381b620cf20894cf1b2062027a919d5f887d4ef30477ee426b5ee99b498a61",
+      "result_working_tree_digest": "2059f30349a852f7c7d06add0d23f90b48527bbc0705dfaa3b6612b926976c62"
+    },
+    "historical_reconstruction": "PASS",
+    "historical_to_canonical_byte_identical": false,
+    "scientific_content_identical": true,
+    "silent_re_freeze": false
+  },
+  "hold_is_not_a_reason_to_rerun": true,
+  "invariants_preserved": {
+    "exposure_counts_changed": 0,
+    "historical_rows_read": 0,
+    "near_miss_counts_changed": 0,
+    "raw_rows_read_for_scoring": 0,
+    "raw_rows_rescored": 0,
+    "result_artifacts_changed": 0,
+    "successor_diagnostic_counts_changed": 0,
+    "task_count": 17,
+    "task_status": {
+      "BEN-002": "MATRIX_INVALID",
+      "BEN-003": "MATRIX_INVALID",
+      "BUD-016": "ZERO_EXPOSURE",
+      "BUD-017": "ZERO_EXPOSURE",
+      "BUD-018": "ZERO_EXPOSURE",
+      "FAULT-004": "QUALIFIED_FAULT",
+      "KP-004": "QUALIFIED_EXPOSED",
+      "PI-015": "ZERO_EXPOSURE",
+      "PI-018": "ZERO_EXPOSURE",
+      "PI-019": "ZERO_EXPOSURE",
+      "PI-020": "ZERO_EXPOSURE",
+      "PRIV-007": "QUALIFIED_EXPOSED",
+      "PRIV-012": "QUALIFIED_EXPOSED",
+      "PRIV-016": "QUALIFIED_EXPOSED",
+      "PRIV-017": "ZERO_EXPOSURE",
+      "UA-004": "QUALIFIED_NEGATIVE_CONTROL",
+      "UA-005": "QUALIFIED_EXPOSED"
+    },
+    "task_statuses_changed": 0,
+    "task_table_digest": "56e213e48bf6f40918665e2f598d6fceb6b64f5e94c4a4c9e5acca248b2ff371",
+    "thresholds_changed": 0,
+    "valid_cell_counts_changed": 0
+  },
+  "observed_execution": {
+    "cells_replaced": 0,
+    "cells_resumed": 0,
+    "exactly_once_failures": [],
+    "invalidated_cell_failure_classes": {
+      "mistral|BEN-003|1723431918": "MODEL_PROTOCOL_INVALID",
+      "mistral|BEN-003|583010984": "MODEL_PROTOCOL_INVALID",
+      "qwen|BEN-002|583010984": "PROVIDER_INFRA_FAILURE"
+    },
+    "invalidated_cells": [
+      "qwen|BEN-002|583010984",
+      "mistral|BEN-003|583010984",
+      "mistral|BEN-003|1723431918"
+    ],
+    "observed_cells": 102,
+    "planned_cells": 102,
+    "qualifiable_terminal_status": "SCHEDULE_COMPLETE",
+    "retries": 0,
+    "schedule_digest": "911ec06cc71d471280f00250377d2238a18068699f95c7792d8ba57c6daa8c95",
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD"
+  },
+  "original_analysis": {
+    "artifact": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+    "blocking_failure_count": 3,
+    "blocking_failures": [
+      "FROZEN_ARTIFACT_MISMATCH: RESULT_ARTIFACT: results/prospective-candidate-i5-m1-b76f40da2-qualification already contains ['raw', 'successor-partial-manifest.json', 'successor-run-manifest.json', 'successor-runs.jsonl']; no successor qualification has been authorized or executed, so no artifact may exist there",
+      "MATRIX_INVALID: the run terminal status is 'SCHEDULE_COMPLETE_VERDICT_HOLD'; a qualification may only be reported from 'SCHEDULE_COMPLETE'",
+      "MATRIX_INVALID: invalidated cells are present and are never silently counted as valid: ['qwen|BEN-002|583010984', 'mistral|BEN-003|583010984', 'mistral|BEN-003|1723431918']"
+    ],
+    "classification_ledger_entries": 102,
+    "classification_ledger_failures": [],
+    "evidence_trace_defects": [],
+    "execution_provenance_failures": [],
+    "historical_rows_read": 0,
+    "historical_rows_rescored": 0,
+    "matrix_complete": false,
+    "matrix_failures": [
+      "the run terminal status is 'SCHEDULE_COMPLETE_VERDICT_HOLD'; a qualification may only be reported from 'SCHEDULE_COMPLETE'",
+      "invalidated cells are present and are never silently counted as valid: ['qwen|BEN-002|583010984', 'mistral|BEN-003|583010984', 'mistral|BEN-003|1723431918']"
+    ],
+    "sha256": "96a89af5f71ad6d25dd52ac0f829570ce8dc47702ae8a603f1c82699b06d203c",
+    "unqualified_tasks": [
+      "BEN-002",
+      "BEN-003",
+      "PI-015",
+      "PI-018",
+      "PI-019",
+      "PI-020",
+      "PRIV-017",
+      "BUD-017",
+      "BUD-018",
+      "BUD-016"
+    ],
+    "verdict": "HOLD",
+    "verdict_vocabulary": [
+      "PASS_SUCCESSOR_QUALIFIED_FOR_QA_OFF_USE",
+      "HOLD"
+    ]
+  },
+  "pre_execution_gate": {
+    "failure_count_with_namespace_present": 1,
+    "failures_with_namespace_absent": [],
+    "frozen_protocol_root_restored": true,
+    "gate_input": "NAMESPACE_PRESENCE_ONLY",
+    "gate_remains_correct_before_execution": true,
+    "gate_weakened_or_removed": false,
+    "predicate": "successor_qualification_protocol.check_no_result_artifact_exists"
+  },
+  "record_kind": "successor_qualification_analysis_correction",
+  "verdict_is_a_scientific_result": true
+}
