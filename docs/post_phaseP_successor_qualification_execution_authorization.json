@@ -1,0 +1,154 @@
+{
+  "authorization_machine_record": "docs/post_phaseP_successor_qualification_execution_authorization.json",
+  "authorization_record": "docs/post_phaseP_successor_qualification_execution_authorization.md",
+  "authorization_record_sha256": "24ecc5c4ca53a1ce85cca66068f512a12ba9905a16f7d52eb02e4ef5e2283b67",
+  "authorization_version": "successor-qualification-execution-authorization-1",
+  "authorized_driver_sha256": "b095d5ac87e4ed551b8d61b8f80d10b2a664ebda058b3abe4b356ccdadc5c2b1",
+  "base_protocol_historical_authorization": {
+    "constants_that_must_stay_false": {
+      "AUTHORIZES_CONFIRMATORY_EXECUTION": false,
+      "CONFIRMATORY_EXECUTION_AUTHORIZED": false,
+      "ENDPOINT_PROBE_AUTHORIZED": false,
+      "MODEL_INFERENCE_AUTHORIZED": false,
+      "PROVIDER_CONTACT_AUTHORIZED": false,
+      "QUALIFICATION_EXECUTION_AUTHORIZED": false,
+      "RANDOMIZATION_REALIZATION_AUTHORIZED": false,
+      "STAGE_C_FINAL_REGISTRATION_AUTHORIZED": false
+    },
+    "later_record_is_additive": true,
+    "record": "docs/post_phaseP_successor_provider_and_qualification_protocol_authorization.md"
+  },
+  "benchmark_case_bytes_digest": "76f40da2402780736616d886f5865a89c66981c4a0aa858340b6b431df03acea",
+  "bound_artifact_digests": {
+    "candidates/prospective-candidate-i5-m1-b76f40da2/freeze-record.json": "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc",
+    "candidates/prospective-candidate-i5-m1-b76f40da2/qualification-contract.json": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
+    "configs/successor-models.yaml": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+    "configs/successor-qualification.yaml": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+    "docs/successor_frozen_execution_inputs.json": "0faf64de2ae5c7b9b4df8bbf40c8656c8c5747977c5d6db1d154d660924de831",
+    "docs/successor_prospective_seed_derivation.json": "08afb9ec753358ed1f75d1db645cfe179b1a952dcdc51a29aa23c82f8d70a05e",
+    "docs/successor_real_model_qualification_plan.md": "52cf7303460197a1e605515e9662e9460e6301e4c065706225e0829db28c81f8",
+    "results/prospective-candidate-i5-m1-b76f40da2-runtime-preflight/runtime-preflight-report.json": "c0aa8be9cc00f32f6f85b0ebaa9bb81a8b939f06233d8507c0d1f41998be491b",
+    "scripts/run_successor_qualification.py": "b095d5ac87e4ed551b8d61b8f80d10b2a664ebda058b3abe4b356ccdadc5c2b1"
+  },
+  "candidate_freeze_record_digest": "c099346d2e1dadaa7da8fbca2cfb3ebbf7b7d3ba4d95083827bb9daee3f339cc",
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "candidate_status_at_entry": "FROZEN_NOT_YET_QUALIFIED",
+  "canonical_exposure_digest": "23bd76a57989ac3dc30ea718f0d0b3ac2ae3983a850c3a696868e45b632c4092",
+  "canonical_parent_commit": "a7d9410d4667059da2056994d4af2ff0b029884c",
+  "exactly_once": {
+    "cleanup_and_rerun_permitted": false,
+    "interruption_resumption_permitted": false,
+    "overwrite_permitted": false,
+    "qualification_namespace": "results/prospective-candidate-i5-m1-b76f40da2-qualification",
+    "second_invocation_permitted": false,
+    "spent_on_namespace_creation": true,
+    "valid_only_while_namespace_absent": true
+  },
+  "execution_shape": {
+    "authorized_providers": [
+      [
+        "qwen_native_none",
+        "qwen3.5:27b"
+      ],
+      [
+        "mistral_native_trailing_user",
+        "mistral-small3.2:24b"
+      ]
+    ],
+    "authorized_seed_values": [
+      583010984,
+      1723431918,
+      1639806953
+    ],
+    "authorized_treatment": "off",
+    "infrastructure_retry_limit": 0,
+    "planned_cells": 102,
+    "qualification_schedule_digest": "911ec06cc71d471280f00250377d2238a18068699f95c7792d8ba57c6daa8c95",
+    "replacement_cells": 0,
+    "resume_as_new_run": false,
+    "schedule_order": "ARM_MAJOR_TASK_MAJOR_SEED_MINOR",
+    "task_count": 17
+  },
+  "exercise_gates": {
+    "both_exercise_gates_required": true,
+    "cli_flag": "--execute-real-model",
+    "credential_environment_name": "SUCCESSOR_OLLAMA_API_KEY",
+    "environment_name": "IQA_SOA_SUCCESSOR_QUALIFICATION_HUMAN_GATE",
+    "environment_value": "AUTHORIZED",
+    "exercise_gates_are_authorization": false
+  },
+  "experiment_config_digest": "f5240e2571c3d6141e9d53b0a244daf8f9ce7be8c0f25b0dfd063484d7d8d090",
+  "fresh_runtime_identity": {
+    "committed_snapshot_self_digests": {
+      "mistral_native_trailing_user": "b2c3ea571ad71a7bf02650079e41b6ed5068be85de30b903284dffbffd97161b",
+      "qwen_native_none": "5f2ff4e2eaf6852ca87b861e1e93d0d179b5df0956f7f5760d27e37fa89b1d2c"
+    },
+    "expected_model_digests": {
+      "mistral-small3.2:24b": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+      "qwen3.5:27b": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e"
+    },
+    "expected_runtime_version": "0.32.13",
+    "fresh_captured_at_may_differ": true,
+    "fresh_self_digest_may_differ": true,
+    "mismatch_action": "ENVIRONMENT_HOLD_WITH_ZERO_CELLS",
+    "required_immediately_before_first_cell": true,
+    "required_runtime_identity_digests": {
+      "mistral_native_trailing_user": "5ff8e0922b589522682b3e2d9efd3b55b0e014221011669247d421996d742e48",
+      "qwen_native_none": "3c49ab568c75b07b8c640cd4862003725b4552948cdba594ddd753af4911d30b"
+    }
+  },
+  "frozen_execution_inputs_digest": "0faf64de2ae5c7b9b4df8bbf40c8656c8c5747977c5d6db1d154d660924de831",
+  "granted": {
+    "fresh_runtime_snapshot_capture": true,
+    "frozen_post_run_qualification_analysis": true,
+    "local_loopback_runtime_metadata_verification": true,
+    "model_inference": true,
+    "provider_construction_from_committed_configuration": true,
+    "qualification_execution": true,
+    "qualification_raw_evidence_persistence": true
+  },
+  "instrument_version": "5",
+  "models_config_digest": "7ff2ec9e7a452331e80414194a4f5a74ab87e1c677c48d1abebd173b063566c2",
+  "native_tool_adapter_version": "native-tools-adapter-3",
+  "network_surface": {
+    "allowed_models": [
+      "qwen3.5:27b",
+      "mistral-small3.2:24b"
+    ],
+    "allowed_origin": "http://127.0.0.1:11434",
+    "inference_endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+    "inference_operation": "POST /v1/chat/completions",
+    "metadata_operations": [
+      "GET /api/version",
+      "GET /api/tags"
+    ],
+    "model_pull_update_retag_show_or_replacement_authorized": false,
+    "remote_endpoint_authorized": false,
+    "unrelated_request_authorized": false
+  },
+  "qualification_contract_digest": "46b0893b8259d3bb1fed8810fe624d2a3393d5227bc72ea31ee395872dcdadb6",
+  "qualification_plan_digest": "52cf7303460197a1e605515e9662e9460e6301e4c065706225e0829db28c81f8",
+  "raw_schema_version": 6,
+  "record_kind": "successor_qualification_execution_authorization",
+  "runtime_preflight_report_digest": "c0aa8be9cc00f32f6f85b0ebaa9bb81a8b939f06233d8507c0d1f41998be491b",
+  "seed_derivation_digest": "97674242a12d05ccac8fe1ee1c1ef3885f2a999da538f1ccc3d2a429b62d4b3b",
+  "seed_derivation_record_digest": "08afb9ec753358ed1f75d1db645cfe179b1a952dcdc51a29aa23c82f8d70a05e",
+  "tool_argument_contract_digest": "eedff86135a533a21e19caef4ba9b05334bf54040aa38486e706e28716bd4634",
+  "tool_argument_contract_version": "tool-arguments-1",
+  "validator": "scripts/run_successor_qualification.py",
+  "withheld": {
+    "additional_seed": false,
+    "benchmark_modification": false,
+    "confirmatory_execution": false,
+    "confirmatory_randomization": false,
+    "historical_phase_p_access_or_reinterpretation": false,
+    "provider_or_model_reselection": false,
+    "repair_after_outcomes": false,
+    "replacement_cell": false,
+    "retry": false,
+    "runtime_repin": false,
+    "scoring_modification": false,
+    "second_qualification_run": false,
+    "stage_c_registration": false
+  }
+}
