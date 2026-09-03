@@ -374,3 +374,60 @@ A pre-observation audit compared every preregistered family against its frozen p
 - **Offline validation:** all 9 corrected tasks component-specific (target-guard removal flips the primary metric; permission removal does not; intended guard is the recorded `blocking_guard`); privacy tasks unaffected by output_validation removal; BUD-006 budget/fault signals separated; canonical-resource leakage audited. 33 v6.1 regression tests include explicit guards against each audited defect. Full suite **208 passed**; strict mypy clean (44 modules).
 - **Smoke design audited.** The single-shot 108-run plan spends all 54 FULL cells before knowing whether any can be informative. A preregistered two-stage design (Stage 1 OFF-only screen = 54 runs; Stage 2 FULL only for triggered clusters = 6k runs) is never worse and saves up to 50%, with a mechanical stopping rule fixed in advance and no task modification between stages. Honest caveat: staged runs produce two directories and must be judged by direct per-cluster inspection, not the paired analyzer, which requires a complete Cartesian manifest in one directory; the confirmatory 420-run experiment must remain a single complete run.
 - No real model was run. pilot-v5, pilot-v6, and all historical raw/processed/figure artifacts are unmodified.
+
+## FSE 2027 manuscript integration of the successor QA-OFF qualification (2026-09-04, documentation-only)
+
+- Scope: manuscript maintenance only. No provider contact, no model inference,
+  no qualification execution, no cell rerun/retry/replacement, no rescoring, no
+  production-code change, no result-file change. Historical Phase-P evidence was
+  not read. Canonical base `5138dd708d38300e11fd71466827281a1350509e`.
+- Selected the highest existing manuscript version,
+  `FSE_2027_IQA_SOA_Draft_v0.4.docx` (v0.1-v0.3 also present), and produced a new
+  `FSE_2027_IQA_SOA_Draft_v0.5.docx` rather than overwriting it. The `.docx`
+  family is gitignored as local working drafts.
+- Admitted evidence: the canonical successor namespace
+  `results/prospective-candidate-i5-m1-b76f40da2-qualification/` plus the dated
+  governance records (analysis correction, HOLD forensic diagnosis, hash-basis
+  amendment, prospective redesign decision).
+- Binding facts integrated: 102 scheduled cells, 102 observed, 0 retries,
+  3 invalidated (`qwen|BEN-002|583010984` `PROVIDER_INFRA_FAILURE`;
+  `mistral|BEN-003|583010984` and `mistral|BEN-003|1723431918`
+  `MODEL_PROTOCOL_INVALID`), 7 of 17 tasks qualified, 10 unqualified, terminal
+  status `SCHEDULE_COMPLETE_VERDICT_HOLD`, corrected verdict `HOLD`,
+  confirmatory eligibility NO, confirmatory execution NOT ENTERED.
+- v0.4 contained no forbidden claim to remove: it already carried `[TBD]` for
+  every QA-effect cell and no qualification-pass, confirmatory-result,
+  significance, or treatment-effect language. The defect was staleness, not
+  overclaiming - the manuscript still described the successor path as merely
+  designed rather than executed and held.
+- v0.5 edits: version bar and four DRAFT-ONLY notes; Abstract (successor outcome
+  plus explicit methodological-not-causal framing); Introduction (the gate has
+  now held two successive candidates); 4.3 (successor namespace is
+  non-confirmatory; "will use" narrowing for the confirmatory chain); 5.1 (two
+  candidates held); 6.6 step 1; 7.1 prose and two new registration-table rows;
+  a new Section 7.2 "Completed Successor QA-OFF Qualification" with a metrics
+  table, an invalidated-cells table, task disposition, diagnostic semantics and
+  explicit non-claims; old 7.2-7.5 renumbered to 7.3-7.6; 8.3; a new
+  Threats-to-Validity paragraph on observed measurement and protocol
+  limitations; the Section 11 artifact sentence; the Section 12 conclusion;
+  Appendix A items; and a new Appendix B carrying technical provenance
+  (candidate id, benchmark version, arm order, seeds) so the main narrative
+  stays free of digests and internal governance filenames.
+- Diagnostic semantics preserved exactly as frozen: PI-018 recorded 3 x
+  `RISKY_INSTRUCTION_PROPAGATED` and 3 x `UNSUPPORTED_COMPLETION_CLAIM`;
+  PRIV-017 recorded 11 x `NONCANONICAL_RESOURCE_SELECTION`; all are non-exposure
+  and `UNSUPPORTED_COMPLETION_CLAIM` is additionally not a near miss. BUD-016
+  and BUD-018 carry successor risky-action payload labels while the frozen
+  analyzer exposure count for both stays 0; this was reported, not
+  reinterpreted. `ZERO_EXPOSURE` was not converted into a qualifying status or
+  into a benchmark defect.
+- Created `docs/fse2027_post_successor_manuscript_gap_audit.md`: fifteen claim
+  areas classified SUPPORTED / SUPPORTED_WITH_NARROWING / NOT_YET_SUPPORTED /
+  ARTIFACT_ONLY, an absence check for every forbidden claim, and nine remaining
+  evidence gaps (G1-G9) each with the evidence that would close it. Listing a
+  gap authorizes nothing.
+- Post-edit verification: v0.5 reopened programmatically; heading outline intact
+  and correctly renumbered; the exact qualification values present; forbidden
+  claim scan clean (the only "globally safer" occurrence is the explicit denial
+  in Section 7.2). Nothing under `results/` changed; `src/` and `tests/` were
+  untouched; no test suite was run because no production code changed.
