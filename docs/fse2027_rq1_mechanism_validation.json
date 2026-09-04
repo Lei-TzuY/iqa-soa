@@ -1,0 +1,182 @@
+{
+  "schema_version": "FSE2027RQ1MechanismValidationV1",
+  "record_kind": "manuscript_claim_to_test_map",
+  "created_for": "FSE_2027_IQA_SOA_Draft_v0.8.docx",
+  "manuscript_section": "7.1 Deterministic Mechanism Validation (RQ1)",
+  "canonical_base": "0fc01a64ad1a35b220c388c4ca7ec166babe8ce8",
+  "repository": "Lei-TzuY/iqa-soa",
+  "validation_kind": "deterministic_offline_software_validation",
+  "real_model_inference": false,
+  "provider_contacted": false,
+  "qualification_executed": false,
+  "confirmatory_executed": false,
+  "boundary_note": "Every property below is a property of the implemented runtime control path under the offline deterministic fixture provider. None of them is a safety-effect estimate, a treatment effect, or evidence about how a real model behaves. The OFF/FULL row is a control-path distinction over one fixed proposal under a deterministic fixture; it is explicitly not a QA FULL versus QA OFF treatment contrast.",
+  "commands": [
+    {
+      "command": "python -m pytest -q tests/integration/test_gateway.py",
+      "tests_collected": 10,
+      "passed": 10,
+      "failed": 0,
+      "duration_seconds": 0.1
+    },
+    {
+      "command": "python -m pytest -q tests/integration/test_gateway.py tests/unit/test_qa_xml.py tests/unit/test_qa_guards.py tests/unit/test_evidence_logger.py tests/unit/test_qa_policy.py",
+      "tests_collected": 64,
+      "passed": 64,
+      "failed": 0,
+      "duration_seconds": 0.23
+    }
+  ],
+  "test_files": [
+    "tests/integration/test_gateway.py",
+    "tests/unit/test_qa_xml.py",
+    "tests/unit/test_qa_guards.py",
+    "tests/unit/test_evidence_logger.py",
+    "tests/unit/test_qa_policy.py"
+  ],
+  "properties": [
+    {
+      "property_id": "P01_INDEPENDENT_MEDIATION_AND_OFF_FULL_CONTROL_PATH",
+      "paper_claim": "A candidate action is resolved by the governance boundary rather than by the component that proposed it, and the same proposal takes a different control path under QA OFF and QA FULL.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_same_unsafe_proposal_executes_off_and_is_blocked_full",
+      "expected_invariant": "One identical Action('unsafe','file.read','private/secret.txt') executes under QAMode.OFF with Decision.ALLOW and returns the protected content, and under QAMode.FULL is not executed, returns Decision.BLOCK with blocking_guard == 'permission', and produces no tool result.",
+      "not_a_claim_about": "This is a deterministic fixture contrast, not a QA FULL versus QA OFF treatment effect.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P02_BLOCK_PREVENTS_PROTECTED_SIDE_EFFECT",
+      "paper_claim": "A BLOCK decision leaves no corresponding side effect in the sandbox state.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_modified_action_is_reauthorized_before_execution",
+      "expected_invariant": "After the BLOCK, state.database['protected-row'] is unchanged and outcome.executed is False.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P03_MODIFY_REWRITE_IS_REAUTHORIZED",
+      "paper_claim": "A MODIFY rewrite is re-evaluated against policy before execution rather than inheriting the original proposal's authorization.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_modified_action_is_reauthorized_before_execution",
+      "expected_invariant": "A guard that rewrites file.read into database.delete on a denied resource yields Decision.BLOCK with blocking_guard == 'permission'; the rewritten action is not executed.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P04_INJECTION_DERIVED_OUTBOUND_ACTION_BLOCKED",
+      "paper_claim": "A parsed QA-XML policy blocks a synthetic injection-derived outbound action before the sink is reached.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_parsed_default_policy_intercepts_smoke_injection",
+      "expected_invariant": "With configs/policies/default.xml parsed into a Policy, an Action marked derived_from_untrusted targeting message.send yields Decision.BLOCK with blocking_guard == 'injection', a non-empty matched_pattern in guard metadata, outcome.executed False, and state.messages == [].",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P05_PRIVACY_PROTECTED_READ_AND_OUTBOUND_VALUE_BLOCKED",
+      "paper_claim": "Protected-data access and propagation of a protected value to an outbound-capable sink are both blocked, and the protected value is not written into the guard record.",
+      "test_file": "tests/unit/test_qa_guards.py",
+      "test_name": "test_privacy_blocks_protected_read_and_outbound_value_without_logging_secret",
+      "expected_invariant": "PrivacyGuard returns Decision.BLOCK for a read of a protected resource and for an outbound message carrying a protected value, and the protected value does not appear in repr(result.to_dict()).",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P06_EVIDENCE_PREFLIGHT_FAILS_CLOSED",
+      "paper_claim": "A required evidence-storage preflight failure prevents the side effect rather than proceeding without evidence.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_required_evidence_preflight_fails_before_side_effect",
+      "expected_invariant": "With OutputValidationPolicy(require_evidence=True) and a logger whose ensure_writable raises, the outcome is Decision.ESCALATE with blocking_guard == 'evidence', executed False, and 'public/new.txt' absent from state.files.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P07_POST_EXECUTION_CONTAINMENT_OF_MALFORMED_RESULT",
+      "paper_claim": "Post-execution validation contains a malformed tool result instead of propagating it.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_post_tool_malformed_result_is_contained_after_execution",
+      "expected_invariant": "A malformed api.call response yields Decision.BLOCK with blocking_guard == 'output_validation', tool_result.metadata['contained'] True, tool_result.output None, and exactly one counted tool call.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P08_UNAVAILABLE_TOOL_NOT_RECORDED_AS_EXECUTION",
+      "paper_claim": "Dispatch of an unavailable tool is not falsely recorded as an execution.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_unavailable_tool_dispatch_is_not_reported_as_execution",
+      "expected_invariant": "tool_result.would_execute is False, outcome.executed is False, and the persisted evidence record carries executed False.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P09_FAULT_OUTCOME_ESCALATES",
+      "paper_claim": "A deterministic tool fault produces an escalation rather than a silent success.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_usage_counts_only_executed_calls_and_faults_are_caught",
+      "expected_invariant": "An injected timeout fault yields Decision.ESCALATE, an unsuccessful tool_result, ctx.usage.tool_calls == 1, and the recorded tool latency of the injected fault.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P10_DECORATOR_GOVERNS_EXISTING_PROPOSER",
+      "paper_claim": "The ServiceDecorator routes an existing tool proposer through governance without requiring the proposer to embed policy checks or rewrite the tool interface.",
+      "test_file": "tests/integration/test_gateway.py",
+      "test_name": "test_service_decorator_routes_proposals_without_tool_rewrite",
+      "expected_invariant": "An unmodified proposer wrapped by ServiceDecorator.wrap executes end to end under an allowing policy and returns the governed outcome.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P11_QA_XML_CLOSED_SCHEMA_ENFORCEMENT",
+      "paper_claim": "QA-XML is a closed, schema-validated policy artifact: malformed, extended, misordered, or self-contradictory policy is rejected before a policy object exists.",
+      "test_file": "tests/unit/test_qa_xml.py",
+      "test_name": "test_closed_schema_rejects_unknown_or_misordered_xml; test_rejects_dtd_and_entity_declarations_before_validation; test_rejects_direct_contradictory_duplicate_permission",
+      "expected_invariant": "Unknown elements and attributes, a wrong root element, misordered sections, DTD and entity declarations, and a direct allow/deny contradiction on the same tool and resource all raise before parsing yields a Policy.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P12_ORDERED_GUARD_EVALUATION_AND_AGGREGATION",
+      "paper_claim": "The governance chain evaluates modules in a fixed order and aggregates their results deterministically.",
+      "test_file": "tests/unit/test_qa_guards.py",
+      "test_name": "test_factory_order_enable_disable_and_unknown_rejection; test_aggregation_precedence_and_stable_ties",
+      "expected_invariant": "build_guard_chain yields guards in the order injection, permission, privacy, budget, output_validation, evidence; an unknown guard name raises ValueError; aggregate_decision returns BLOCK over MODIFY/ESCALATE/ALLOW and resolves ties to the earliest contributing guard.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P13_FAULTING_GUARD_FAILS_CLOSED",
+      "paper_claim": "A guard that raises escalates rather than allowing the action through or crashing the chain.",
+      "test_file": "tests/unit/test_qa_guards.py",
+      "test_name": "test_guard_extension_fault_escalates_instead_of_crashing",
+      "expected_invariant": "A raising guard yields Decision.ESCALATE with metadata['guard_error'] naming the raised error class.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P14_PROPOSER_CANNOT_DOWNGRADE_POLICY_RISK",
+      "paper_claim": "Policy authority is computed independently of the proposal: a proposer cannot lower the risk classification that governs its own action.",
+      "test_file": "tests/unit/test_qa_guards.py",
+      "test_name": "test_proposer_cannot_downgrade_high_impact_tool_risk",
+      "expected_invariant": "An Action declaring risk_severity 'low' for a high-impact tool yields Decision.ESCALATE, with metadata recording declared_severity 'low' and tool_risk_floor 'high'.",
+      "result": "PASS"
+    },
+    {
+      "property_id": "P15_APPEND_ONLY_EVIDENCE_WITH_DECISION_AND_COMPLETENESS",
+      "paper_claim": "Every decision emits an append-only evidence record carrying the proposal, the policy reference, the module outcome, the final decision and execution disposition, and a completeness value, with protected values redacted and identity fields under logger control.",
+      "test_file": "tests/unit/test_evidence_logger.py",
+      "test_name": "test_logger_is_exclusive_append_only_and_ids_are_stable; test_detailed_event_has_causal_links_completeness_and_redaction; test_logger_identity_fields_cannot_be_spoofed",
+      "expected_invariant": "Records append with stable monotonic sequence under exclusive file creation and a second logger on the same path raises FileExistsError; a detailed event carries causal_links['disposition'] and completeness['evidence_completeness'] and contains no protected value; caller-supplied evidence_id, sequence, or timestamp is rejected with ValueError.",
+      "result": "PASS"
+    }
+  ],
+  "summary": {
+    "properties": 15,
+    "distinct_test_functions_mapped": 19,
+    "test_files_executed": 5,
+    "tests_executed": 64,
+    "tests_passed": 64,
+    "tests_failed": 0,
+    "real_model_cells_executed": 0
+  },
+  "scientific_state_at_record_time": {
+    "successor_qualification_verdict": "HOLD",
+    "scheduled_cells": 102,
+    "recorded_terminal_observations": 102,
+    "retries": 0,
+    "invalidated_cells": 3,
+    "qualified_task_roles": "7/17",
+    "unqualified_task_roles": "10/17",
+    "confirmatory_eligibility": "NO",
+    "confirmatory_execution": "NOT_ENTERED",
+    "final_registration_completed": false,
+    "route_b_status": "PARKED_NOT_AUTHORIZED"
+  }
+}
