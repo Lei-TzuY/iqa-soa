@@ -41,7 +41,8 @@ def replay_historical_pytest(
 
     observed_blob = _git("rev-parse", f"{commit}:{module_path}")
     assert observed_blob.returncode == 0, (
-        "historical commit/blob is unavailable; CI must fetch full history:\n"
+        "historical commit/blob is unavailable; CI must fetch full history "
+        "and required immutable evidence refs:\n"
         + observed_blob.stderr
     )
     assert observed_blob.stdout.strip() == blob_id

@@ -41,7 +41,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
+          # A frozen HOLD-evidence commit is retained by GitHub under PR #41
+          # but was squash-excluded from main. Keep credentials only long
+          # enough to fetch that immutable object, then remove them before any
+          # repository code executes.
+          persist-credentials: true
+      - name: Fetch frozen qualification evidence object
+        run: |
+          git fetch --no-tags origin '+refs/pull/41/head:refs/remotes/origin/frozen-evidence/pr-41'
+          test "$(git rev-parse refs/remotes/origin/frozen-evidence/pr-41)" = "7c2848ae28a0e43786915479d65ee60d6daa12d3"
+          git config --local --unset-all http.https://github.com/.extraheader
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -57,7 +66,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true
+      - name: Fetch frozen qualification evidence object
+        run: |
+          git fetch --no-tags origin '+refs/pull/41/head:refs/remotes/origin/frozen-evidence/pr-41'
+          test "$(git rev-parse refs/remotes/origin/frozen-evidence/pr-41)" = "7c2848ae28a0e43786915479d65ee60d6daa12d3"
+          git config --local --unset-all http.https://github.com/.extraheader
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
