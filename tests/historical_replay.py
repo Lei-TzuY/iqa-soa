@@ -19,6 +19,84 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+_CROSS_RUNTIME_QUALIFICATION_CONTRACT = r'''\
+from pathlib import Path
+import sys
+import tempfile
+
+root = Path.cwd()
+sys.path[:0] = [str(root / "src"), str(root / "scripts")]
+
+import run_successor_qualification as driver
+import successor_qualification_protocol as protocol
+
+evidence = driver.load_runtime_evidence()
+captured = {
+    slot: driver.capture_stratum_runtime_snapshot(slot)
+    for slot in evidence.identity
+}
+if all(
+    captured[slot].runtime_identity_digest == expected
+    for slot, expected in evidence.identity.items()
+):
+    print("CANONICAL_RUNTIME_MATCH")
+    raise SystemExit(0)
+
+assert all(
+    captured[slot].runtime_identity_digest != expected
+    for slot, expected in evidence.identity.items()
+)
+
+def probe(model):
+    return driver.RuntimeMetadata(
+        runtime_version=protocol.EXPECTED_RUNTIME_VERSION,
+        model_present=True,
+        model_digest=protocol.EXPECTED_MODEL_DIGEST[model],
+    )
+
+failures, observations = driver.environment_preflight(
+    evidence=evidence,
+    probe=probe,
+    capture=driver.capture_stratum_runtime_snapshot,
+)
+assert len(failures) == len(evidence.identity)
+assert all("ENVIRONMENT_HOLD" in item for item in failures)
+assert all("RESTORE_FROZEN_RUNTIME" in item for item in failures)
+assert observations["environment_hold"] is True
+assert all(
+    observations["strata"][slot]["fresh_runtime_identity_digest"]
+    == captured[slot].runtime_identity_digest
+    and observations["strata"][slot]["canonical_runtime_identity_digest"]
+    == evidence.identity[slot]
+    and "runtime_identity_match" not in observations["strata"][slot]
+    for slot in evidence.identity
+)
+
+calls = []
+with tempfile.TemporaryDirectory(prefix="iqa-soa-cross-runtime-") as raw:
+    output = Path(raw) / "out"
+
+    def execute_cell(cell):
+        calls.append(cell.key)
+        raise AssertionError("environment hold failed to stop before cell execution")
+
+    code = driver.execute_offline_bound_run(
+        config_path=root / protocol.CANONICAL_EXPERIMENT_CONFIG_RELATIVE,
+        manifest_path=root / protocol.CANONICAL_MANIFEST_RELATIVE,
+        output_root=output,
+        env={protocol.CREDENTIAL_ENV: "offline-seam-not-a-real-credential"},
+        probe=probe,
+        capture=driver.capture_stratum_runtime_snapshot,
+        execute_cell=execute_cell,
+    )
+    assert code == protocol.EXIT_ENVIRONMENT_HOLD
+    assert calls == []
+    assert not output.exists()
+
+print("NONCANONICAL_RUNTIME_FAIL_CLOSED")
+'''
+
+
 def _git(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
@@ -36,6 +114,7 @@ def replay_historical_pytest(
     blob_id: str,
     expected_tests: int,
     worktree: Path,
+    canonical_runtime_bound: bool = False,
 ) -> None:
     """Execute an immutable historical test blob in its matching repository."""
 
@@ -79,6 +158,24 @@ def replay_historical_pytest(
         match = re.search(r"(\d+) tests? collected", collect.stdout)
         assert match is not None, collect.stdout
         assert int(match.group(1)) == expected_tests, collect.stdout
+
+        if canonical_runtime_bound:
+            contract = subprocess.run(
+                [sys.executable, "-B", "-c", _CROSS_RUNTIME_QUALIFICATION_CONTRACT],
+                cwd=worktree,
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            assert contract.returncode == 0, contract.stdout + contract.stderr
+            marker = contract.stdout.strip().splitlines()[-1]
+            assert marker in {
+                "CANONICAL_RUNTIME_MATCH",
+                "NONCANONICAL_RUNTIME_FAIL_CLOSED",
+            }, contract.stdout
+            if marker == "NONCANONICAL_RUNTIME_FAIL_CLOSED":
+                return
 
         run = subprocess.run(
             [sys.executable, "-B", "-m", "pytest", "-q", module_path],
