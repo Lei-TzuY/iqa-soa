@@ -1,0 +1,223 @@
+{
+  "schema_version": "claim-evidence-boundary/v1",
+  "canonical_study_sources": {
+    "analysis": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+    "run_manifest": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-run-manifest.json",
+    "run_rows": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-runs.jsonl"
+  },
+  "claims": [
+    {
+      "claim_id": "C-MEDIATION",
+      "short_claim": "Instrumented protected tool and service execution passes through an IQA-SOA authorization boundary.",
+      "paper_section": "IQA-SOA Runtime Governance Architecture; RQ1",
+      "claim_type": "mechanism",
+      "evidence_type": ["deterministic integration test", "machine-readable paired trace"],
+      "test_ids": [
+        "tests/integration/test_gateway.py::test_same_unsafe_proposal_executes_off_and_is_blocked_full",
+        "tests/integration/test_gateway.py::test_service_decorator_routes_proposals_without_tool_rewrite",
+        "tests/integration/test_gateway.py::test_unavailable_tool_dispatch_is_not_reported_as_execution",
+        "tests/artifact/test_submission_artifact.py::test_trace_has_same_proposal_and_distinct_dispatch_dispositions"
+      ],
+      "artifact_paths": [
+        "src/iqa_soa/iqa/gateway.py",
+        "src/iqa_soa/iqa/decorator.py",
+        "artifact/traces/privacy_exfiltration.json"
+      ],
+      "manifest_references": [],
+      "supported_scope": "Complete mediation at the instrumented tool/service execution boundary when applications use the documented ServiceDecorator and ServiceGateway path.",
+      "explicit_nonclaims": [
+        "No protection is claimed against arbitrary host compromise or raw operating-system, filesystem, network, or subprocess access outside the instrumented boundary.",
+        "The paired deterministic trace is not a real-model treatment-effect estimate."
+      ],
+      "verification_status": "VERIFIED"
+    },
+    {
+      "claim_id": "C-FAIL-CLOSED",
+      "short_claim": "Declared pre-execution failures and policy violations do not silently become authorization.",
+      "paper_section": "Runtime Decision Semantics; RQ1",
+      "claim_type": "mechanism",
+      "evidence_type": ["deterministic fail-closed regression tests", "bypass coverage inventory"],
+      "test_ids": [
+        "tests/integration/test_gateway.py::test_parsed_default_policy_intercepts_smoke_injection",
+        "tests/integration/test_gateway.py::test_modified_action_is_reauthorized_before_execution",
+        "tests/integration/test_gateway.py::test_required_evidence_preflight_fails_before_side_effect",
+        "tests/integration/test_gateway.py::test_post_tool_malformed_result_is_contained_after_execution",
+        "tests/integration/test_gateway.py::test_usage_counts_only_executed_calls_and_faults_are_caught",
+        "tests/integration/test_gateway.py::test_actual_simulated_runtime_budget_is_validated_post_execution",
+        "tests/unit/test_qa_guards.py::test_aggregation_precedence_and_stable_ties",
+        "tests/unit/test_qa_guards.py::test_factory_order_enable_disable_and_unknown_rejection",
+        "tests/unit/test_qa_guards.py::test_privacy_blocks_protected_read_and_outbound_value_without_logging_secret",
+        "tests/unit/test_qa_guards.py::test_proposer_cannot_downgrade_high_impact_tool_risk",
+        "tests/unit/test_qa_guards.py::test_guard_extension_fault_escalates_instead_of_crashing",
+        "tests/unit/test_qa_xml.py::test_closed_schema_rejects_unknown_or_misordered_xml",
+        "tests/artifact/test_submission_artifact.py::test_alias_and_invalid_payload_do_not_mutate_protected_state"
+      ],
+      "artifact_paths": [
+        "artifact/trust_boundary.json",
+        "src/iqa_soa/iqa/chain.py",
+        "src/iqa_soa/tools/registry.py"
+      ],
+      "manifest_references": [],
+      "supported_scope": "The schema-validated policy, ordered guard chain, evidence preflight, rewrite reauthorization, and exact-name sandbox dispatch paths covered by the named tests.",
+      "explicit_nonclaims": [
+        "Post-execution validation can contain returned data but cannot undo a side effect that already occurred.",
+        "The frozen instrument's legacy would_execute field is not used as proof of side-effect occurrence for argument-validation refusals; the regression asserts the sandbox state directly.",
+        "Application code that imports and calls ToolRegistry directly is inside the trusted host and outside the claimed mediation boundary."
+      ],
+      "verification_status": "VERIFIED"
+    },
+    {
+      "claim_id": "C-POLICY-IR",
+      "short_claim": "Runtime guards consume normalized QA Policy IR; QA-XML is its schema-validated serialization front end.",
+      "paper_section": "QA Policy IR and QA-XML Front End",
+      "claim_type": "mechanism",
+      "evidence_type": ["parser tests", "typed policy implementation"],
+      "test_ids": [
+        "tests/unit/test_qa_xml.py::test_parse_complete_minimal_qa_xml_into_typed_policy",
+        "tests/unit/test_qa_xml.py::test_closed_schema_rejects_unknown_or_misordered_xml",
+        "tests/unit/test_qa_xml.py::test_rejects_dtd_and_entity_declarations_before_validation",
+        "tests/unit/test_qa_xml.py::test_rejects_direct_contradictory_duplicate_permission"
+      ],
+      "artifact_paths": [
+        "schemas/qa-policy.xsd",
+        "src/iqa_soa/iqa/qa_xml.py",
+        "src/iqa_soa/iqa/policy.py"
+      ],
+      "manifest_references": [],
+      "supported_scope": "The implemented typed Policy objects and the QA-XML v0.1 parser/schema used by this artifact.",
+      "explicit_nonclaims": [
+        "No Cedar, Rego, XACML, SMT, or natural-language policy compiler integration is implemented or evaluated.",
+        "Novelty is not claimed for XML syntax."
+      ],
+      "verification_status": "VERIFIED"
+    },
+    {
+      "claim_id": "C-EVIDENCE",
+      "short_claim": "Governed decisions produce append-only, disposition-bearing evidence with protected-value redaction.",
+      "paper_section": "Evidence and QA-IUM Compatibility; RQ1",
+      "claim_type": "mechanism",
+      "evidence_type": ["deterministic evidence persistence tests", "trace artifact"],
+      "test_ids": [
+        "tests/unit/test_evidence_logger.py::test_logger_is_exclusive_append_only_and_ids_are_stable",
+        "tests/unit/test_evidence_logger.py::test_detailed_event_has_causal_links_completeness_and_redaction",
+        "tests/unit/test_evidence_logger.py::test_logger_identity_fields_cannot_be_spoofed"
+      ],
+      "artifact_paths": [
+        "src/iqa_soa/evidence/logger.py",
+        "artifact/traces/privacy_exfiltration.json"
+      ],
+      "manifest_references": [],
+      "supported_scope": "The local append-only JSONL evidence slice created by the in-process artifact runtime.",
+      "explicit_nonclaims": [
+        "The evidence store is not claimed to be a cryptographic ledger, tamper-proof store, or complete QA-IUM graph database."
+      ],
+      "verification_status": "VERIFIED"
+    },
+    {
+      "claim_id": "C-QUALIFICATION",
+      "short_claim": "The frozen conjunctive qualification rule holds the study when any required frozen task is unqualified.",
+      "paper_section": "Qualification Outcome; RQ2",
+      "claim_type": "governance",
+      "evidence_type": ["frozen qualification analysis", "read-only recomputation", "regression tests"],
+      "test_ids": [
+        "tests/integration/test_successor_qualification_analysis_correction.py::test_the_verdict_is_hold_even_with_no_blockers_at_all",
+        "tests/integration/test_successor_qualification_analysis_correction.py::test_the_frozen_run_level_rule_is_the_only_rule_applied",
+        "tests/integration/test_successor_qualification_analysis_correction.py::test_zero_exposure_is_never_converted_into_a_qualifying_status",
+        "tests/artifact/test_submission_artifact.py::test_unqualified_task_cannot_produce_confirmatory_eligibility"
+      ],
+      "artifact_paths": [
+        "artifact/study_metadata.json",
+        "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+        "docs/post_phaseP_qualification_methodology_decision.md"
+      ],
+      "manifest_references": [
+        {
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+          "pointer": "/verdict",
+          "expected": "HOLD"
+        },
+        {
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+          "pointer": "/decision_rule",
+          "expected": "FROZEN_QUALIFICATION_DECISION_RULE_REUSED_UNCHANGED"
+        }
+      ],
+      "supported_scope": "The prospectively frozen 17-task successor qualification under its all-required-tasks conjunction.",
+      "explicit_nonclaims": [
+        "The observed HOLD may not be replaced post hoc by an effect among support-qualified tasks.",
+        "A support-qualified-task estimand would require a new, separately identified prospective study."
+      ],
+      "verification_status": "VERIFIED"
+    },
+    {
+      "claim_id": "C-LIFECYCLE",
+      "short_claim": "The prospective lifecycle preserved terminal accounting and blocked downstream confirmatory execution.",
+      "paper_section": "Prospective Qualification; RQ2-RQ4",
+      "claim_type": "governance",
+      "evidence_type": ["frozen run manifest", "terminal row ledger", "authorization regression tests"],
+      "test_ids": [
+        "tests/integration/test_successor_qualification_protocol.py::test_post_execution_namespace_spends_exactly_once_authorization",
+        "tests/integration/test_successor_qualification_protocol.py::test_driver_post_execution_preflight_reports_no_contact_and_no_rows",
+        "tests/integration/test_successor_qualification_protocol.py::test_retries_are_fixed_at_zero",
+        "tests/integration/test_successor_qualification_protocol.py::test_persistence_is_fail_closed_with_no_overwrite",
+        "tests/integration/test_successor_qualification_analysis_correction.py::test_confirmatory_and_rerun_remain_unauthorized"
+      ],
+      "artifact_paths": [
+        "artifact/study_metadata.json",
+        "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-run-manifest.json",
+        "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-runs.jsonl"
+      ],
+      "manifest_references": [
+        {
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-run-manifest.json",
+          "pointer": "/terminal_status",
+          "expected": "SCHEDULE_COMPLETE_VERDICT_HOLD"
+        },
+        {
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-run-manifest.json",
+          "pointer": "/confirmatory_execution_performed",
+          "expected": false
+        }
+      ],
+      "supported_scope": "The retained successor qualification namespace and its prospectively frozen authorization and no-retry lifecycle.",
+      "explicit_nonclaims": [
+        "No new qualification or confirmatory execution is authorized by this verification manifest.",
+        "Invalidated and HOLD observations are preserved rather than retried, removed, or relabeled."
+      ],
+      "verification_status": "VERIFIED"
+    },
+    {
+      "claim_id": "C-EFFECTIVENESS-BOUNDARY",
+      "short_claim": "The current artifact establishes no QA FULL versus QA OFF safety treatment effect.",
+      "paper_section": "Results; Conclusion",
+      "claim_type": "effectiveness",
+      "evidence_type": ["absence-of-eligible-stage boundary", "frozen authorization state"],
+      "test_ids": [
+        "tests/integration/test_successor_qualification_analysis_correction.py::test_confirmatory_and_rerun_remain_unauthorized",
+        "tests/integration/test_successor_qualification_analysis_correction.py::test_no_network_provider_or_model_path_exists"
+      ],
+      "artifact_paths": [
+        "artifact/study_metadata.json",
+        "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json"
+      ],
+      "manifest_references": [
+        {
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+          "pointer": "/reports_no_qa_treatment_effect",
+          "expected": true
+        },
+        {
+          "path": "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json",
+          "pointer": "/confirmatory_execution_performed",
+          "expected": false
+        }
+      ],
+      "supported_scope": "A verified nonclaim about this frozen study: effectiveness evidence is absent because the eligibility gate did not pass and confirmatory execution did not occur.",
+      "explicit_nonclaims": [
+        "The repository does not claim that IQA-SOA improves real-model safety.",
+        "QA-OFF qualification observations are not QA-FULL treatment evidence."
+      ],
+      "verification_status": "VERIFIED_NONCLAIM"
+    }
+  ]
+}

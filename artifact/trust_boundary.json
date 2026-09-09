@@ -1,0 +1,46 @@
+{
+  "schema_version": "instrumented-mediation-boundary/v1",
+  "claimed_boundary": "complete mediation at the instrumented tool/service execution boundary",
+  "trusted_computing_base": [
+    {"component": "ServiceDecorator", "path": "src/iqa_soa/iqa/decorator.py", "responsibility": "routes application proposals to the gateway"},
+    {"component": "ServiceGateway", "path": "src/iqa_soa/iqa/gateway.py", "responsibility": "owns authorization, at-most-once dispatch, containment, and evidence handoff"},
+    {"component": "QA-XML front end", "path": "src/iqa_soa/iqa/qa_xml.py", "responsibility": "schema-validates and compiles QA-XML into normalized policy objects"},
+    {"component": "QA Policy IR", "path": "src/iqa_soa/iqa/policy.py", "responsibility": "provides normalized typed semantics consumed by guards"},
+    {"component": "GuardChain and guards", "path": "src/iqa_soa/iqa/chain.py", "responsibility": "evaluate ordered policy predicates and aggregate conservatively"},
+    {"component": "ToolRegistry and execution adapters", "path": "src/iqa_soa/tools/registry.py", "responsibility": "resolve exact tool names, validate arguments, and dispatch to the sandbox"},
+    {"component": "EvidenceLogger", "path": "src/iqa_soa/evidence/logger.py", "responsibility": "preflights required storage and appends decision evidence"}
+  ],
+  "untrusted_inputs": [
+    "model output",
+    "prompt content",
+    "retrieved documents",
+    "tool and resource arguments proposed by the model"
+  ],
+  "out_of_scope_threats": [
+    "compromise of the host process, Python runtime, or operating system",
+    "raw network access outside the instrumented gateway",
+    "direct filesystem access outside the instrumented gateway",
+    "arbitrary subprocess execution outside the instrumented gateway",
+    "application code deliberately calling ToolRegistry or an adapter without the documented gateway path",
+    "malicious replacement of trusted enforcement code or frozen policy bytes",
+    "principal authentication or anti-spoofing outside the runtime context supplied by the trusted host"
+  ],
+  "bypass_regressions": [
+    {"case": "unregistered service dispatch", "classification": "enforced", "test_id": "tests/integration/test_gateway.py::test_unavailable_tool_dispatch_is_not_reported_as_execution"},
+    {"case": "alias or alternate service name", "classification": "enforced", "test_id": "tests/artifact/test_submission_artifact.py::test_alias_and_invalid_payload_do_not_mutate_protected_state"},
+    {"case": "malformed policy", "classification": "enforced", "test_id": "tests/unit/test_qa_xml.py::test_rejects_malformed_or_empty_xml"},
+    {"case": "unknown policy operator or element", "classification": "enforced", "test_id": "tests/unit/test_qa_xml.py::test_closed_schema_rejects_unknown_or_misordered_xml"},
+    {"case": "invalid resource identity", "classification": "enforced", "test_id": "tests/unit/test_qa_guards.py::test_permission_explicit_deny_wins_and_allowlist_defaults_to_deny"},
+    {"case": "spoofed evidence identity fields", "classification": "enforced", "test_id": "tests/unit/test_evidence_logger.py::test_logger_identity_fields_cannot_be_spoofed"},
+    {"case": "spoofed authenticated principal", "classification": "outside_threat_model", "boundary": "The prototype accepts RuntimeContext from trusted host code and does not implement principal authentication."},
+    {"case": "rewritten action without reauthorization", "classification": "enforced", "test_id": "tests/integration/test_gateway.py::test_modified_action_is_reauthorized_before_execution"},
+    {"case": "guard or evaluator exception", "classification": "enforced", "test_id": "tests/unit/test_qa_guards.py::test_guard_extension_fault_escalates_instead_of_crashing"},
+    {"case": "required evidence persistence preflight failure", "classification": "enforced", "test_id": "tests/integration/test_gateway.py::test_required_evidence_preflight_fails_before_side_effect"},
+    {"case": "unsupported action arguments", "classification": "enforced", "test_id": "tests/artifact/test_submission_artifact.py::test_alias_and_invalid_payload_do_not_mutate_protected_state", "boundary": "The regression proves no protected state mutation. The frozen instrument's legacy would_execute field is not treated as side-effect evidence for this refusal path."},
+    {"case": "invalid dispatch target", "classification": "enforced", "test_id": "tests/integration/test_gateway.py::test_unavailable_tool_dispatch_is_not_reported_as_execution"},
+    {"case": "direct protected dispatch outside gateway", "classification": "outside_threat_model", "boundary": "ToolRegistry is part of the trusted in-process host and remains importable; OS-level capability isolation is not claimed."},
+    {"case": "partial setup or required evidence failure", "classification": "enforced", "test_id": "tests/integration/test_gateway.py::test_required_evidence_preflight_fails_before_side_effect"},
+    {"case": "unexpected missing policy state", "classification": "outside_threat_model", "boundary": "Constructing the gateway with a validated Policy is a trusted-host precondition; arbitrary host mutation is outside scope."},
+    {"case": "frozen policy or input digest mismatch", "classification": "enforced_at_experiment_lifecycle", "test_id": "tests/integration/test_successor_qualification_protocol.py::test_mutating_the_experiment_config_fails_digest_validation"}
+  ]
+}

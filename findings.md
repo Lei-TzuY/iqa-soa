@@ -431,3 +431,23 @@ A pre-observation audit compared every preregistered family against its frozen p
   claim scan clean (the only "globally safer" occurrence is the explicit denial
   in Section 7.2). Nothing under `results/` changed; `src/` and `tests/` were
   untouched; no test suite was run because no production code changed.
+## 2026-09-09: Live-state and PR #49 findings
+
+- The GitHub repository is private, default branch `main`, and the live base/head is `802019b23f3e34396de10d2c1aeddf0456834640`.
+- The only open pull request is #49, `ci/source-verification`, a one-file workflow addition. Its head is exactly one commit ahead of current `main`.
+- PR #49's archived CI run used GitHub's default shallow checkout. The repository's integrity tests use historical object IDs with `git cat-file`, `git ls-tree`, `git diff`, and detached worktrees, so depth-1 produces systematic missing-object failures and false frozen-artifact mismatch cascades.
+- The tracked repository currently contains 3,752 collected tests on local Python 3.13.5. The full-history local result must be measured before editing assertions.
+- Pre-existing untracked content includes four schema-clarification directories, `paper/`, two documentation audit files, and `results/phaseP-rc4-qualification/`. Treat these as user-owned and preserve them; frozen evidence may be read for the requested audit but not changed.
+
+## 2026-09-09: Submission-hardening findings and resolution
+
+- The CI failure was not safely repairable by `fetch-depth: 0` alone. Nine modules encoded prospective absence or pre-transition state and therefore produced false regressions when collected against the completed successor lifecycle. Preserving each original blob and running it at a pinned matching commit retains 1,044 assertions; deleting, weakening, or silently deselecting them would not.
+- Current canonical successor state is: candidate `prospective-candidate-i5-m1-b76f40da2`, benchmark `pilot-v7-rc4`, 102 scheduled/executed/terminal cells, zero retries/replacements/resumptions, three invalidated cells, 7/17 qualified tasks, terminal `SCHEDULE_COMPLETE_VERDICT_HOLD`, verdict `HOLD`, and confirmatory eligibility false. The all-required-task conjunction remains binding. A support-qualified-task estimand is future-study-only and cannot replace it post hoc.
+- The defensible paper classification is: mechanism evidence verified at the instrumented tool/service boundary; governance evidence verified through prospective scheduling, immutable accounting, and machine-enforced HOLD; effectiveness evidence not established because confirmatory execution was not eligible and did not occur.
+- QA-XML is best represented as a schema-validated policy front end compiling to normalized QA Policy IR. The novelty claim is the independently enforced execution boundary plus audit/governance semantics, not XML syntax.
+- The deterministic privacy case study demonstrates mechanism only: a fixed proposal dispatches with QA OFF and causes the synthetic protected side effect, while the identical normalized proposal is privacy-blocked with QA FULL, produces zero dispatch, and leaves the side-effect state unchanged.
+- The precise mediation claim is `complete mediation at the instrumented tool/service execution boundary`. Compromised trusted code/runtime and direct raw OS, network, filesystem, or subprocess paths outside that boundary remain explicitly out of scope.
+- Frozen legacy `would_execute` telemetry is not treated as proof of dispatch. The invalid-payload regression proves no protected side effect by inspecting sandbox state; changing the frozen runtime to alter telemetry would break the accepted instrument digest chain and was intentionally not done.
+- The concise reviewer path validates 23 mechanism node IDs (28 pytest cases), 10 governance/qualification node IDs, generated evidence, paper invariants, a deterministic anonymous archive, PDF metadata/text, and qualification release accounting without contacting a provider or rerunning qualification.
+- The anonymous export is reproducible byte-for-byte across two independent temporary builds and contains neither Git history nor development-only working material. The development repository history is preserved.
+- Remaining reviewer risks are bounded rather than hidden: the TCB assumes enforcement code/runtime integrity; paths outside the registered gateway are out of scope; the main-text page margin is 0.09 page; qualification covers two local provider/model configurations in QA-OFF only; and no confirmatory treatment-effect evidence exists.

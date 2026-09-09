@@ -56,11 +56,12 @@ def test_the_contact_authorization_is_spent() -> None:
     Two of its preconditions therefore no longer hold, and BOTH failures are the
     correct, desired behaviour rather than a regression:
 
-    * the evidence namespace now EXISTS -- which is what "written once, never
-      appended to" means once it has been written; and
     * ``docs/successor_frozen_execution_inputs.json`` has moved, because the
       successor qualification execution path was implemented after the capture
-      and the frozen-input record was recomputed by the protocol's own machinery.
+      and the frozen-input record was recomputed by the protocol's own machinery;
+      and
+    * the qualification namespace now EXISTS -- which is what "written once,
+      never retried" means once its one authorized execution has completed.
 
     A one-shot authorization that could still be exercised after being spent, and
     after the tree it was bound to moved, would be the defect.  Asserting the
@@ -77,7 +78,7 @@ def test_the_contact_authorization_is_spent() -> None:
     ), failures
     assert any(
         item.startswith("NAMESPACE:")
-        and preflight.RUNTIME_PREFLIGHT_EVIDENCE_NAMESPACE in item
+        and protocol.RESULTS_NAMESPACE in item
         for item in failures
     ), failures
 
@@ -450,19 +451,21 @@ def test_a_held_condition_refuses_the_capture() -> None:
         preflight.require_no_hold(["LIVE_RUNTIME_VERSION_MISMATCH"])
 
 
-def test_the_only_offline_hold_condition_is_the_spent_binding() -> None:
-    """HISTORICALIZED.  Exactly one condition holds, and it is the expected one.
+def test_the_offline_hold_conditions_are_the_two_spent_bindings() -> None:
+    """HISTORICALIZED. Exactly the two expected one-shot conditions now hold.
 
-    ``QUALIFICATION_RESULT_NAMESPACE_EXISTS`` must NOT be among them: the
-    successor qualification namespace is still absent, which is the write-once
-    precondition the whole execution path rests on.
+    The runtime-preflight authorization's input digest moved when the execution
+    path was frozen, and the qualification namespace now exists because its
+    exactly-once authorization was spent. No third condition is tolerated.
     """
 
     conditions = preflight.offline_hold_conditions()
-    assert conditions == (preflight.FROZEN_INPUT_DIGEST_MISMATCH,)
-    assert preflight.QUALIFICATION_RESULT_NAMESPACE_EXISTS not in conditions
+    assert conditions == (
+        preflight.FROZEN_INPUT_DIGEST_MISMATCH,
+        preflight.QUALIFICATION_RESULT_NAMESPACE_EXISTS,
+    )
     assert preflight.CANDIDATE_FREEZE_INVALID not in conditions
-    assert not (PROJECT_ROOT / preflight.QUALIFICATION_RESULTS_NAMESPACE).exists()
+    assert (PROJECT_ROOT / preflight.QUALIFICATION_RESULTS_NAMESPACE).exists()
 
 
 # ---------------------------------------------------------------------------
