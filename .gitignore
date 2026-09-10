@@ -8,6 +8,9 @@ htmlcov/
 .venv/
 build/
 dist/
+paper/fse2027/build/
+paper/fse2027/artifact-anonymous/
+.historical-worktrees/
 results/raw/*
 results/processed/*
 results/tables/*
@@ -23,4 +26,3 @@ results/real-pilot/
 
 # Editor/tooling state
 .claude/
-

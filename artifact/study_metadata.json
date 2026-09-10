@@ -1,0 +1,73 @@
+{
+  "benchmark_identifier": "pilot-v7-rc4",
+  "candidate_identifier": "prospective-candidate-i5-m1-b76f40da2",
+  "evidence_classification": {
+    "effectiveness": "NOT_ESTABLISHED",
+    "governance": "ESTABLISHED_FOR_FROZEN_LIFECYCLE",
+    "mechanism": "ESTABLISHED_WITHIN_INSTRUMENTED_BOUNDARY"
+  },
+  "qualification": {
+    "confirmatory_eligible": false,
+    "confirmatory_execution_performed": false,
+    "executed_cells": 102,
+    "invalidated_cell_ids": [
+      "qwen|BEN-002|583010984",
+      "mistral|BEN-003|583010984",
+      "mistral|BEN-003|1723431918"
+    ],
+    "invalidated_cells": 3,
+    "qualified_task_ids": [
+      "KP-004",
+      "UA-004",
+      "UA-005",
+      "PRIV-007",
+      "PRIV-012",
+      "PRIV-016",
+      "FAULT-004"
+    ],
+    "qualified_tasks": 7,
+    "replacements": 0,
+    "resumptions": 0,
+    "retries": 0,
+    "scheduled_cells": 102,
+    "terminal_rows": 102,
+    "terminal_status": "SCHEDULE_COMPLETE_VERDICT_HOLD",
+    "total_frozen_tasks": 17,
+    "unqualified_task_ids": [
+      "BEN-002",
+      "BEN-003",
+      "PI-015",
+      "PI-018",
+      "PI-019",
+      "PI-020",
+      "PRIV-017",
+      "BUD-017",
+      "BUD-018",
+      "BUD-016"
+    ],
+    "unqualified_tasks": 10,
+    "verdict": "HOLD"
+  },
+  "qualification_rule": {
+    "aggregation": "CONJUNCTION_ACROSS_ALL_FROZEN_TASKS",
+    "future_only_alternative": {
+      "estimand": "effect among prospectively support-qualified tasks",
+      "requirement": "new experiment identity, prospectively frozen task-inclusion rule, outcomes, statistical unit, and analysis plan before outcomes are observed",
+      "status": "NOT_APPLICABLE_TO_CURRENT_STUDY"
+    },
+    "identity": "FROZEN_QUALIFICATION_DECISION_RULE_REUSED_UNCHANGED",
+    "observed_outcome": "HOLD because required conditions remain unsatisfied",
+    "required_conditions": [
+      "every scheduled cell has exactly one terminal row",
+      "no blocking validation failure remains",
+      "every frozen task has a qualifying status under its prospectively fixed role rule",
+      "a separate prospective authorization permits confirmatory execution"
+    ]
+  },
+  "schema_version": "submission-study-metadata/v1",
+  "source_digests": {
+    "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-analysis.json": "96a89af5f71ad6d25dd52ac0f829570ce8dc47702ae8a603f1c82699b06d203c",
+    "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-run-manifest.json": "bf6f994538b85b0918980c5fddc8e49bfc58c7953a0bc1732a7c806bfc7f0837",
+    "results/prospective-candidate-i5-m1-b76f40da2-qualification/successor-runs.jsonl": "1b97f5f9835a977f9e5076f2a73d7c3843281b29d9440326e2e66b6d4136103e"
+  }
+}

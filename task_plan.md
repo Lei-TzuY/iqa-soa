@@ -4,7 +4,7 @@
 Implement and verify the FSE experimental prototype specified by the attached master prompt, while treating `2026-final.pdf` as the source of truth for QA-XML, IQA-SOA, QA-IUM terminology and experimental design.
 
 ## Current Phase
-Phase 25: Pre-Observation Freeze Consistency Audit and pilot-v6.1 Correction (complete)
+Phase 26: FSE Submission Artifact Hardening (complete)
 
 ## Phases
 
@@ -221,6 +221,16 @@ Phase 25: Pre-Observation Freeze Consistency Audit and pilot-v6.1 Correction (co
 - [x] Full pytest 208 passed; strict mypy clean (44 modules)
 - [x] Audited the 108-run smoke and preregistered a two-stage design (54 + 6k runs, never worse, up to 50% saving) with a fixed mechanical stopping rule
 - [x] No real model run; pilot-v5, pilot-v6, and all historical artifacts immutable
+- **Status:** complete
+
+### Phase 26: FSE Submission Artifact Hardening
+- [x] Recheck live `main`, open PRs, recent commits, GitHub checks, branch ancestry, tracked/untracked state, and repository layout
+- [x] Repair PR #49 CI at the root cause without weakening historical/fail-closed tests
+- [x] Audit canonical study metadata, paper-facing claims, qualification state, generated evidence, and reproducibility/anonymity surfaces
+- [x] Implement one coherent mechanism/governance vertical slice: canonical metadata, claim-evidence-boundary manifest, deterministic end-to-end trace, fail-closed regressions, and qualification validation
+- [x] Add short reviewer commands, deterministic generation/drift checks, anonymous export validation, and CI integration
+- [x] Update paper/artifact documentation conservatively and generate paper-ready evidence from machine-readable sources
+- [x] Run repository-appropriate static, unit, integration, artifact, anonymity, and paper validation; inspect actual outputs
 - **Status:** complete
 
 ## Key Questions

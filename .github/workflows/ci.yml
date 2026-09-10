@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historical integrity tests read frozen blobs/trees and construct
+          # detached worktrees at recorded execution commits. A depth-1 clone
+          # turns those checks into missing-object failures rather than testing
+          # the artifact's actual chain of custody.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install development environment
+        run: python -m pip install -e '.[dev]'
+      - name: Strict type check
+        env:
+          MYPYPATH: src
+        run: python -m mypy src
+
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # A frozen HOLD-evidence commit is retained by GitHub under PR #41
+          # but was squash-excluded from main. Keep credentials only long
+          # enough to fetch that immutable object, then remove them before any
+          # repository code executes.
+          persist-credentials: true
+      - name: Fetch frozen qualification evidence object
+        run: |
+          git fetch --no-tags origin '+refs/pull/41/head:refs/remotes/origin/frozen-evidence/pr-41'
+          test "$(git rev-parse refs/remotes/origin/frozen-evidence/pr-41)" = "7c2848ae28a0e43786915479d65ee60d6daa12d3"
+          git config --local --unset-all http.https://github.com/.extraheader
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install development environment
+        run: python -m pip install -e '.[dev]'
+      - name: Run full deterministic test suite
+        run: python -m pytest
+
+  submission-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Fetch frozen qualification evidence object
+        run: |
+          git fetch --no-tags origin '+refs/pull/41/head:refs/remotes/origin/frozen-evidence/pr-41'
+          test "$(git rev-parse refs/remotes/origin/frozen-evidence/pr-41)" = "7c2848ae28a0e43786915479d65ee60d6daa12d3"
+          git config --local --unset-all http.https://github.com/.extraheader
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install development environment
+        run: python -m pip install -e '.[dev]'
+      - name: Run reviewer verification path
+        run: make verify-artifact
