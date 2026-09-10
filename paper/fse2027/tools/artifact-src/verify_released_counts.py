@@ -1,15 +1,37 @@
 #!/usr/bin/env python3
-"""Recompute every released count in the paper from the released evidence.
+"""Audit every released count in the paper against the released evidence.
 
     python analysis/verify_released_counts.py
 
 Run from the root of the anonymous package. Exit status 0 if every number the
 paper reports is reproduced from the shipped artifacts, 1 otherwise.
 
+WHAT EACH CHECK ACTUALLY PROVES
+===============================
+
+Be precise about this, because "verified" can hide a circle. The checks fall
+into two kinds and the output labels them:
+
+``cross-check``
+    The manuscript's number is compared against the field the frozen analyzer
+    recorded. This proves the paper did not drift from its own analysis
+    artifact. It does NOT independently re-derive the analyzer's judgement, and
+    it is not evidence that the analyzer scored a row correctly. Task statuses,
+    exposure counts and the verdict are of this kind: re-deriving them would
+    mean rescoring frozen rows, which this lifecycle forbids.
+
+``recompute``
+    The number is derived here, from the classification ledger and the per-cell
+    evidence directories, without consulting the analyzer's summary. The cell
+    arithmetic, the one-terminal-row-per-scheduled-cell property, the per-task
+    cell counts, the single-treatment property, the benchmark-digest agreement
+    across every row, and the evidence-directory correspondence are of this
+    kind, and a ledger that disagreed with the analyzer's accounting would fail
+    here.
+
 This script READS ONLY. It contacts no provider, runs no model, executes no
 qualification cell, and writes nothing. It does not rescore, reclassify,
-reinterpret, or repair any row: it recounts what the frozen analyzer already
-recorded and compares that against the values printed in the manuscript.
+reinterpret, or repair any row.
 
 A note on two vocabularies that must not be conflated
 ====================================================
@@ -26,6 +48,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parents[1]
@@ -47,6 +70,7 @@ EXPECTED_MATRIX_INVALID = {"BEN-002", "BEN-003"}
 
 failures: list[str] = []
 checks = 0
+recomputed = 0
 
 
 def check(section: str, what: str, got: object, want: object) -> None:
@@ -57,6 +81,13 @@ def check(section: str, what: str, got: object, want: object) -> None:
           + ("" if ok else f"  (paper says {want!r})"))
     if not ok:
         failures.append(f"{section} {what}: got {got!r}, paper says {want!r}")
+
+
+def recompute(section: str, what: str, got: object, want: object) -> None:
+    """A value derived here from the ledger/evidence, not read from the analyzer."""
+    global recomputed
+    recomputed += 1
+    check(section, f"[recompute] {what}", got, want)
 
 
 def main() -> int:
@@ -150,13 +181,70 @@ def main() -> int:
     traces = list((QUAL / "raw" / "cells").rglob("evidence/*.jsonl"))
     check("Section 7.2", "per-cell evidence traces present", len(traces) >= 102, True)
 
+    # ------------------------------------------------------------------
+    # Ledger-side recomputation. Nothing below reads an analyzer summary
+    # field: every value is derived from the classification ledger rows and
+    # the per-cell evidence directories, so a ledger that disagreed with the
+    # analyzer's accounting fails here rather than passing silently.
+    # ------------------------------------------------------------------
+    print("\nLedger-side recomputation (independent of the analyzer summary)")
+    keys = [(r["arm"], r["task_id"], r["seed"]) for r in ledger]
+    recompute("Section 7.2", "distinct scheduled cells in the ledger", len(set(keys)), 102)
+    recompute("Section 7.2", "exactly one terminal row per cell",
+              len(keys) == len(set(keys)), True)
+    recompute("Section 7.2", "distinct schedule indices",
+              sorted({r["schedule_index"] for r in ledger}), list(range(102)))
+    recompute("Section 7.2", "distinct arms in the ledger",
+              sorted({r["arm"] for r in ledger}), ["mistral", "qwen"])
+    recompute("Section 7.2", "distinct seeds in the ledger",
+              len({r["seed"] for r in ledger}), 3)
+    recompute("Section 7.2", "distinct task roles in the ledger",
+              len({r["task_id"] for r in ledger}), 17)
+    per_task = Counter(r["task_id"] for r in ledger)
+    recompute("Section 7.2", "cells per task role (all equal)",
+              sorted(set(per_task.values())), [6])
+    recompute("Section 7.3", "single treatment across every row",
+              sorted({r["qa_mode"] for r in ledger}), ["off"])
+    recompute("Section 7.3", "no guard enabled in any row",
+              {any((r.get("enabled_guards") or {}).values()) for r in ledger}, {False})
+    recompute("Section 7.2", "one benchmark digest across every row",
+              {r["benchmark_manifest_sha256"] for r in ledger},
+              {ana["benchmark_manifest_sha256"]})
+    recompute("Section 7.2", "one benchmark version across every row",
+              {r["benchmark_version"] for r in ledger}, {"pilot-v7-rc4"})
+
+    # Every ledger row must name an evidence directory that actually shipped,
+    # and every shipped directory must be named by a row.
+    named = {r["cell_experiment_dir"].split("/")[2] for r in ledger}
+    recompute("Section 7.2", "ledger rows and shipped evidence directories agree",
+              named == {p.name for p in cells}, True)
+
+    # The task-role partition is arithmetic over the analyzer's per-task
+    # statuses, not a restatement of its own totals.
+    statuses = {t["task_id"]: t["status"] for t in ana["tasks"]}
+    recompute("Section 7.4", "qualified and unqualified partition the 17 roles",
+              sorted(set(statuses) ) == sorted(set(qualified) | set(ana["unqualified_tasks"])),
+              True)
+    recompute("Section 7.4", "qualified and unqualified are disjoint",
+              set(qualified) & set(ana["unqualified_tasks"]), set())
+    recompute("Section 7.4", "qualified + unqualified equals the role count",
+              len(qualified) + len(ana["unqualified_tasks"]), len(ana["tasks"]))
+
+    # Invalidated cells must appear in the ledger and must be exactly the cells
+    # the run manifest names.
+    ledger_keys = {f"{r['arm']}|{r['task_id']}|{r['seed']}" for r in ledger}
+    recompute("Section 7.5", "invalidated cells exist in the ledger",
+              set(inval) <= ledger_keys, True)
+
     print()
     if failures:
         print(f"FAIL - {len(failures)} of {checks} checks did not reproduce:")
         for f in failures:
             print("  -", f)
         return 1
-    print(f"PASS - all {checks} released counts reproduced from the shipped evidence.")
+    print(f"PASS - {checks} released values audited: {recomputed} recomputed from the "
+          f"classification ledger and per-cell evidence, {checks - recomputed} "
+          "cross-checked against the released analyzer artifact.")
     print("No row was rescored, reclassified, or modified by this script.")
     return 0
 

@@ -16,7 +16,8 @@
         "tests/integration/test_gateway.py::test_same_unsafe_proposal_executes_off_and_is_blocked_full",
         "tests/integration/test_gateway.py::test_service_decorator_routes_proposals_without_tool_rewrite",
         "tests/integration/test_gateway.py::test_unavailable_tool_dispatch_is_not_reported_as_execution",
-        "tests/artifact/test_submission_artifact.py::test_trace_has_same_proposal_and_distinct_dispatch_dispositions"
+        "tests/artifact/test_submission_artifact.py::test_trace_has_same_proposal_and_distinct_dispatch_dispositions",
+        "tests/artifact/test_submission_artifact.py::test_paired_arms_receive_one_identical_proposal_and_diverge_only_at_dispatch"
       ],
       "artifact_paths": [
         "src/iqa_soa/iqa/gateway.py",

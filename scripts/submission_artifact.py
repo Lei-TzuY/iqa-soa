@@ -652,6 +652,83 @@ def validate_qualification() -> None:
         raise VerificationError("qualification aggregation is not the frozen conjunction")
 
 
+def _module_constant(path: Path, name: str) -> str | None:
+    """Read a module-level string constant without importing the module."""
+
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except (OSError, UnicodeError, SyntaxError):
+        return None
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if (
+                isinstance(target, ast.Name)
+                and target.id == name
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                return node.value.value
+    return None
+
+
+def _git_ok(*args: str) -> bool:
+    try:
+        completed = subprocess.run(
+            ["git", *args], cwd=ROOT, check=False, capture_output=True, text=True
+        )
+    except OSError:
+        return False
+    return completed.returncode == 0
+
+
+def require_lifecycle_git_prerequisites() -> None:
+    """Fail closed, and legibly, when the chain-of-custody objects are absent.
+
+    The governance and effectiveness claim tests replay the frozen qualification
+    against recorded Git objects.  Two of those objects are not reachable from an
+    ordinary clone: the frozen HOLD-evidence commit was squash-excluded from
+    ``main`` and survives only as a pull-request head ref, and ``origin/main``
+    must exist as a remote-tracking ref.  Without this preflight the reviewer
+    sees a raw ``CalledProcessError`` traceback from deep inside a fixture; with
+    it they see the exact command that is missing.  It never relaxes a check: a
+    missing object still fails verification.
+    """
+
+    correction = ROOT / "scripts" / "successor_qualification_analysis_correction.py"
+    evidence_commit = _module_constant(correction, "PR_HEAD_EVIDENCE_COMMIT")
+    missing: list[str] = []
+    if not _git_ok("rev-parse", "--git-dir"):
+        missing.append(
+            "this checkout is not a Git worktree; the lifecycle claim tests read "
+            "recorded Git objects and cannot run from an unpacked archive"
+        )
+    else:
+        if not _git_ok("rev-parse", "--verify", "--quiet", "origin/main"):
+            missing.append(
+                "remote-tracking ref 'origin/main' is absent; clone the repository "
+                "rather than copying a worktree, or run: git fetch origin main"
+            )
+        if evidence_commit and not _git_ok(
+            "cat-file", "-e", f"{evidence_commit}^{{commit}}"
+        ):
+            missing.append(
+                f"frozen HOLD-evidence commit {evidence_commit} is not present. It "
+                "was squash-excluded from main and is advertised only at "
+                "refs/pull/41/head. Obtain it with:\n      git fetch --no-tags "
+                "origin '+refs/pull/41/head:refs/remotes/origin/frozen-evidence/pr-41'"
+                "\n    This requires read access to the source repository, which is "
+                "not public; the anonymous replication package therefore ships "
+                "verify-mechanism plus its own offline verifiers instead."
+            )
+    if missing:
+        raise VerificationError(
+            "lifecycle chain-of-custody prerequisites are unmet:\n  - "
+            + "\n  - ".join(missing)
+        )
+
+
 def _claim_test_ids(classes: set[str]) -> list[str]:
     claims = read_json(CLAIMS_PATH)
     ids = {
@@ -693,6 +770,7 @@ def verify_qualification() -> None:
     check_generated()
     validate_contracts()
     validate_qualification()
+    require_lifecycle_git_prerequisites()
     count = _run_tests(_claim_test_ids({"governance", "effectiveness"}))
     print(f"QUALIFICATION VERIFIED ({count} claim-bound tests; HOLD preserved)")
 
@@ -727,19 +805,76 @@ def verify_paper() -> None:
     print("PAPER EVIDENCE VERIFIED")
 
 
-def _anonymous_files() -> list[Path]:
+#: A 40-character lowercase hexadecimal token is a Git object name.  Shipping one
+#: in anonymous material is a linkable identifier of a specific hosted
+#: repository: a single hosted commit-search query maps it back to the
+#: repository and its author.  Content digests in this artifact are SHA-256
+#: (64 hexadecimal characters), so this pattern does not match them.
+_REPOSITORY_OBJECT = re.compile(r"(?<![0-9a-fA-F])[0-9a-f]{40}(?![0-9a-fA-F])")
+
+#: Export paths whose records legitimately carry repository provenance
+#: identifiers.  These are retained scientific/result artifacts and the frozen
+#: inputs they bind: their commit fields are part of the chain of custody and are
+#: NOT rewritten here, because rewriting a frozen governance record is exactly
+#: what this artifact forbids elsewhere.  Everything else in the export --- the
+#: manuscript copy, supplement, README/SETUP prose, analysis and figure scripts
+#: --- must be free of them, and fails closed if it is not.
+#:
+#: Retaining them is a declared residual: the anonymity of this export therefore
+#: also depends on the source repository not being publicly readable during
+#: review, because a hosted commit-search query over a public repository maps
+#: any one of these identifiers back to the repository and its author.
+_PROVENANCE_EXPORT_PREFIXES = (
+    "governance/",
+    "candidate/",
+    "benchmark/",
+    "qualification/",
+    "code/configs/successor-qualification.yaml",
+    "code/results/",
+    "code/tests/integration/test_successor_qualification_analysis_correction.py",
+)
+
+#: Files whose bytes are not text and are therefore excluded from the
+#: repository-object scan (a compressed stream can coincidentally decode to
+#: hexadecimal characters; the identifier patterns above still scan them).
+_BINARY_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".zip", ".gz", ".pyc"}
+
+
+def _manuscript_files() -> list[Path]:
+    """Reviewer-facing manuscript material: paper source, supplement, contracts."""
+
     paper = ROOT / "paper" / "fse2027"
     files = [paper / "main.tex", paper / "references.bib"]
     for base in (paper / "supplement", ROOT / "artifact"):
         if base.exists():
             files.extend(path for path in base.rglob("*") if path.is_file())
-    export = paper / "artifact-anonymous"
-    if export.exists():
-        files.extend(path for path in export.rglob("*") if path.is_file())
     pdf = paper / "build" / "main.pdf"
     if pdf.exists():
         files.append(pdf)
-    return sorted(set(files))
+    return sorted({path for path in files if path.is_file()})
+
+
+def _export_files() -> list[Path]:
+    export = ROOT / "paper" / "fse2027" / "artifact-anonymous"
+    if not export.exists():
+        return []
+    return sorted(path for path in export.rglob("*") if path.is_file())
+
+
+def _anonymous_files() -> list[Path]:
+    return sorted(set(_manuscript_files()) | set(_export_files()))
+
+
+def _repository_objects(path: Path) -> list[str]:
+    """Distinct repository object identifiers appearing in a text file."""
+
+    if path.suffix.lower() in _BINARY_SUFFIXES:
+        return []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return []
+    return sorted(set(_REPOSITORY_OBJECT.findall(text)))
 
 
 def verify_anonymity() -> None:
@@ -764,6 +899,7 @@ def verify_anonymity() -> None:
             if path.name in forbidden_names or path.suffix in {".pyc", ".pyo"}:
                 findings.append(f"hidden/generated metadata: {path.relative_to(export)}")
 
+    pdf_metadata_checked = False
     for path in _anonymous_files():
         raw = path.read_bytes()
         text = raw.decode("latin-1", errors="ignore")
@@ -778,6 +914,7 @@ def verify_anonymity() -> None:
             except ImportError:
                 print("PDF metadata: PyMuPDF unavailable; byte-pattern scan only")
             else:
+                pdf_metadata_checked = True
                 document = pymupdf.open(path)
                 for key in ("author", "keywords"):
                     if document.metadata.get(key):
@@ -785,23 +922,80 @@ def verify_anonymity() -> None:
                             f"{label}: nonempty PDF metadata {key}={document.metadata[key]!r}"
                         )
 
+    # Reviewer-facing manuscript material must carry no repository object name.
+    for path in _manuscript_files():
+        for identifier in _repository_objects(path):
+            findings.append(
+                f"{path.relative_to(ROOT).as_posix()}: repository object identifier: "
+                f"{identifier!r}"
+            )
+
+    # An export left on disk is uploadable, so a stale one must not pass.
+    retained, export_findings = _scan_export_repository_objects(
+        export, "paper/fse2027/artifact-anonymous"
+    )
+    findings.extend(export_findings)
+
     if findings:
         raise VerificationError("anonymity leakage:\n  " + "\n  ".join(findings))
-    verify_anonymous_export_builder()
-    scope = "source + anonymous export"
-    if (paper / "build" / "main.pdf").exists():
-        scope += " + PDF bytes/metadata"
+    built_retained = verify_anonymous_export_builder()
+    if export.exists():
+        retained |= built_retained
     else:
-        scope += " (PDF absent)"
+        retained = built_retained
+    scope = "manuscript source + anonymous export"
+    if not (paper / "build" / "main.pdf").exists():
+        scope += "; PDF absent"
+    elif pdf_metadata_checked:
+        scope += " + PDF bytes and author/keyword metadata"
+    else:
+        scope += " + PDF bytes only (PyMuPDF unavailable, metadata NOT checked)"
+    scope += (
+        f"; {len(retained)} repository provenance identifiers retained in the "
+        "export's declared frozen records (declared residual: this export is "
+        "anonymous only while the source repository is not publicly readable)"
+    )
     print(f"ANONYMITY VERIFIED ({scope})")
 
 
-def verify_anonymous_export_builder() -> None:
-    """Build the export twice and require byte-identical anonymous archives."""
+def _scan_export_repository_objects(
+    export: Path, label: str
+) -> tuple[set[str], list[str]]:
+    """Split an export's repository object identifiers into declared and leaked."""
+
+    retained: set[str] = set()
+    findings: list[str] = []
+    if not export.exists():
+        return retained, findings
+    for path in sorted(item for item in export.rglob("*") if item.is_file()):
+        identifiers = _repository_objects(path)
+        if not identifiers:
+            continue
+        relative = path.relative_to(export).as_posix()
+        if relative.startswith(_PROVENANCE_EXPORT_PREFIXES):
+            retained.update(identifiers)
+            continue
+        for identifier in identifiers:
+            findings.append(
+                f"{label}/{relative}: repository object identifier outside the "
+                f"declared frozen provenance records: {identifier!r}"
+            )
+    return retained, findings
+
+
+def verify_anonymous_export_builder() -> set[str]:
+    """Build the export twice, require byte-identical archives, and scan it.
+
+    Scanning the export this function builds --- rather than only a copy left on
+    disk --- is what makes the anonymity gate meaningful in a clean checkout and
+    in CI, where no export directory exists yet.  Returns the repository
+    provenance identifiers the freshly built export legitimately retains.
+    """
     builder = ROOT / "paper" / "fse2027" / "tools" / "build_artifact_package.py"
     if not builder.is_file():
         raise VerificationError("anonymous artifact builder is missing")
     digests: list[str] = []
+    retained: set[str] = set()
     with tempfile.TemporaryDirectory(prefix="iqa-soa-anonymous-export-") as raw:
         base = Path(raw)
         for index in (1, 2):
@@ -828,9 +1022,19 @@ def verify_anonymous_export_builder() -> None:
                     + completed.stderr
                 )
             digests.append(sha256(archive))
+            if index == 1:
+                retained, findings = _scan_export_repository_objects(
+                    output, "freshly built anonymous export"
+                )
+                if findings:
+                    raise VerificationError(
+                        "anonymity leakage in the built export:\n  "
+                        + "\n  ".join(findings)
+                    )
     if len(set(digests)) != 1:
         raise VerificationError("anonymous export archives are not byte deterministic")
     print(f"ANONYMOUS EXPORT REPRODUCIBLE (sha256={digests[0]})")
+    return retained
 
 
 def verify_artifact() -> None:

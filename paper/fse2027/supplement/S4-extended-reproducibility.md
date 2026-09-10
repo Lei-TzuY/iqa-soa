@@ -82,11 +82,23 @@ entered, they are reported as implementation, not as executed evidence.
 
 ## S4.4 Deterministic validation commands
 
-Run from the artifact root:
+Two contexts run different subsets, and the difference is a property of the
+evidence rather than a packaging convenience.
+
+**From the replication package root**, which carries no version-control history:
 
 ```
-$ make verify-mechanism
+$ python analysis/verify_manifest.py
+  PASS - every file in the package is listed and hashes correctly.
+$ python analysis/verify_released_counts.py
+  PASS - every released count cross-checked; cell accounting recomputed
+$ cd code && python scripts/submission_artifact.py verify-mechanism
   MECHANISM VERIFIED
+```
+
+**From a full checkout of the source repository**, additionally:
+
+```
 $ make verify-qualification
   QUALIFICATION VERIFIED
 $ make verify-paper
@@ -96,6 +108,15 @@ $ make verify-anonymity
 $ make verify-artifact
   ARTIFACT VERIFIED
 ```
+
+The qualification gate replays the frozen lifecycle against recorded
+version-control objects, one of which is reachable only through a retained
+pull-request head ref, so it is not runnable from an unpacked archive and is not
+shipped as a package command. It fails with a named prerequisite error, never
+silently, when those objects are absent. `verify_released_counts.py` is the
+package-side substitute: it recomputes the cell-level accounting from the
+released classification ledger and per-cell evidence and cross-checks every
+number the manuscript prints against the released analyzer artifact.
 
 The commands resolve and deduplicate exact pytest node IDs from
 `artifact/claim_evidence_manifest.json`, execute them, validate retained
@@ -108,4 +129,19 @@ these commands contacts a provider or reruns qualification.
 For double-anonymous review the artifact is provided as an anonymized snapshot
 that removes author-identifying metadata while preserving the experimental
 record. It is not distributed through a public repository link, because such a
-link would identify the authors.
+link would identify the authors. The anonymity check is executable: it scans the
+manuscript source, supplement, contracts, export paths, hidden files, and, when
+present, PDF bytes and author/keyword metadata, and it reports exactly which of
+those scopes it covered rather than a bare pass.
+
+**Declared residual.** The frozen governance, candidate, benchmark and
+qualification records retain the version-control object identifiers that bind
+them to the commits under which they were produced. Those identifiers are part
+of the chain of custody and are not rewritten, because rewriting a frozen record
+is precisely what this lifecycle forbids. They carry no name, path or URL, but
+they are linkable identifiers: if the source repository were publicly readable,
+a hosted commit-search query would map any one of them back to it. The
+repository is therefore not public, and the anonymity of this package is stated
+as conditional on that. The verifier fails closed if such an identifier appears
+anywhere outside those declared records --- in the manuscript source, the
+supplement, the package prose, or the analysis and figure scripts.

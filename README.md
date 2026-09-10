@@ -29,8 +29,25 @@ python -m venv .venv
 .\.venv\Scripts\python -m pip install -e ".[dev]"
 ```
 
-On Linux or macOS, use `./.venv/bin/python` instead. The portable aggregate
-command is:
+On Linux or macOS, use `./.venv/bin/python` instead.
+
+The governance and effectiveness gates replay the frozen qualification against
+recorded Git objects, so they need a full clone plus one object that is *not*
+reachable from `main`: the frozen HOLD-evidence commit was squash-excluded when
+its pull request was merged and survives only as a pull-request head ref. Fetch
+it once, exactly as CI does:
+
+```text
+git fetch --no-tags origin '+refs/pull/41/head:refs/remotes/origin/frozen-evidence/pr-41'
+```
+
+This needs read access to this repository. `verify-qualification` fails with a
+named prerequisite error rather than an opaque traceback when the object, the
+`origin/main` ref, or the Git worktree itself is missing; it never passes
+without them. The anonymous replication package, which ships no Git history,
+therefore carries `verify-mechanism` plus its own offline
+`analysis/verify_manifest.py` and `analysis/verify_released_counts.py` instead
+of these gates. The portable aggregate command is:
 
 ```text
 python scripts/submission_artifact.py verify-artifact
