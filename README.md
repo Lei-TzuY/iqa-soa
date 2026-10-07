@@ -1,5 +1,7 @@
 # IQA-SOA: auditable runtime governance for LLM agents
 
+Publication and anonymous-review limits are recorded in [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md); the frozen evidence remains authoritative.
+
 This repository is the executable artifact for a study of IQA-SOA as an
 independently enforced tool/service execution boundary and of a prospective
 evaluation lifecycle that can refuse unsupported effectiveness inference.
