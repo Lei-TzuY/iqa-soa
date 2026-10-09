@@ -1,0 +1,431 @@
+{
+  "files": [
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1,
+      "git_blob_sha1": "8b137891791fe96927ad78e64b0aad7bded08bdc",
+      "path": "src/agentdojo/default_suites/v1/__init__.py",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 348,
+      "git_blob_sha1": "7abe0518af3d9f48f746312722ad676e4e9ecc04",
+      "path": "src/agentdojo/default_suites/v1/banking/__init__.py",
+      "sha256": "06dbcff8dddf069419eb0bc4ff7ffaf45c38fc6d0f5ac978d76da47b03700ac3"
+    },
+    {
+      "bytes": 15309,
+      "git_blob_sha1": "ad5b780a17b644542ff28ad2c27b557820876b19",
+      "path": "src/agentdojo/default_suites/v1/banking/injection_tasks.py",
+      "sha256": "fa2dedf8e66c95ffadb54f5a26648728b08c56f302858de4ee9a5cc0b3891618"
+    },
+    {
+      "bytes": 1093,
+      "git_blob_sha1": "2a0eb32a09f94ab3d177ee1cd55eed52b030682a",
+      "path": "src/agentdojo/default_suites/v1/banking/task_suite.py",
+      "sha256": "c58ec73db16f713a16aaec787dac45856e546f4d95be84ab6a4bed9bc12613b6"
+    },
+    {
+      "bytes": 19450,
+      "git_blob_sha1": "cb19278cfee4a622407c065022fde0b6e48f9f71",
+      "path": "src/agentdojo/default_suites/v1/banking/user_tasks.py",
+      "sha256": "37af838194f001af80cc040315bcb2d69d0112324d424f9a323473b41b317f82"
+    },
+    {
+      "bytes": 334,
+      "git_blob_sha1": "5fdac1086fcba9a4925f6665c26be2f8f4210eda",
+      "path": "src/agentdojo/default_suites/v1/slack/__init__.py",
+      "sha256": "711f6ab4ef9cbe2ca5f4ba24cd29ad0d749117572716dcd8ec2d06416ea1def1"
+    },
+    {
+      "bytes": 9144,
+      "git_blob_sha1": "a80ac85ca8fdf446267dccfddee3884c3ea11215",
+      "path": "src/agentdojo/default_suites/v1/slack/injection_tasks.py",
+      "sha256": "d5775da1689e13192b665837e72cee88ed76f622e9b998e9def18b700fdc5afc"
+    },
+    {
+      "bytes": 939,
+      "git_blob_sha1": "1fac40091fc24c9e758e992df4d7e9946b781f9e",
+      "path": "src/agentdojo/default_suites/v1/slack/task_suite.py",
+      "sha256": "bdc6798e8ef83a54e787af80ed44f94e4be8f24aba2eaec2103e3120958c3670"
+    },
+    {
+      "bytes": 26012,
+      "git_blob_sha1": "912f521f6e5e3849db97bbb296293f574359266d",
+      "path": "src/agentdojo/default_suites/v1/slack/user_tasks.py",
+      "sha256": "25e43a0c58109765da090aa2f01bfb0892aaee70ca1622028074d7b49443a57b"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1/tools/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 5137,
+      "git_blob_sha1": "941c27467b7890cced7ab70e5fd5ca32241f99a5",
+      "path": "src/agentdojo/default_suites/v1/tools/banking_client.py",
+      "sha256": "0e4273f521db7ff6d5e7f7f552e917b11940102abd932aea8a2998b517441b42"
+    },
+    {
+      "bytes": 10237,
+      "git_blob_sha1": "4be5b157f03dfd97e96a86527107e10a995569d9",
+      "path": "src/agentdojo/default_suites/v1/tools/calendar_client.py",
+      "sha256": "5d551339fb87237dd1414a003b26f4f851dbdd2b0826225025e44f16420add22"
+    },
+    {
+      "bytes": 5577,
+      "git_blob_sha1": "65a47ef12a4d282800ce82fdaf50e4529c632bec",
+      "path": "src/agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+      "sha256": "19376d95731c46477037986319bc8522b4bc96f4924e730b11906df23fc00b93"
+    },
+    {
+      "bytes": 10235,
+      "git_blob_sha1": "31e6f7b772852667a571c3078eda84c7d13b0877",
+      "path": "src/agentdojo/default_suites/v1/tools/email_client.py",
+      "sha256": "782adb70c81ec765919ae835494fac163dbb46f21ef46f6dcf18eab390b5e294"
+    },
+    {
+      "bytes": 435,
+      "git_blob_sha1": "055266af9d3ba16e501e32f45a07b40353ace2f4",
+      "path": "src/agentdojo/default_suites/v1/tools/file_reader.py",
+      "sha256": "09438864a1e1ac6564df3e4f7eb60a9a224de2ef8a92c4eb4899f7768ce49d6d"
+    },
+    {
+      "bytes": 4586,
+      "git_blob_sha1": "6e86d52eb6d630e76a66a09cc04eaef88d513428",
+      "path": "src/agentdojo/default_suites/v1/tools/slack.py",
+      "sha256": "c70dbc7b3356e93a1c2bd4e78700859ea58b36adbf8169e51b03f355b0a5fe69"
+    },
+    {
+      "bytes": 15177,
+      "git_blob_sha1": "e2ee2bb838c487958cff1842189eab23eae39840",
+      "path": "src/agentdojo/default_suites/v1/tools/travel_booking_client.py",
+      "sha256": "ad6b3441a38a1ff4bdc7227a15fb9ed764a7906baf2f75902bdb70f2100f69ba"
+    },
+    {
+      "bytes": 3422,
+      "git_blob_sha1": "b1a9bff42e4afb05a5a5a8df4b48038afd8f18c2",
+      "path": "src/agentdojo/default_suites/v1/tools/types.py",
+      "sha256": "691ed3353bd04e9f8233c4f70901daefb564e56209a8946f516496520aca3c13"
+    },
+    {
+      "bytes": 1978,
+      "git_blob_sha1": "3fa63303626fddd2e7016e0834127d7b3e305255",
+      "path": "src/agentdojo/default_suites/v1/tools/user_account.py",
+      "sha256": "f097c4b2b6cd6784272987d8d37dd7cc5d599620d64b371f7c2af8e65d7ad673"
+    },
+    {
+      "bytes": 1436,
+      "git_blob_sha1": "e1999b1abf5f4b04ff546307a6ab592b85983e76",
+      "path": "src/agentdojo/default_suites/v1/tools/web.py",
+      "sha256": "246cc534a939ade2864bb62441d8452de7a840d007147c22391ad07bff91594c"
+    },
+    {
+      "bytes": 341,
+      "git_blob_sha1": "7c048c702dc8bc3d725db1acecef26aabce9abfc",
+      "path": "src/agentdojo/default_suites/v1/travel/__init__.py",
+      "sha256": "bd0bf8a57c39846c9476adc60be5c870faba09dd497254c2d4520bea21ab3bba"
+    },
+    {
+      "bytes": 12604,
+      "git_blob_sha1": "005abd62fa4302e3ce06d9d255de42851a754555",
+      "path": "src/agentdojo/default_suites/v1/travel/injection_tasks.py",
+      "sha256": "9252be834b0ae0e28fe06744e052987d71d8ad3666b8d0b1f65f2875f998fca8"
+    },
+    {
+      "bytes": 3127,
+      "git_blob_sha1": "8b527c86fc8158f4da5c5401d28ccba892e3b9be",
+      "path": "src/agentdojo/default_suites/v1/travel/task_suite.py",
+      "sha256": "a2b58f094bd61a79e245ca74c94d9a3d62cc6bc744e5ee21bdadabb43960ba60"
+    },
+    {
+      "bytes": 76962,
+      "git_blob_sha1": "372053e8a22179db9f8eef864726367f227ec033",
+      "path": "src/agentdojo/default_suites/v1/travel/user_tasks.py",
+      "sha256": "757f0e28208f92c2082e016469654524cb1120ec10928ce229da15fe32f6d3ee"
+    },
+    {
+      "bytes": 362,
+      "git_blob_sha1": "a67b263082b70250941f8eb93953e6e267f9eb88",
+      "path": "src/agentdojo/default_suites/v1/workspace/__init__.py",
+      "sha256": "b50429a079625b039389dce1063d993e38d18213ace046dffa65a735e73d08f9"
+    },
+    {
+      "bytes": 10615,
+      "git_blob_sha1": "2648b16b8b8b251eec2beced7a005a9397197eeb",
+      "path": "src/agentdojo/default_suites/v1/workspace/injection_tasks.py",
+      "sha256": "03e0894ffb544a79fd0bfd2c62cc5f90b19a2b1d429068d800239bfd020b6dcc"
+    },
+    {
+      "bytes": 2199,
+      "git_blob_sha1": "cb4155984be34f16180da3730870248013374bd0",
+      "path": "src/agentdojo/default_suites/v1/workspace/task_suite.py",
+      "sha256": "96fa51ab20f03c30cd2d7bc754b76d717ddbd68bdf39adc85f0e92fc4d2c7ec4"
+    },
+    {
+      "bytes": 55415,
+      "git_blob_sha1": "15f72f17305629f16cd7d754e47640e8b2613985",
+      "path": "src/agentdojo/default_suites/v1/workspace/user_tasks.py",
+      "sha256": "d2a550b812b7f40ee2dea17ac19d44f2dd063d103524118216b563eca6e44171"
+    },
+    {
+      "bytes": 69,
+      "git_blob_sha1": "b7d2f89187fbfb81cc57c61992f8f41fe1569a9b",
+      "path": "src/agentdojo/default_suites/v1_1/__init__.py",
+      "sha256": "6afde4c3d03f2535eaf4b7764f6bc35864fe748c2e89b4673e952c2665813b71"
+    },
+    {
+      "bytes": 73458,
+      "git_blob_sha1": "2346517950b605989295b1a0b4669f66505f54c9",
+      "path": "src/agentdojo/default_suites/v1_1/travel/user_tasks.py",
+      "sha256": "de8746e57fa85a5ee3ec9e4e6d66316c7c33e166e51404ffb64709b4458b9ae6"
+    },
+    {
+      "bytes": 307,
+      "git_blob_sha1": "a4bc1878e4a537974ee4aaf987b1ac04ab14e6aa",
+      "path": "src/agentdojo/default_suites/v1_1_1/__init__.py",
+      "sha256": "c12b7d8faa09c773e1432f680c55d2272a21609b8a8460844c0d4f313483e022"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1_1_1/banking/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 2751,
+      "git_blob_sha1": "8a5681dbe887aba1123d38bc761f75a2bca0b1b7",
+      "path": "src/agentdojo/default_suites/v1_1_1/banking/user_tasks.py",
+      "sha256": "d7858d3f9a573fcc334d19d4aa63ba92867cd8d5b99e2d102f7c60840fd42b81"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1_1_1/slack/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 11114,
+      "git_blob_sha1": "7e0e49133f28762107cbdefb09284b6a9b0d0247",
+      "path": "src/agentdojo/default_suites/v1_1_1/slack/user_tasks.py",
+      "sha256": "d63bace385d0f341cb3d20bbb698a3d1530d7eb6e346cc65d04e4b7ea255467d"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1_1_1/travel/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 2995,
+      "git_blob_sha1": "6130410d2f63cd364ecb82263aaac19af579f727",
+      "path": "src/agentdojo/default_suites/v1_1_1/travel/injection_tasks.py",
+      "sha256": "23f325aa0821c7982991657588ee0b58057423559e97d6ebd6febc8274b5ac1b"
+    },
+    {
+      "bytes": 4257,
+      "git_blob_sha1": "9c249f88224a47d97ae87341218386173aa0ac59",
+      "path": "src/agentdojo/default_suites/v1_1_1/travel/user_tasks.py",
+      "sha256": "356e46470861de40172a252e92149a2396bca3f66cfcadc0e5a4450fe11c979f"
+    },
+    {
+      "bytes": 8010,
+      "git_blob_sha1": "ff2a002cee4328c60378f593fce34f29acdc29b5",
+      "path": "src/agentdojo/default_suites/v1_1_1/workspace/user_tasks.py",
+      "sha256": "76da20246f658609a96d95dc206ae7f58785cab5b1f100f76d367c8e4b6fc7f9"
+    },
+    {
+      "bytes": 201,
+      "git_blob_sha1": "98eeb06def7fd61f3f72a5dc51f078de03f78128",
+      "path": "src/agentdojo/default_suites/v1_1_2/__init__.py",
+      "sha256": "2a9e4756075bf0f0db19525d86dec24c98df7ac7a1f5e7fb239a5d438fd6b720"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1_1_2/travel/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 5267,
+      "git_blob_sha1": "b49e56b74ced3ce8345a94b51da0164569524d59",
+      "path": "src/agentdojo/default_suites/v1_1_2/travel/injection_tasks.py",
+      "sha256": "d8688a8896736e4807b649340b84af65eb7b36f34d082073690333445a410b39"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1_1_2/workspace/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 8339,
+      "git_blob_sha1": "d1002b5e1c057171bc45547a2277e8b2d5ba3538",
+      "path": "src/agentdojo/default_suites/v1_1_2/workspace/injection_tasks.py",
+      "sha256": "3ffccf1e54362377a3d02955010b041a572c64aa209bb3e8b70c1fe5fc76fdad"
+    },
+    {
+      "bytes": 5395,
+      "git_blob_sha1": "41230de5c83ad0203fe8b7d36f63a3da392f782d",
+      "path": "src/agentdojo/default_suites/v1_1_2/workspace/user_tasks.py",
+      "sha256": "ff4e1b65f10346ba167d44b3236f4fe10fbb2066d6e2a22c4edc8b243d0f0a53"
+    },
+    {
+      "bytes": 365,
+      "git_blob_sha1": "c0256b9048f6d7a02447bd5ff2a2512441a3d2b8",
+      "path": "src/agentdojo/default_suites/v1_2/__init__.py",
+      "sha256": "cc643d412ba5aea5dfe7896a130af95d05740bcc62ff9df97835ed66786b7498"
+    },
+    {
+      "bytes": 15207,
+      "git_blob_sha1": "6c50248882bb93a21575800a94c0fbd50f700a19",
+      "path": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "sha256": "3e678ad165f911dbc16c8307de761dcc15da274716bec7ac0d05db167ec2c311"
+    },
+    {
+      "bytes": 3377,
+      "git_blob_sha1": "08949425eb2196eaf9b07cfbb2cb20fd1e959510",
+      "path": "src/agentdojo/default_suites/v1_2/slack/user_tasks.py",
+      "sha256": "36c51c6fd744301ed5dd9b654f02aca504af50df827453d1754862ed6201fcc2"
+    },
+    {
+      "bytes": 2048,
+      "git_blob_sha1": "9948ac8e2e9b3bd20bb3724301250e6d89976107",
+      "path": "src/agentdojo/default_suites/v1_2/travel/injection_tasks.py",
+      "sha256": "15b8ccee487223bfc6afc58cf05591e3a96fb668eee39d7d47ac2fd98f5173c0"
+    },
+    {
+      "bytes": 5037,
+      "git_blob_sha1": "b3106f61d84d1bc1a56bea96ddc3abf23b9a187c",
+      "path": "src/agentdojo/default_suites/v1_2/travel/user_tasks.py",
+      "sha256": "a563163efea5e723e4fbbafae66fca33e6b743e50f6c25865167dc0663615ef9"
+    },
+    {
+      "bytes": 17855,
+      "git_blob_sha1": "d1d23dbfba97df465c09eaf3a58135e1f907858d",
+      "path": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "sha256": "d11a9a4aa86085a1b0e8cea20652dd20f903adedfc6065175a0ead858c29e4a3"
+    },
+    {
+      "bytes": 8951,
+      "git_blob_sha1": "f742906b6b6202a62356cd06a9d8ed3ff57ed7a5",
+      "path": "src/agentdojo/default_suites/v1_2/workspace/user_tasks.py",
+      "sha256": "6b21b84053d1ac1703674e75d75dd4986e489d3434fcf60e8707b96114ab03bb"
+    },
+    {
+      "bytes": 79,
+      "git_blob_sha1": "fae284d73b1cf99706c0f5732fb8dbdd8cb0f24d",
+      "path": "src/agentdojo/default_suites/v1_2_1/__init__.py",
+      "sha256": "e092b155d26104e080e15ccb1747fdc0365be0b318475886337e4089d9484739"
+    },
+    {
+      "bytes": 4361,
+      "git_blob_sha1": "7f2899275f2cd39cbae38167063a6ab60709a75d",
+      "path": "src/agentdojo/default_suites/v1_2_1/workspace/injection_tasks.py",
+      "sha256": "5a30d439850b58cfb834840bdfe7bbdf4405859bb1899e59ef476f29156078e8"
+    },
+    {
+      "bytes": 132,
+      "git_blob_sha1": "b6fa90f14c1fa388c8db758f624cd8306e869b65",
+      "path": "src/agentdojo/default_suites/v1_2_2/__init__.py",
+      "sha256": "12ca1e18055f78ee067cc25e94cce459426ec744b70edd4a335aca4d5df2f157"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "src/agentdojo/default_suites/v1_2_2/banking/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1945,
+      "git_blob_sha1": "bde0330cdb72cddb0fb4bb3df1cb36d6bee66c78",
+      "path": "src/agentdojo/default_suites/v1_2_2/banking/user_tasks.py",
+      "sha256": "f3b8417c51b7fe33c0f85571d543a64811f6ef3e4ab9c7ae9568834db66064b2"
+    },
+    {
+      "bytes": 74,
+      "git_blob_sha1": "020c96a95c6d39e7ca9b07ecd40c3bb932e7fcf3",
+      "path": "src/agentdojo/default_suites/v1_2_2/workspace/__init__.py",
+      "sha256": "f79fffc92bb4655f4c3a575a56ec8e19c1c1979618bed8e70e43b49ea58ca689"
+    },
+    {
+      "bytes": 1452,
+      "git_blob_sha1": "abff695d04d0c464bedaf1411a97e07e696cf292",
+      "path": "src/agentdojo/default_suites/v1_2_2/workspace/user_tasks.py",
+      "sha256": "4873a5c1ba3be813cff5f85e6f921f92f7b3a90e21d2d412e043bcfea696de9b"
+    },
+    {
+      "bytes": 374,
+      "git_blob_sha1": "dcf33710cc6c8c414ea89ba899dd0f3726bf7bea",
+      "path": "src/agentdojo/task_suite/__init__.py",
+      "sha256": "6821364aecf7c72451e36fde92974188e221e71b19936659795d9ff771718406"
+    },
+    {
+      "bytes": 3143,
+      "git_blob_sha1": "918869e62928d2e5ec9bd82b047caa771a90f42c",
+      "path": "src/agentdojo/task_suite/load_suites.py",
+      "sha256": "e9c97813ed8295f25526733df044e9adf8ba18567eaeec3455591c4fbc1caa12"
+    },
+    {
+      "bytes": 3526,
+      "git_blob_sha1": "b88fc86fea1d9c246ef431d6c081dcbfe156d2e2",
+      "path": "src/agentdojo/task_suite/task_combinators.py",
+      "sha256": "a225f427c006b2fd814df86c47225ce9193d51857e3f14e69c8a56ee49116df1"
+    },
+    {
+      "bytes": 19818,
+      "git_blob_sha1": "da0f3bd18f058ef4d74decad25658d434338a993",
+      "path": "src/agentdojo/task_suite/task_suite.py",
+      "sha256": "2e69da06f7e150dd6d238c53a74845b56eebeb224e07f694e1051a6e0c6a2bc1"
+    },
+    {
+      "bytes": 3190,
+      "git_blob_sha1": "c72199110a3d0d82f9288221616a204a465b8b02",
+      "path": "src/agentdojo/ast_utils.py",
+      "sha256": "08d84f74f66151ff0438cb81aa58d3cd4fdc3f0881a0b5eb26d0b527948be221"
+    },
+    {
+      "bytes": 6880,
+      "git_blob_sha1": "4aa69733d34d7818fde840d103db98cec459d4ed",
+      "path": "src/agentdojo/base_tasks.py",
+      "sha256": "08d3a4646d1a250968045b0f933803335650a4ed04c9d2387b17d08b1e0427c5"
+    },
+    {
+      "bytes": 12627,
+      "git_blob_sha1": "eb68a7201b41398e76e70f00d2a9da6d351c8489",
+      "path": "src/agentdojo/functions_runtime.py",
+      "sha256": "3c67f71eb8a7f15d2a15fe9595d84218c5e6868d95fd71d1cef679cd2192d0f7"
+    },
+    {
+      "bytes": 3490,
+      "git_blob_sha1": "77519e93035cf405ef3d9f90e8a8d4f56715d0f1",
+      "path": "src/agentdojo/types.py",
+      "sha256": "207b688794d5e214099c00b0dff3a03429f8f3632fcbbdafeac291dc190fbfca"
+    },
+    {
+      "bytes": 1161,
+      "git_blob_sha1": "006aed0b22a430c0f3c6a4fb46768d967b8c3dbc",
+      "path": "LICENSE",
+      "sha256": "4285a071f2d382338e52b4fb0a186d952984a34d43a33d8872e1a1d8cb43401e"
+    },
+    {
+      "bytes": 3179,
+      "git_blob_sha1": "71930851807e5f0e23f084b652c0908f06a36138",
+      "path": "pyproject.toml",
+      "sha256": "f69dde819258d5dc2c6dca13ecbb116e54904374879a5c921332db36474e0a3b"
+    }
+  ],
+  "upstream": {
+    "benchmark_version": "v1.2.2",
+    "commit": "a75aba7631d3ca5fb7ab938965c97ead2f9ff84b",
+    "repository": "ethz-spylab/agentdojo",
+    "scope": "partial source snapshot for offline AST audit; not installed package equivalence",
+    "tag": "v0.1.35"
+  }
+}

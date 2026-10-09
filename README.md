@@ -1,10 +1,15 @@
 # IQA-SOA: auditable runtime governance for LLM agents
 
-Publication and anonymous-review limits are recorded in [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md); the frozen evidence remains authoritative.
-
 This repository is the executable artifact for a study of IQA-SOA as an
 independently enforced tool/service execution boundary and of a prospective
 evaluation lifecycle that can refuse unsupported effectiveness inference.
+
+The evidence below refers to the **internal frozen successor** in this checkout. A later
+Drive `main_v1.6.3.pdf` reports a separate external AgentDojo study. Its raw package
+and frozen analyzer have not been located here, and this checkout's earlier LaTeX
+must not be used as a reproduction of those later results. See the additive
+[external verification package](research/external_verification/README.md) for the
+executed public-source audit, claim matrix and explicitly unexecuted record checks.
 
 The evidence is deliberately separated:
 

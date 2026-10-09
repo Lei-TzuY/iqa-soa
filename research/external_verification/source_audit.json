@@ -1,0 +1,589 @@
+{
+  "audit_code_sha256": "585e68261fcbf8096d78c1e9c9ed9433f753b6cbcd451d909a4185fba582861f",
+  "external_empirical_results": "UNVERIFIED_RAW_PACKAGE_UNLOCATED",
+  "goals": [
+    {
+      "boundary": "environment_state",
+      "class_line": 11,
+      "goal": "injection_task_0",
+      "predicate_line": 50,
+      "predicate_method": "security",
+      "predicate_source_sha256": "c1a4f435503f3c210249bf819d43a64543760e0c709be18083a2edc181d3cfbc",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 65,
+      "goal": "injection_task_1",
+      "predicate_line": 96,
+      "predicate_method": "security",
+      "predicate_source_sha256": "f38e5d783c478729582b6ce33781657b369f02de47099eeb94150512bc46d74c",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 111,
+      "goal": "injection_task_2",
+      "predicate_line": 144,
+      "predicate_method": "security",
+      "predicate_source_sha256": "7732e48da8da05aec8f5577b2bf50a9c25073f3e57e83d6744ba3d667533835b",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 162,
+      "goal": "injection_task_3",
+      "predicate_line": 197,
+      "predicate_method": "security",
+      "predicate_source_sha256": "02b978fd4d59c2be9b6120d2e20cb6514301dcf239f20823d5e32ae0dda6d431",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 212,
+      "goal": "injection_task_4",
+      "predicate_line": 233,
+      "predicate_method": "security",
+      "predicate_source_sha256": "bcb33f532e28ec2a8b4c441bb07d9040b705998994cbfabba51a9233897c7517",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 241,
+      "goal": "injection_task_5",
+      "predicate_line": 266,
+      "predicate_method": "security",
+      "predicate_source_sha256": "c4bfa8e9732724bb433fc139432fa60e3f0aa3a16b2b57210c1d346ce2b13906",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 276,
+      "goal": "injection_task_6",
+      "predicate_line": 331,
+      "predicate_method": "security",
+      "predicate_source_sha256": "7528a52b0310c80cb7b46b9a619b602dec663fdf8205b4b6038cc1208ec1eca7",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 342,
+      "goal": "injection_task_7",
+      "predicate_line": 361,
+      "predicate_method": "security",
+      "predicate_source_sha256": "098577ca98add9edd59f4816a93b96114a332b4d45df979841fe7a06ed915826",
+      "source": "src/agentdojo/default_suites/v1/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 342,
+      "goal": "injection_task_8",
+      "predicate_line": 375,
+      "predicate_method": "security",
+      "predicate_source_sha256": "c52e01be10d83bc29aefa36a7e610425f81d34defebf17c56f7750e7d2fb5b97",
+      "source": "src/agentdojo/default_suites/v1_2/banking/injection_tasks.py",
+      "suite": "banking",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 11,
+      "goal": "injection_task_1",
+      "predicate_line": 27,
+      "predicate_method": "security",
+      "predicate_source_sha256": "70d876f56b4eb7d5e55996b0af90aafc74fc1a05a3eb7b6ba34df27555017d22",
+      "source": "src/agentdojo/default_suites/v1/slack/injection_tasks.py",
+      "suite": "slack",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 37,
+      "goal": "injection_task_2",
+      "predicate_line": 83,
+      "predicate_method": "security",
+      "predicate_source_sha256": "57cebf710182336de6861f0629033e38843b745eef41084c94ec06a8ddbf6212",
+      "source": "src/agentdojo/default_suites/v1/slack/injection_tasks.py",
+      "suite": "slack",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 98,
+      "goal": "injection_task_3",
+      "predicate_line": 113,
+      "predicate_method": "security",
+      "predicate_source_sha256": "b70cff76c4b28d4f72a404317597b23dda7a23a9e2b023d9e7269873f39f3f88",
+      "source": "src/agentdojo/default_suites/v1/slack/injection_tasks.py",
+      "suite": "slack",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 123,
+      "goal": "injection_task_4",
+      "predicate_line": 146,
+      "predicate_method": "security",
+      "predicate_source_sha256": "d4db368806e02b7d26a63cb545c1f5395af652a0d0fbf2203a60256033e962db",
+      "source": "src/agentdojo/default_suites/v1/slack/injection_tasks.py",
+      "suite": "slack",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "proposed_call_trace",
+      "class_line": 162,
+      "goal": "injection_task_5",
+      "predicate_line": 191,
+      "predicate_method": "security_from_traces",
+      "predicate_source_sha256": "93780d46edf0ac4fc116181504bba9c6297c157ad15877e40f34884f6c01e792",
+      "source": "src/agentdojo/default_suites/v1/slack/injection_tasks.py",
+      "suite": "slack",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 29,
+      "goal": "injection_task_0",
+      "predicate_line": 54,
+      "predicate_method": "security",
+      "predicate_source_sha256": "ac371292aa88368849343767d25b1c336c4c3aee2a549231a57c938b7fc79a40",
+      "source": "src/agentdojo/default_suites/v1/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 69,
+      "goal": "injection_task_1",
+      "predicate_line": 90,
+      "predicate_method": "security",
+      "predicate_source_sha256": "6ea8ee65392e74e84a4d6683cef82a1afb9e4527f7bba76f386d0780cf95fed2",
+      "source": "src/agentdojo/default_suites/v1/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 9,
+      "goal": "injection_task_2",
+      "predicate_line": 32,
+      "predicate_method": "security",
+      "predicate_source_sha256": "e12d9c13ba23da0a363da8c49b7d77938dcc0db463f52857c4967dddc05c3308",
+      "source": "src/agentdojo/default_suites/v1_2/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 9,
+      "goal": "injection_task_3",
+      "predicate_line": 36,
+      "predicate_method": "security",
+      "predicate_source_sha256": "3a63897fa5fc98f9e09be80bd259b7151afd15077f25b01ce385866e9562d28c",
+      "source": "src/agentdojo/default_suites/v1_1_2/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 195,
+      "goal": "injection_task_4",
+      "predicate_line": 231,
+      "predicate_method": "security",
+      "predicate_source_sha256": "d819541f998c6259e2b7e2b5f131a877574e8455703549078ab6572b8f0219f3",
+      "source": "src/agentdojo/default_suites/v1/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 59,
+      "goal": "injection_task_5",
+      "predicate_line": 99,
+      "predicate_method": "security",
+      "predicate_source_sha256": "2950917ab5fb88592e1cbe276ed8775728ebed2487a9717e4c30966795ebf74d",
+      "source": "src/agentdojo/default_suites/v1_1_2/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "boundary": "model_text",
+      "class_line": 12,
+      "goal": "injection_task_6",
+      "predicate_line": 22,
+      "predicate_method": "security",
+      "predicate_source_sha256": "45004d3703b3d657ba379bd19b70646e127342aacca596db5648479d0e0bbb12",
+      "source": "src/agentdojo/default_suites/v1/travel/injection_tasks.py",
+      "suite": "travel",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 11,
+      "goal": "injection_task_0",
+      "predicate_line": 36,
+      "predicate_method": "security",
+      "predicate_source_sha256": "d880848825453902cbfe20ded04f822ca622f8a77bfda6cc3d2ab097c7eba200",
+      "source": "src/agentdojo/default_suites/v1_1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 55,
+      "goal": "injection_task_1",
+      "predicate_line": 70,
+      "predicate_method": "security",
+      "predicate_source_sha256": "a8406921d0d75e52e79678a8837b371ee94803a29b6cb061f1367bd50e08db27",
+      "source": "src/agentdojo/default_suites/v1/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 80,
+      "goal": "injection_task_2",
+      "predicate_line": 107,
+      "predicate_method": "security",
+      "predicate_source_sha256": "3da8299bb6521786c26198b89ad5284e9343ec6eb750420ab433a2e69f73031a",
+      "source": "src/agentdojo/default_suites/v1/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 32,
+      "goal": "injection_task_3",
+      "predicate_line": 62,
+      "predicate_method": "security",
+      "predicate_source_sha256": "192ab99aaff97e3813a4a6679b5e7b4248a013cde0418c6af430222ceb4f1a96",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 108,
+      "goal": "injection_task_4",
+      "predicate_line": 149,
+      "predicate_method": "security",
+      "predicate_source_sha256": "bc4b80945b61acd790e4a66a45dc8f3b62ff8808ccf6288a4513c851ae5e3989",
+      "source": "src/agentdojo/default_suites/v1_1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 170,
+      "goal": "injection_task_5",
+      "predicate_line": 216,
+      "predicate_method": "security",
+      "predicate_source_sha256": "d2cd419edb48e0b99c2c613e653278339d78ada9f9e6833cd7b75e84b1da78c0",
+      "source": "src/agentdojo/default_suites/v1_1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 84,
+      "goal": "injection_task_6",
+      "predicate_line": 93,
+      "predicate_method": "security",
+      "predicate_source_sha256": "c306cd0f8fa9dbd5e3afcb3c82f9b442276d6b1f40eaa9ce2272d7169c0b9c24",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 115,
+      "goal": "injection_task_7",
+      "predicate_line": 124,
+      "predicate_method": "security",
+      "predicate_source_sha256": "3b6f3c8527c800b5713d35aaa52036770619f6c2cbb72ad6ba76dc2b2e6c43b5",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 151,
+      "goal": "injection_task_8",
+      "predicate_line": 160,
+      "predicate_method": "security",
+      "predicate_source_sha256": "0d6d870575f10b34b7f73fa4519678bfdd0fed4b510a3aa135e458278e0dd01f",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 190,
+      "goal": "injection_task_9",
+      "predicate_line": 200,
+      "predicate_method": "security",
+      "predicate_source_sha256": "e49d5225d974efd2f9bcbf93b7fd50d392c2a4c875fbc02ad05c6695a535f691",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 245,
+      "goal": "injection_task_10",
+      "predicate_line": 254,
+      "predicate_method": "security",
+      "predicate_source_sha256": "aee305c4cd06cb655e591bf82d597e807fbb5bbf4b5563f86f529d29f8ce29c4",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 10,
+      "goal": "injection_task_11",
+      "predicate_line": 19,
+      "predicate_method": "security",
+      "predicate_source_sha256": "27e04c62ed3319dfdb1519389c1fba9f9b3b82a96e62b33c5235e7f426df756c",
+      "source": "src/agentdojo/default_suites/v1_2_1/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 54,
+      "goal": "injection_task_12",
+      "predicate_line": 64,
+      "predicate_method": "security",
+      "predicate_source_sha256": "63ca3b3c85d6ebb3f09a336c6f2adb9446608c3ff225f5f7d86e54d2e25b0bba",
+      "source": "src/agentdojo/default_suites/v1_2_1/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "boundary": "environment_state",
+      "class_line": 371,
+      "goal": "injection_task_13",
+      "predicate_line": 382,
+      "predicate_method": "security",
+      "predicate_source_sha256": "97df3f6c4ecdbaa61fd243d6afacccc0b3a1e8b759508beb91d7e2c8ed698c9c",
+      "source": "src/agentdojo/default_suites/v1_2/workspace/injection_tasks.py",
+      "suite": "workspace",
+      "version": [
+        1,
+        2,
+        0
+      ]
+    }
+  ],
+  "limitations": [
+    "AST inventory does not execute scoring predicates or tools.",
+    "949 is the Cartesian population count, not a rerun of adapter equivalence tests.",
+    "74 counts suite tool registrations; read/effect classification is not audited here.",
+    "No external model records, eligibility, stage chain or frozen statistics were recovered."
+  ],
+  "predicate_boundaries": {
+    "environment_state": 33,
+    "model_text": 1,
+    "proposed_call_trace": 1
+  },
+  "schema_version": 1,
+  "source_files_verified": 70,
+  "suites": {
+    "banking": {
+      "attacker_goals": 9,
+      "cartesian_user_goal_pairs": 144,
+      "combined_user_tasks": 0,
+      "suite_tool_registrations": 11,
+      "user_tasks": 16
+    },
+    "slack": {
+      "attacker_goals": 5,
+      "cartesian_user_goal_pairs": 105,
+      "combined_user_tasks": 4,
+      "suite_tool_registrations": 11,
+      "user_tasks": 21
+    },
+    "travel": {
+      "attacker_goals": 7,
+      "cartesian_user_goal_pairs": 140,
+      "combined_user_tasks": 0,
+      "suite_tool_registrations": 28,
+      "user_tasks": 20
+    },
+    "workspace": {
+      "attacker_goals": 14,
+      "cartesian_user_goal_pairs": 560,
+      "combined_user_tasks": 7,
+      "suite_tool_registrations": 24,
+      "user_tasks": 40
+    }
+  },
+  "totals": {
+    "attacker_goals": 35,
+    "cartesian_user_goal_pairs": 949,
+    "combined_user_tasks": 11,
+    "suite_tool_registrations": 74,
+    "user_tasks": 97
+  },
+  "upstream": {
+    "benchmark_version": "v1.2.2",
+    "commit": "a75aba7631d3ca5fb7ab938965c97ead2f9ff84b",
+    "repository": "ethz-spylab/agentdojo",
+    "scope": "partial source snapshot for offline AST audit; not installed package equivalence",
+    "tag": "v0.1.35"
+  },
+  "verification": "EXECUTED_SOURCE_AUDIT_ONLY"
+}

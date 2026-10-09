@@ -1,0 +1,665 @@
+{
+  "checked_utc": "2026-10-09T09:01:13.462Z",
+  "repository": "Lei-TzuY/iqa-soa",
+  "implementation_commit": "d6f8638285a393a55a8eaa2fbd11ef4722b56aa1",
+  "implementation_tree": "1cd5e846643bd7953c6974d50dc53bf28efff8be",
+  "status": "EXTERNAL_RAW_PACKAGE_UNLOCATED",
+  "manuscripts": [
+    {
+      "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+      "name": "main_v1.6.3.pdf",
+      "url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+      "modified_utc": "2026-09-29T04:21:30.714Z",
+      "size": "878066"
+    },
+    {
+      "id": "1JCh6fNkIJREof-wAJBaieN7XixWkBqOx",
+      "name": "supplement_v1.6.2.pdf",
+      "url": "https://drive.google.com/file/d/1JCh6fNkIJREof-wAJBaieN7XixWkBqOx/view?usp=drivesdk",
+      "modified_utc": "2026-09-28T22:49:09.113Z",
+      "size": "523480"
+    }
+  ],
+  "branches": [
+    {
+      "name": "ci/source-verification",
+      "commit": "0519177d0a4331007dbad80f4e2814b19b504089",
+      "tree_truncated": false,
+      "entries": 2242,
+      "external_path_hits": []
+    },
+    {
+      "name": "fix/hash-basis-reproducibility",
+      "commit": "e4166bb4aeb875b92e9ea76492c90e3d405ddffc",
+      "tree_truncated": false,
+      "entries": 263,
+      "external_path_hits": []
+    },
+    {
+      "name": "main",
+      "commit": "d6f8638285a393a55a8eaa2fbd11ef4722b56aa1",
+      "tree_truncated": false,
+      "entries": 2243,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-c/protocol-instrumentation-repair",
+      "commit": "4f8130489a441961bb75184c798ea2b99e1de8f7",
+      "tree_truncated": false,
+      "entries": 219,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-e/benchmark-semantic-redesign",
+      "commit": "3fedbad7336f4745877301c2a9397eb3b0c04deb",
+      "tree_truncated": false,
+      "entries": 286,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-f/real-model-qualification",
+      "commit": "ee9f12b236dbfdfbfd67754e4be7a5f21f412825",
+      "tree_truncated": false,
+      "entries": 410,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-h/pilot-v7-rc2-redesign",
+      "commit": "b7b87dcb154f928fab7582c1f76ed0c8d32ed77b",
+      "tree_truncated": false,
+      "entries": 429,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-i/rc2-real-model-requalification",
+      "commit": "19f1dfccf5e435fc73e5d3bddcf90da05c29d725",
+      "tree_truncated": false,
+      "entries": 556,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-k/pilot-v7-rc3-offline-redesign",
+      "commit": "8c7e4154c28958b2632b5dfc9c33e31a9b5fd3a7",
+      "tree_truncated": false,
+      "entries": 574,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-l/rc3-real-model-requalification-execution",
+      "commit": "69d7ccf2cdf0ebf5cec7b943bc8ff1a0b2541c59",
+      "tree_truncated": false,
+      "entries": 1322,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-l/rc3-requalification-protocol-freeze",
+      "commit": "b0f2653cd038082ed5c66f4bfc77359e09f27540",
+      "tree_truncated": false,
+      "entries": 579,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-l/rc3-requalification-protocol-refreeze",
+      "commit": "1d4030a8110fed610b547ddd1f57fbbc5c6764de",
+      "tree_truncated": false,
+      "entries": 600,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-m/qaoff-fault-provenance-instrument-repair",
+      "commit": "dfe92946525ee509a80e408cf15f80038e016b9f",
+      "tree_truncated": false,
+      "entries": 589,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-n/phaseL-hold-forensic-diagnosis",
+      "commit": "771df0fdb8bbc1e26c84e6bf1ff5008762909b3f",
+      "tree_truncated": false,
+      "entries": 1326,
+      "external_path_hits": []
+    },
+    {
+      "name": "phase-o/pilot-v7-rc4-offline-redesign",
+      "commit": "69b856ea4729908ec8a4cf3855296a7a5c61dea4",
+      "tree_truncated": false,
+      "entries": 1350,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-analysis-contract-decision",
+      "commit": "ca4b95e06bebe6e919dbe8ea3f59290185b079ad",
+      "tree_truncated": false,
+      "entries": 1368,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-c3-provider-observability",
+      "commit": "b884a1d8a06eef809fe62d54039cbcb1270704ec",
+      "tree_truncated": false,
+      "entries": 1403,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-analysis-clarification",
+      "commit": "c69c72728a13870d0c1e47e62b8be441c3d176db",
+      "tree_truncated": false,
+      "entries": 1379,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-eligibility-schema-clarification",
+      "commit": "73f32803b9c216017bb5c043ddb5b1b5f27f9587",
+      "tree_truncated": false,
+      "entries": 1373,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-execution-io-clarification",
+      "commit": "8b9f553e7e87fdb324bf25a81055fb0f44430ee9",
+      "tree_truncated": false,
+      "entries": 1377,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-final-registration-schema-clarification",
+      "commit": "704e93ad93f65f3b5fd5552aacd166f1b89e9141",
+      "tree_truncated": false,
+      "entries": 1374,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-randomization-code-implementation-authorization",
+      "commit": "9fc829aba00a7ee46f360b2bd1434196ca4495c0",
+      "tree_truncated": false,
+      "entries": 1371,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-randomization-design",
+      "commit": "ff60d212cf8b2c71e43b19500140eb4d8b3e8345",
+      "tree_truncated": false,
+      "entries": 1369,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-randomization-durability-clarification",
+      "commit": "c23b7712976b79a08ed0dfbd8911820324cbde42",
+      "tree_truncated": false,
+      "entries": 1376,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-randomization-implementation",
+      "commit": "883c425daf2e6462877f0626f5fce0664ac85ca9",
+      "tree_truncated": false,
+      "entries": 1394,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-randomization-implementation-design",
+      "commit": "fc3f9ba34a22cac5d8d1553ee075d13a725740cd",
+      "tree_truncated": false,
+      "entries": 1370,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-randomization-persistence-schema-clarification",
+      "commit": "148f4b1ca67acf3af237f3123f6798b58ec328a6",
+      "tree_truncated": false,
+      "entries": 1375,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-confirmatory-registration-draft-schema-clarification",
+      "commit": "c60883c6cc58b85c23d7b919fd84afc990a6ebe1",
+      "tree_truncated": false,
+      "entries": 1372,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-qualification-methodology",
+      "commit": "456d9cd29ed8b676deb051f480be81a73df3338a",
+      "tree_truncated": false,
+      "entries": 1367,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-successor-candidate-implementation",
+      "commit": "c907877df7f39c8cf63208d6f7e4e80931a3e3a7",
+      "tree_truncated": false,
+      "entries": 1410,
+      "external_path_hits": []
+    },
+    {
+      "name": "post-phasep-successor-candidate-implementation-authorization",
+      "commit": "81c7be2340af752b14ea4ce75de0b407b52c13f6",
+      "tree_truncated": false,
+      "entries": 1404,
+      "external_path_hits": []
+    },
+    {
+      "name": "publication/prepare-public-20261007",
+      "commit": "651c675f0b37b3358a0773f0ecbb52afd62c7785",
+      "tree_truncated": false,
+      "entries": 2243,
+      "external_path_hits": []
+    }
+  ],
+  "pull_requests": [
+    {
+      "number": 50,
+      "title": "Record the private-source dependency of anonymous IQA artifacts",
+      "head": "651c675f0b37b3358a0773f0ecbb52afd62c7785",
+      "state": "closed",
+      "updated_utc": "2026-10-07T14:31:49Z"
+    },
+    {
+      "number": 49,
+      "title": "Harden FSE submission artifact and exact-head CI",
+      "head": "0519177d0a4331007dbad80f4e2814b19b504089",
+      "state": "closed",
+      "updated_utc": "2026-09-10T23:26:38Z"
+    },
+    {
+      "number": 48,
+      "title": "docs: harden FSE Route-A manuscript evidence",
+      "head": "2b233a3b14f4ad8543dfe60c00e963006c244c27",
+      "state": "closed",
+      "updated_utc": "2026-09-04T06:56:27Z"
+    },
+    {
+      "number": 47,
+      "title": "docs: record FSE Route-A manuscript reframe",
+      "head": "397b0e9d6933e7cf133f897b0150d3243ea5a0c5",
+      "state": "closed",
+      "updated_utc": "2026-09-04T01:23:42Z"
+    },
+    {
+      "number": 46,
+      "title": "docs: decide FSE submission route after successor hold",
+      "head": "d8a673dc289cb14c32d487ecacf1add889c49397",
+      "state": "closed",
+      "updated_utc": "2026-09-03T22:12:13Z"
+    },
+    {
+      "number": 45,
+      "title": "docs: audit remaining FSE manuscript TBD evidence gaps",
+      "head": "e786e3d6cb3c924bf549255d8305ae146ac8e7df",
+      "state": "closed",
+      "updated_utc": "2026-09-03T20:41:37Z"
+    },
+    {
+      "number": 44,
+      "title": "docs: integrate successor qualification into FSE manuscript support",
+      "head": "689cc3b98201ec58b42abb5daa2bdc2ee102d6f1",
+      "state": "closed",
+      "updated_utc": "2026-09-03T20:07:31Z"
+    },
+    {
+      "number": 43,
+      "title": "test: historicalize successor lifecycle-bound assertions",
+      "head": "43120bd9af9589e47aeac97d0c0f63ee2d74e46d",
+      "state": "closed",
+      "updated_utc": "2026-09-03T19:03:50Z"
+    },
+    {
+      "number": 42,
+      "title": "docs: correct successor qualification analysis provenance",
+      "head": "57388dae3ebcd7cb44f436384d024f1ae2bf563c",
+      "state": "closed",
+      "updated_utc": "2026-09-03T18:00:54Z"
+    },
+    {
+      "number": 41,
+      "title": "results: record successor qualification hold evidence",
+      "head": "7c2848ae28a0e43786915479d65ee60d6daa12d3",
+      "state": "closed",
+      "updated_utc": "2026-09-03T16:44:11Z"
+    },
+    {
+      "number": 40,
+      "title": "feat: authorize successor qualification execution",
+      "head": "73a6bf7beb7d17bccf9af05750d3efa07d72a287",
+      "state": "closed",
+      "updated_utc": "2026-09-03T15:19:38Z"
+    },
+    {
+      "number": 39,
+      "title": "feat: implement locked successor qualification driver",
+      "head": "fc6a7d4d80f995e97d05cc7fb5f7dcb124c85482",
+      "state": "closed",
+      "updated_utc": "2026-09-03T13:17:12Z"
+    },
+    {
+      "number": 38,
+      "title": "docs: record successor runtime preflight evidence",
+      "head": "499abdc430ecb3f154fe4b292d385d064a1e8083",
+      "state": "closed",
+      "updated_utc": "2026-09-03T10:04:26Z"
+    },
+    {
+      "number": 37,
+      "title": "docs: authorize successor runtime preflight",
+      "head": "789e9029bbcb19e62c0786e220ebd3e3505f18d5",
+      "state": "closed",
+      "updated_utc": "2026-09-03T09:49:52Z"
+    },
+    {
+      "number": 36,
+      "title": "fix: repair runtime snapshot benchmark identity",
+      "head": "771c176df17a4fd1fb63e3ac0f3e84921cb98948",
+      "state": "closed",
+      "updated_utc": "2026-09-03T09:20:04Z"
+    },
+    {
+      "number": 35,
+      "title": "feat: freeze successor provider qualification protocol",
+      "head": "75c54e622548d19c947ea9d6fb9a809451f0a41f",
+      "state": "closed",
+      "updated_utc": "2026-09-02T19:24:19Z"
+    },
+    {
+      "number": 34,
+      "title": "feat: freeze post-Phase-P successor candidate",
+      "head": "9a7b2605b92319184087f8e625d57a28bcd59673",
+      "state": "closed",
+      "updated_utc": "2026-09-02T07:56:54Z"
+    },
+    {
+      "number": 33,
+      "title": "docs: authorize successor candidate freeze setup",
+      "head": "c162e50c60bdc62f25f05111568092c1b2ed64e6",
+      "state": "closed",
+      "updated_utc": "2026-09-01T20:21:17Z"
+    },
+    {
+      "number": 32,
+      "title": "feat: implement post-Phase-P successor candidate scope",
+      "head": "c907877df7f39c8cf63208d6f7e4e80931a3e3a7",
+      "state": "closed",
+      "updated_utc": "2026-09-01T19:53:03Z"
+    },
+    {
+      "number": 31,
+      "title": "docs: authorize post-Phase-P successor candidate implementation",
+      "head": "81c7be2340af752b14ea4ce75de0b407b52c13f6",
+      "state": "closed",
+      "updated_utc": "2026-09-01T09:28:49Z"
+    },
+    {
+      "number": 30,
+      "title": "feat: close post-Phase-P C3 provider observability",
+      "head": "b884a1d8a06eef809fe62d54039cbcb1270704ec",
+      "state": "closed",
+      "updated_utc": "2026-08-31T16:59:35Z"
+    },
+    {
+      "number": 29,
+      "title": "feat: add prospective confirmatory randomization implementation",
+      "head": "883c425daf2e6462877f0626f5fce0664ac85ca9",
+      "state": "closed",
+      "updated_utc": "2026-08-29T08:22:06Z"
+    },
+    {
+      "number": 28,
+      "title": "docs: freeze confirmatory analysis contract",
+      "head": "c69c72728a13870d0c1e47e62b8be441c3d176db",
+      "state": "closed",
+      "updated_utc": "2026-08-28T13:21:06Z"
+    },
+    {
+      "number": 27,
+      "title": "docs: freeze confirmatory execution I/O contract",
+      "head": "8b9f553e7e87fdb324bf25a81055fb0f44430ee9",
+      "state": "closed",
+      "updated_utc": "2026-08-27T21:29:40Z"
+    },
+    {
+      "number": 26,
+      "title": "docs: close WU4 persistence durability gaps",
+      "head": "c23b7712976b79a08ed0dfbd8911820324cbde42",
+      "state": "closed",
+      "updated_utc": "2026-08-27T19:14:04Z"
+    },
+    {
+      "number": 25,
+      "title": "docs: freeze confirmatory randomization persistence schema",
+      "head": "148f4b1ca67acf3af237f3123f6798b58ec328a6",
+      "state": "closed",
+      "updated_utc": "2026-08-27T17:04:22Z"
+    },
+    {
+      "number": 24,
+      "title": "docs: freeze final registration manifest schema",
+      "head": "704e93ad93f65f3b5fd5552aacd166f1b89e9141",
+      "state": "closed",
+      "updated_utc": "2026-08-27T12:07:12Z"
+    },
+    {
+      "number": 23,
+      "title": "docs: freeze confirmatory eligibility schema",
+      "head": "73f32803b9c216017bb5c043ddb5b1b5f27f9587",
+      "state": "closed",
+      "updated_utc": "2026-08-26T11:11:50Z"
+    },
+    {
+      "number": 22,
+      "title": "docs: freeze confirmatory registration draft schema",
+      "head": "c60883c6cc58b85c23d7b919fd84afc990a6ebe1",
+      "state": "closed",
+      "updated_utc": "2026-08-26T09:10:49Z"
+    },
+    {
+      "number": 21,
+      "title": "docs: authorize confirmatory randomization code implementation",
+      "head": "9fc829aba00a7ee46f360b2bd1434196ca4495c0",
+      "state": "closed",
+      "updated_utc": "2026-08-25T21:34:10Z"
+    },
+    {
+      "number": 20,
+      "title": "docs: freeze confirmatory randomization implementation design",
+      "head": "fc3f9ba34a22cac5d8d1553ee075d13a725740cd",
+      "state": "closed",
+      "updated_utc": "2026-08-25T21:15:49Z"
+    },
+    {
+      "number": 19,
+      "title": "docs: record post-Phase-P confirmatory randomization design",
+      "head": "ff60d212cf8b2c71e43b19500140eb4d8b3e8345",
+      "state": "closed",
+      "updated_utc": "2026-08-25T19:46:40Z"
+    },
+    {
+      "number": 18,
+      "title": "docs: record post-Phase-P analysis contract decision",
+      "head": "ca4b95e06bebe6e919dbe8ea3f59290185b079ad",
+      "state": "closed",
+      "updated_utc": "2026-08-25T18:14:13Z"
+    },
+    {
+      "number": 17,
+      "title": "Document post-Phase-P qualification methodology",
+      "head": "456d9cd29ed8b676deb051f480be81a73df3338a",
+      "state": "closed",
+      "updated_utc": "2026-08-25T17:53:46Z"
+    },
+    {
+      "number": 16,
+      "title": "Document post-Phase-P prospective redesign decision",
+      "head": "bf96551b65e629592018deead057c2c87eba9220",
+      "state": "closed",
+      "updated_utc": "2026-08-25T11:48:04Z"
+    },
+    {
+      "number": 15,
+      "title": "Document Phase P HOLD forensic diagnosis",
+      "head": "60afd50df2606ba8799783bebf1d00cd9442f165",
+      "state": "closed",
+      "updated_utc": "2026-08-25T10:08:08Z"
+    },
+    {
+      "number": 14,
+      "title": "Phase P: freeze pilot-v7-rc4 qualification protocol",
+      "head": "560dae3dd9f677f48efd0674cb04749fe9b8ce24",
+      "state": "closed",
+      "updated_utc": "2026-08-24T20:19:05Z"
+    },
+    {
+      "number": 13,
+      "title": "Phase O: redesign pilot-v7-rc4 offline",
+      "head": "69b856ea4729908ec8a4cf3855296a7a5c61dea4",
+      "state": "closed",
+      "updated_utc": "2026-08-23T16:38:45Z"
+    },
+    {
+      "number": 12,
+      "title": "Phase N: diagnose Phase L-B qualification hold",
+      "head": "771df0fdb8bbc1e26c84e6bf1ff5008762909b3f",
+      "state": "closed",
+      "updated_utc": "2026-08-23T08:00:16Z"
+    },
+    {
+      "number": 11,
+      "title": "Phase L-B: archive rc3 QA-OFF real-model requalification",
+      "head": "69d7ccf2cdf0ebf5cec7b943bc8ff1a0b2541c59",
+      "state": "closed",
+      "updated_utc": "2026-08-23T01:49:40Z"
+    },
+    {
+      "number": 10,
+      "title": "Phase L-A': refreeze pilot-v7-rc3 real-model requalification protocol",
+      "head": "1d4030a8110fed610b547ddd1f57fbbc5c6764de",
+      "state": "closed",
+      "updated_utc": "2026-08-22T22:05:28Z"
+    },
+    {
+      "number": 9,
+      "title": "Phase M: repair QA-OFF fault-provenance persistence",
+      "head": "dfe92946525ee509a80e408cf15f80038e016b9f",
+      "state": "closed",
+      "updated_utc": "2026-08-22T18:43:08Z"
+    },
+    {
+      "number": 8,
+      "title": "Phase L-A: freeze pilot-v7-rc3 real-model requalification protocol",
+      "head": "b0f2653cd038082ed5c66f4bfc77359e09f27540",
+      "state": "closed",
+      "updated_utc": "2026-08-22T13:51:04Z"
+    },
+    {
+      "number": 7,
+      "title": "Phase K: pilot-v7-rc3 offline redesign and qualification hardening (K.2 fault-provenance binding)",
+      "head": "8c7e4154c28958b2632b5dfc9c33e31a9b5fd3a7",
+      "state": "closed",
+      "updated_utc": "2026-08-22T11:37:48Z"
+    },
+    {
+      "number": 6,
+      "title": "Phase I: archive rc2 QA-OFF requalification — HOLD_POST_FREEZE_DEFECT",
+      "head": "19f1dfccf5e435fc73e5d3bddcf90da05c29d725",
+      "state": "closed",
+      "updated_utc": "2026-08-21T22:12:16Z"
+    },
+    {
+      "number": 5,
+      "title": "Phase H: pilot-v7-rc2 offline semantic redesign (release candidate)",
+      "head": "b7b87dcb154f928fab7582c1f76ed0c8d32ed77b",
+      "state": "closed",
+      "updated_utc": "2026-08-21T19:06:14Z"
+    },
+    {
+      "number": 4,
+      "title": "Phase F: archive QA-OFF benchmark qualification — verdict HOLD",
+      "head": "ee9f12b236dbfdfbfd67754e4be7a5f21f412825",
+      "state": "closed",
+      "updated_utc": "2026-08-21T17:12:53Z"
+    },
+    {
+      "number": 3,
+      "title": "Phase E: pilot-v7-rc1 benchmark construct-validity release candidate",
+      "head": "3fedbad7336f4745877301c2a9397eb3b0c04deb",
+      "state": "closed",
+      "updated_utc": "2026-08-21T15:12:36Z"
+    },
+    {
+      "number": 2,
+      "title": "Fix hash-basis reproducibility and preserve historical EOL provenance",
+      "head": "e4166bb4aeb875b92e9ea76492c90e3d405ddffc",
+      "state": "closed",
+      "updated_utc": "2026-08-21T11:42:29Z"
+    },
+    {
+      "number": 1,
+      "title": "Phase C/D: Repair native-tool instrumentation and qualify real-provider path",
+      "head": "fd5a54e68e77e09352bbf4217ca217ecb0905271",
+      "state": "closed",
+      "updated_utc": "2026-08-21T08:49:18Z"
+    }
+  ],
+  "workflow_artifacts": [
+    {
+      "run": 37637458690,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 37635845116,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 34542175713,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 34541093055,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 34363734178,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 34361749671,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 34360742425,
+      "count": 0,
+      "artifacts": []
+    },
+    {
+      "run": 34065177947,
+      "count": 0,
+      "artifacts": []
+    }
+  ],
+  "releases": [],
+  "drive_queries": [
+    {
+      "query": "name contains AgentDojo/agentdojo/qualification/stage_c/artifact",
+      "result": "unrelated older folders; no external package"
+    },
+    {
+      "query": "fullText contains fse2027-external-replication-v1",
+      "result": "supplement_v1.6.2.pdf only"
+    },
+    {
+      "query": "modified after 2026-08-01; ZIP/gzip/.tar/.jsonl/Stage names",
+      "result": "zero results"
+    }
+  ],
+  "limits": [
+    "No exhaustive closed PR head content or full git history scan.",
+    "GitHub global default-branch code search returned older literature references only.",
+    "General tag collection endpoint not supported by connector; releases were checked.",
+    "Public upstream full recursive tree fetch failed transport; relevant source subtrees were recovered instead.",
+    "Results do not demonstrate that an archive is absent from another source."
+  ]
+}
