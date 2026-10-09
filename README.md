@@ -136,3 +136,7 @@ Architecture, benchmark, metrics, protocol, and historical pilot details are in
 [`docs/benchmark.md`](docs/benchmark.md),
 [`docs/metrics.md`](docs/metrics.md), and
 [`docs/experiment_protocol.md`](docs/experiment_protocol.md).
+
+## Publication audit
+
+This repository remains private. See the [2026-10-09 release audit](docs/RELEASE_AUDIT_2026-10-09.md) for historical exposure, validation limits and owner release gates.

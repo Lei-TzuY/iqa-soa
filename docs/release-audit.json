@@ -1,0 +1,32 @@
+{
+  "repository": "Lei-TzuY/iqa-soa",
+  "audit_date_utc": "2026-10-09",
+  "audited_default_branch": "main",
+  "audited_default_head": "d6f8638285a393a55a8eaa2fbd11ef4722b56aa1",
+  "release_verdict": "BLOCKED",
+  "recovered_merged_pr": 50,
+  "coverage": {
+    "refs": 83,
+    "commits": 176,
+    "distinct_root_trees": 114,
+    "distinct_blobs": 1799,
+    "raw_sha_verified": 1799,
+    "normalized_content_only": 0,
+    "unavailable_blobs": 0,
+    "observed_actions_runs": 8
+  },
+  "owner_actions": "Owner must resolve the anonymity period and publication policy before any visibility change, choose a source license and approve collaborator/evidence redistribution. A public artifact should have an independently reviewed source/identity policy; do not rewrite frozen evidence.",
+  "license": "No repository source license. Collaborator/third-party evidence and manuscript restrictions require approval.",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "category": "Double-anonymous review",
+      "finding": "Submission packaging explicitly depends on the original repository staying private because preserved Git/source identifiers can link anonymous evidence back to its owner."
+    },
+    {
+      "severity": "HIGH",
+      "category": "IP/research",
+      "finding": "Source license, collaborator consent and unpublished manuscript/raw-experiment distribution approval are unresolved."
+    }
+  ]
+}
