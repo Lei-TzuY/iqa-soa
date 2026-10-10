@@ -1,5 +1,13 @@
 # External AgentDojo evidence verification
 
+**Cycle E (2026-10-10): original archive recovered; hash-bound numerical audit PASS.**
+
+The recovered 544 qualification and 948 confirmatory records reproduce the
+original frozen analysis exactly. See [the recovery checkpoint](RECOVERY_CYCLE_E_2026-10-10.md)
+and [executed report](recovery_cycle_e_20261010.json). Independent adapter/oracle
+replay remains unexecuted. Frozen internal HOLD gates remain unchanged.
+The historical missing-archive assessment below describes the 2026-10-09 checkpoint.
+
 **Public source audit: EXECUTED. External empirical record audit: UNEXECUTED.**
 
 This is a new post-hoc verification package, not the original frozen experiment,
