@@ -1,0 +1,245 @@
+{
+  "verdict": "PARTIALLY_VERIFIED: source-faithful outcomes verified; attack-goal semantics have counterexamples",
+  "repository_parent": "f4dee0e20a2cadfb41bb88a9041c53eadca4d9b7",
+  "qa_head_unchanged": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+  "archive_root": "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1",
+  "command": "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe -X utf8 -B C:\\FSE-ext-agentdojo\\cycle-f-20261010\\oracle_replay_cycle_f.py C:\\Users\\User\\Desktop\\FSE C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5",
+  "started_utc": "2026-10-10T09:38:28.810605+00:00",
+  "finished_utc": "2026-10-10T09:39:53.898244+00:00",
+  "runtime_seconds": 85.0870344999712,
+  "script_sha256": "942104d6e2d24cca6ed8b05b3a1c3a12c6c85a992a025a6f863668809e764204",
+  "archive_unchanged": {
+    "files": 3028,
+    "sha256": "4cc3b6316391d695824cc0cde0bbbbb55be172d79a6aeaec3f62fe0de6919295"
+  },
+  "full_frozen_analysis_equals_cycle_e": true,
+  "terminal_predicate_evaluations": 3964,
+  "content_exposure_evaluations": 840,
+  "coverage": [
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "full",
+      "endpoint": "cpe_executed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "full",
+      "endpoint": "cpe_proposed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "full",
+      "endpoint": "native_security",
+      "verified": 140
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "full",
+      "endpoint": "native_utility",
+      "verified": 237
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "cpe_executed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "cpe_proposed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "native_security",
+      "verified": 140
+    },
+    {
+      "stage": "confirmatory",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "native_utility",
+      "verified": 237
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "full",
+      "endpoint": "cpe_executed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "full",
+      "endpoint": "cpe_proposed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "full",
+      "endpoint": "native_security",
+      "verified": 140
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "full",
+      "endpoint": "native_utility",
+      "verified": 237
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "cpe_executed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "cpe_proposed",
+      "verified": 136
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "native_security",
+      "verified": 140
+    },
+    {
+      "stage": "confirmatory",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "native_utility",
+      "verified": 237
+    },
+    {
+      "stage": "qualification",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "cpe_executed",
+      "verified": 136
+    },
+    {
+      "stage": "qualification",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "cpe_proposed",
+      "verified": 136
+    },
+    {
+      "stage": "qualification",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "native_security",
+      "verified": 140
+    },
+    {
+      "stage": "qualification",
+      "model": "mistral",
+      "arm": "off",
+      "endpoint": "native_utility",
+      "verified": 272
+    },
+    {
+      "stage": "qualification",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "cpe_executed",
+      "verified": 136
+    },
+    {
+      "stage": "qualification",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "cpe_proposed",
+      "verified": 136
+    },
+    {
+      "stage": "qualification",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "native_security",
+      "verified": 140
+    },
+    {
+      "stage": "qualification",
+      "model": "qwen",
+      "arm": "off",
+      "endpoint": "native_utility",
+      "verified": 272
+    }
+  ],
+  "tool_totals": {
+    "executed_calls": 5889,
+    "successful_calls": 5656,
+    "tool_errors": 233,
+    "exact_tool_outputs": 5889,
+    "clock_reads": 408,
+    "opaque_executed_clock_reads": 148,
+    "opaque_shadow_clock_reads": 458,
+    "retained_calendar_order_restorations": 53,
+    "final_native_calls_not_dispatched": 29
+  },
+  "opaque_executed_clock_records": 132,
+  "final_unexecuted_native_call_records": 25,
+  "literal_goal_checks": 104,
+  "literal_goal_coverage": "four of 35 goals; 96 security and 8 injection-as-user records",
+  "independent_endpoint_disagreements": 16,
+  "distinct_records_with_independent_disagreements": 10,
+  "disagreement_categories": {
+    "SCORER_ORDER_DEPENDENCY": 5,
+    "ORACLE_VS_LITERAL_GOAL": 11
+  },
+  "posthoc_sensitivity_status": "DESCRIPTIVE, not prospectively registered; inherited analyzer claim-permitted fields are mechanical template output",
+  "artifacts": {
+    "coverage.csv": {
+      "sha256": "45c46c89654daffd583d2a5067989ba7e65550b3c2cdd5eed9597eea6d6ef0db",
+      "bytes": 70423
+    },
+    "discrepancies.json": {
+      "sha256": "fd7432bad37b1c6eb81792e05c60c2a914bcf161455471854a683089e83957a5",
+      "bytes": 3063
+    },
+    "goal_sources.json": {
+      "sha256": "39db4d4ea7e9c75d3f1ff406fb3dd4cd5dc34fc0fb8518c1a9286880dbb3312f",
+      "bytes": 9917
+    },
+    "oracle_sources.json": {
+      "sha256": "7329f4d507ff1f648483e81ab706b9f13bc5803914b73e30a399136605ff06b2",
+      "bytes": 368601
+    },
+    "record_discrepancies.csv": {
+      "sha256": "a8f9528f2aefc581aca9dd6138c42989761e602e8aad5d8ada5d318e38e90777",
+      "bytes": 9496
+    },
+    "record_replay.jsonl.gz": {
+      "sha256": "3bc42916878f48c0af3a3119f39dfa35d2b6cda74ed2f4b1f4260f5ba4001d92",
+      "bytes": 215886
+    },
+    "replay_summary.json": {
+      "sha256": "08ab0ed2aff90795a5c19516ebc833c202113719429a200c1ae3b3ff9799128f",
+      "bytes": 76577
+    },
+    "semantic_goal_audit.csv": {
+      "sha256": "f2b848e64ac5b8d1c0b72aacf5351bb0ee4b73b3a3498b945a205c7080d06f67",
+      "bytes": 20587
+    }
+  },
+  "source_notice": "AgentDojo source excerpts are MIT-licensed, upstream a75aba7631d3ca5fb7ab938965c97ead2f9ff84b, installed package 0.1.35; existing upstream license preserved."
+}
