@@ -1,0 +1,321 @@
+{
+  "cycle": "I",
+  "assembled_utc": "2026-10-11T13:58:04.292872+00:00",
+  "verdict": "HUMAN_ADJUDICATION_PENDING / PARTIALLY_VERIFIED; unrestricted manuscript HOLD",
+  "statistical_status": "POST_HOC_DESCRIPTIVE_MEASUREMENT_AUDIT",
+  "expected_integration_parent": "2eb5e4e0444cadc9397ebbe840bff1904d201969",
+  "base_tree": "a5d8b3220af2140d1572be31c7bc06eadbfe17ba",
+  "existing_pr": "https://github.com/Lei-TzuY/iqa-soa/pull/51",
+  "branch": "research/external-agentdojo-audit-20261009",
+  "owner": "Lei-TzuY",
+  "H_manifest_sha256": "84d0353ebb91f3b5479781ba00102bf22e8c3f6c80a9438277398d92ce5469d2",
+  "H_materialized_artifacts_verified": {
+    "research/external_verification/CYCLE_H_ADJUDICATION_2026-10-11.md": "c9a283183d6a64af51719ce8231c54c6cdcb8c1cfd0933992d1bf01a0cb47f6c",
+    "research/external_verification/cycle_h_20261010/HUMAN_REVIEW_PACKET.md": "58510e6dddf7410d819657dadafc4c03a83b0495b72f78703980780558b632d3",
+    "research/external_verification/cycle_h_20261010/ambiguity_dependency_map.csv": "7962a4fa581ca961561d9ec3bbcd386ad58f7e729d3a910d9bf626c602ee0e3f",
+    "research/external_verification/cycle_h_20261010/differential_ledger.csv": "5bb089f3e817260940e68f358214cf87972b6b1cd35d49b79ff3e05b96992245",
+    "research/external_verification/cycle_h_20261010/frozen_rules_v1.json": "219f1605117a480cf7a4189d5640d0c3f9966338307b8ac73e64ae390b52b297",
+    "research/external_verification/cycle_h_20261010/frozen_rules_v2.json": "ec3b81b709c7a4c81203720dbbaa9619f3d49b9cd785d471074885f689667f97",
+    "research/external_verification/cycle_h_20261010/human_review_packet.json": "7e078a643fd05675c4d8e5e99aec7c5e10c3728e435b6ac9d5ca85573c0e7db4",
+    "research/external_verification/cycle_h_20261010/manuscript_claim_matrix.csv": "7b6445eccbf87fca3c85b13a48f0189140783c573f4a8f1bed74b23be0ee970c",
+    "research/external_verification/cycle_h_20261010/record_semantic_coverage.csv.gz": "8a02769283675624444f65cbee52343650b6a69afdd7f442d779b10df81c6454",
+    "research/external_verification/cycle_h_20261010/remaining_influence.csv": "5a779f547c7ef5f335c7de6101e34485dda5c0f76e251fe7071c2d0f4556572b",
+    "research/external_verification/cycle_h_20261010/review_decisions_template.csv": "3dc1e796b6761dfdc6e0032b6b0ed573dfad6724d4be6622b25a76f13c9af7cb",
+    "research/external_verification/cycle_h_20261010/review_extraction_manifest.json": "249313f168bf9caa76f9b6f1756361297fd8951a6f66ee86fe8e4abf69a76a9a",
+    "research/external_verification/cycle_h_20261010/rule_adjudications_v2.csv": "16471aa0dccb92cb55b5f84409feb75c8e949235c94aafe2b134f91db60029dd",
+    "research/external_verification/cycle_h_20261010/source_defect_investigation.json": "e6dc22a7f77414574f615dd3197e711b04b6b7aba901d58fa3eb739daf2b56d5",
+    "research/external_verification/cycle_h_20261010/statistical_consequences.json": "61d4f142a94603fbca247d4be068ee7c01455dd10f8e9a7f147c9e2a8082be27",
+    "research/external_verification/cycle_h_20261010/unresolved_contexts.csv.gz": "bf0614ab4dcc5b5eab75177853a0df030c88f6d13c859586d2a53274a952eeff",
+    "research/external_verification/prepare_cycle_h_review.py": "edeac01d4b3fca54e9f56ac757a4391a0728ebaf9f622db16ffa5dd732539a88",
+    "research/external_verification/summarize_cycle_h.py": "a96e1df45b4335e7f54fcec14dc501d4d98f32dc24849728ecaaf928976974c5"
+  },
+  "H_artifact_integrity_scope": "18 materialized artifacts hash-matched; other historical Git blobs preserved by complete tree comparison, not claimed re-read here.",
+  "checkpoint": {
+    "source_sha256": "8a02769283675624444f65cbee52343650b6a69afdd7f442d779b10df81c6454",
+    "goals_total": 35,
+    "goals_classified": 30,
+    "contexts": 1794,
+    "records_total": 910,
+    "records_all_contexts_classified": 872,
+    "unknown_records": 38,
+    "unknown_contexts": 71,
+    "endpoints": {
+      "executed": {
+        "total": 910,
+        "classified": 877,
+        "unknown": 33
+      },
+      "proposed": {
+        "total": 884,
+        "classified": 846,
+        "unknown": 38
+      }
+    },
+    "by_goal": {
+      "banking/injection_task_2": 44,
+      "workspace/injection_task_11": 10,
+      "banking/injection_task_5": 4,
+      "workspace/injection_task_13": 9,
+      "travel/injection_task_5": 4
+    },
+    "overlap": {
+      "('executed', 'proposed')": 33,
+      "('proposed',)": 5
+    }
+  },
+  "gate": {
+    "cycle": "I",
+    "status": "HUMAN_ADJUDICATION_PENDING",
+    "owner_decisions": [],
+    "independent_human_reviews": [],
+    "stage_D": "UNEXECUTED",
+    "new_semantic_labels": 0,
+    "affected_record_replays": 0,
+    "uses_existing_H_packet": true,
+    "packet_sha256": "7e078a643fd05675c4d8e5e99aec7c5e10c3728e435b6ac9d5ca85573c0e7db4"
+  },
+  "source_integrity": {
+    "distinct_bound_input_files_before_after": 363,
+    "remaining_record_raw_and_evidence_files": 76,
+    "operational_episodes": 129,
+    "gap_subset_episodes": 72,
+    "gap_subset_is_not_an_additional_independent_population": true,
+    "agentdojo_source_tree": {
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "iqa_soa_source_tree": {
+      "files": 53,
+      "sha256": "5e39162320c4d05f67cebfdd74758994c5b6102b01905958a0bf63d09b8c0f78"
+    },
+    "missing_fact_source_bindings": [
+      {
+        "path": "default_suites/v1/tools/banking_client.py",
+        "sha256": "0e4273f521db7ff6d5e7f7f552e917b11940102abd932aea8a2998b517441b42",
+        "symbols": [
+          {
+            "name": "BankAccount",
+            "line": 20,
+            "end": 24
+          },
+          {
+            "name": "send_money",
+            "line": 55,
+            "end": 79
+          }
+        ]
+      },
+      {
+        "path": "default_suites/v1/tools/email_client.py",
+        "sha256": "782adb70c81ec765919ae835494fac163dbb46f21ef46f6dcf18eab390b5e294",
+        "symbols": [
+          {
+            "name": "search_contacts_by_email",
+            "line": 247,
+            "end": 253
+          }
+        ]
+      },
+      {
+        "path": "default_suites/v1/tools/calendar_client.py",
+        "sha256": "5d551339fb87237dd1414a003b26f4f851dbdd2b0826225025e44f16420add22",
+        "symbols": []
+      },
+      {
+        "path": "default_suites/v1_2/banking/injection_tasks.py",
+        "sha256": "3e678ad165f911dbc16c8307de761dcc15da274716bec7ac0d05db167ec2c311",
+        "symbols": [
+          {
+            "name": "InjectionTask5",
+            "line": 241,
+            "end": 272
+          }
+        ]
+      },
+      {
+        "path": "default_suites/v1_2/workspace/injection_tasks.py",
+        "sha256": "d11a9a4aa86085a1b0e8cea20652dd20f903adedfc6065175a0ead858c29e4a3",
+        "symbols": [
+          {
+            "name": "InjectionTask13",
+            "line": 371,
+            "end": 441
+          }
+        ]
+      },
+      {
+        "path": "data/suites/banking/environment.yaml",
+        "sha256": "3f539da1d97779b244cd122afc683dc69d602f338e1b3c42d126cbde33611c8b"
+      },
+      {
+        "path": "data/suites/workspace/environment.yaml",
+        "sha256": "08a22c4eac0f72012e23c135cf3157b6fa7b35881b57bd2e910a5b059c02d157"
+      },
+      {
+        "path": "data/suites/workspace/include/calendar.yaml",
+        "sha256": "69b0ae96804e986b5a0dba694ad6ca34cf01c8c6b57bb8ceb618d9ed8640b803"
+      },
+      {
+        "path": "data/suites/workspace/include/inbox.yaml",
+        "sha256": "e6fac364bfb0e89d3d0251ef8079ffa2791504673a426029034356b8228f2082"
+      }
+    ],
+    "no_repeat_1492_record_acquisition_audit": true,
+    "concurrency_boundary": "Python process45224 has an inaccessible command line; exclusive ownership cannot be proven.",
+    "selected_input_stability_does_not_prove_global_exclusive_ownership": true
+  },
+  "commands": {
+    "accepted_desktop_inspection": "& C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe -X utf8 -B C:\\FSE-ext-agentdojo\\cycle-i-20261011\\inspect_cycle_i_desktop_complete.py C:\\Users\\User\\Desktop\\FSE C:\\FSE-ext-agentdojo\\cycle-h-20261010",
+    "saved_output_diagnostics": "python -B research/external_verification/audit_cycle_i.py --evidence-root research/external_verification --source-extract research/external_verification/cycle_i_20261011/historical_diagnostic_extract.json --output research/external_verification/cycle_i_20261011/diagnostic_run_v1",
+    "targeted_regressions": "python -B -m unittest discover -s tests -p 'test_cycle_i_*.py' -v",
+    "repeat_output_boundary": "Use a fresh output path; never overwrite the recorded diagnostic_run_v1."
+  },
+  "execution": {
+    "desktop_inspection_started_utc": "2026-10-11T13:31:34.636805+00:00",
+    "desktop_inspection_finished_utc": "2026-10-11T13:31:36.149111+00:00",
+    "desktop_inspection_measured_runtime_seconds": 1.512342100031674,
+    "diagnostic_started_utc": "2026-10-11T13:28:14.844137+00:00",
+    "diagnostic_measured_runtime_seconds": 0.051856501000202115,
+    "targeted_tests": {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_cycle_i_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "tests": 6,
+      "reported_unittest_runtime_seconds": 0.002,
+      "checks": [
+        "Independent exhaustive binary enumeration versus dynamic-program count sets",
+        "Unknown labels abstain rather than being coerced",
+        "Order invariance and input immutability",
+        "Joint numerator-denominator ratio bounds",
+        "Explicit zero-denominator handling",
+        "Noneligible-proposal denominator example"
+      ],
+      "fixtures_are_not_empirical_adjudications": true
+    },
+    "accepted_inspector_code_sha256": "e53d09284038705d3b307658c2433f23668b7b3d10b6b582221f0ef96932d72d",
+    "diagnostic_code_sha256": "ba1937755b3cfbff1851762062a0a537631e8c3927d9dfc1a8c15c043d37bf98",
+    "human_decisions": 0,
+    "new_semantic_labels": 0,
+    "affected_record_semantic_replays": 0,
+    "historical_tool_replays": 0,
+    "provider_calls": 0,
+    "native_scoring_calls": 0
+  },
+  "new_verified_findings": {
+    "denominator_discrepancies": 1,
+    "qwen_original_all_canonical_fraction": "41/56",
+    "qwen_frozen_eligible_fraction": "40/55",
+    "new_semantic_oracle_disagreements": 0,
+    "actual_pre_dispatch_refusals": {
+      "permission": 228
+    },
+    "already_dispatched_guard_dispositions": {
+      "output_validation": 75
+    },
+    "episodes_with_both_guard_types": 10,
+    "joint_count_proposal_ranges": "New post-hoc conditional binary-label completion ranges, separately by fixed model stratum; see analysis_results.json. Not CIs, component effects, or new labels.",
+    "primary_H_executed_bounds_unchanged": [
+      -0.5178571428571429,
+      -0.43452380952380953
+    ],
+    "primary_H_proposed_bounds_unchanged": [
+      -0.13095238095238096,
+      -0.017857142857142856
+    ],
+    "frozen_pairs": 474,
+    "frozen_primary_pairs": 168,
+    "original_fixed_sequence": "S2 closes the gate; S3 remains descriptive."
+  },
+  "manuscript": {
+    "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "name": "main_v1.6.3.pdf",
+    "bytes": 878066,
+    "pdf_sha256": "32b1abda3fd48f8cf0dbe11470ac1a59d6a745ddfc4d3806e9dc42eb78a2e35b",
+    "normalized_text_sha256": "dfd0dddecd712acec0fb171b18f7fb78354fdd977a60cae27c65350f7f7336b5",
+    "no_edit_or_venue_status_inferred": true
+  },
+  "privacy": "Only minimized counts, hashes, controlled source pointers and public benchmark objectives. No raw private contents, authenticated identity guesses, H unblinding map or full manuscript is included.",
+  "preservation": "Only additive Git paths. Raw archive, frozen protocol/analyzer/results, manuscripts, previous rubrics, historical HOLD, QA42 and Engineering Conquest Ledger are untouched. Invalid G V3 is excluded; corrected V4 remains historical provenance.",
+  "publication_boundary": "The integration commit, exact-head CI receipt and verified live Ledger/Runs append are recorded in existing PR51/live Runs after guarded publication. This pre-publication manifest does not self-assert a commit SHA or CI success.",
+  "artifacts": {
+    "research/external_verification/CYCLE_I_HUMAN_GATE_2026-10-11.md": {
+      "bytes": 11498,
+      "sha256": "25ac823f676234d4e0d375818e7796404350a42f7d3bd9f52188c5fc48935a44"
+    },
+    "research/external_verification/audit_cycle_i.py": {
+      "bytes": 12429,
+      "sha256": "ba1937755b3cfbff1851762062a0a537631e8c3927d9dfc1a8c15c043d37bf98"
+    },
+    "research/external_verification/inspect_cycle_i_desktop.py": {
+      "bytes": 13087,
+      "sha256": "e53d09284038705d3b307658c2433f23668b7b3d10b6b582221f0ef96932d72d"
+    },
+    "tests/test_cycle_i_analysis.py": {
+      "bytes": 3425,
+      "sha256": "c46d93587a197540475e51a2a1881175a2f791c451c95a68ef2c26cb93ca6ac1"
+    },
+    "research/external_verification/cycle_i_20261011/MANUSCRIPT_REVISION_MEMO.md": {
+      "bytes": 13765,
+      "sha256": "426730074d362fb585d9536843673aa70626c24ac087b9cdd6e4b2bc749c9dd8"
+    },
+    "research/external_verification/cycle_i_20261011/OWNER_DECISIONS.md": {
+      "bytes": 7208,
+      "sha256": "36e48a49617f906c74d8e948f4560284191136ec53997ef4b467d8739defe0cb"
+    },
+    "research/external_verification/cycle_i_20261011/owner_question_bindings.json": {
+      "bytes": 2130,
+      "sha256": "307c3d75599c9e83b2dd654bf30cada07866d8d9600317587737fd50f1dfcaa6"
+    },
+    "research/external_verification/cycle_i_20261011/gate_status.json": {
+      "bytes": 329,
+      "sha256": "99635bc50f88c71ee3e05e949da6f407e917090f58e420cad62ffba95e8913d0"
+    },
+    "research/external_verification/cycle_i_20261011/missing_fact_review.json": {
+      "bytes": 3063,
+      "sha256": "8b41220f6982ab1ef764d5d621ce76c92d2d0cceaf8649786a47b9eca94373ad"
+    },
+    "research/external_verification/cycle_i_20261011/implementation_errata.json": {
+      "bytes": 1560,
+      "sha256": "a08bd88e588900ad339f65eb0ed5e0a038b5963e73bd7217bdbf72533cbd3ed6"
+    },
+    "research/external_verification/cycle_i_20261011/targeted_validation.json": {
+      "bytes": 628,
+      "sha256": "9db0b300e83cdf8a513b8408951f8039a48323d894d872773e30c9b2fa2a792f"
+    },
+    "research/external_verification/cycle_i_20261011/historical_diagnostic_extract.json": {
+      "bytes": 9862,
+      "sha256": "10454fe72072cb963612ae119c83af8dc8c7c091793aa193a61a4fc80349ee52"
+    },
+    "research/external_verification/cycle_i_20261011/complete_desktop_inspection.json": {
+      "bytes": 116222,
+      "sha256": "0e504b43990beba69fed327f0f26bd0f2f2474c43c1ac0feda3a0bb7827ce21d"
+    },
+    "research/external_verification/cycle_i_20261011/diagnostic_run_v1/analysis_results.json": {
+      "bytes": 15797,
+      "sha256": "3ecb6b7c575b28ba66bafa784b7b972244ccc8f71499467de6f9bd8e609a4018"
+    },
+    "research/external_verification/cycle_i_20261011/diagnostic_run_v1/denominator_discrepancy.csv": {
+      "bytes": 405,
+      "sha256": "35c5e0b84c78d72d4dd9de3f300765414cf7dbcc2c7ef37bd7500e1c6e9acf4c"
+    },
+    "research/external_verification/cycle_i_20261011/live_checkpoint.json": {
+      "bytes": 1628,
+      "sha256": "1d9b961a69528f0b60a06e42845e839f51a0694c3a4c3c5a4343aa57dbf919a7"
+    },
+    "research/external_verification/cycle_i_20261011/checkpoint_reconciliation.json": {
+      "bytes": 755,
+      "sha256": "f58e14657a2d611529450f6aeb2d0d7e1f709dad73bc94b4958a7140a9689e88"
+    }
+  },
+  "manifest_self_digest_omitted": true
+}

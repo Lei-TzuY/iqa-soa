@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_cycle_i_*.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "tests": 6,
+  "reported_unittest_runtime_seconds": 0.002,
+  "checks": [
+    "Independent exhaustive binary enumeration versus dynamic-program count sets",
+    "Unknown labels abstain rather than being coerced",
+    "Order invariance and input immutability",
+    "Joint numerator-denominator ratio bounds",
+    "Explicit zero-denominator handling",
+    "Noneligible-proposal denominator example"
+  ],
+  "fixtures_are_not_empirical_adjudications": true
+}

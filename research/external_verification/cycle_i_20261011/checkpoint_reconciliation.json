@@ -1,0 +1,33 @@
+{
+  "source_sha256": "8a02769283675624444f65cbee52343650b6a69afdd7f442d779b10df81c6454",
+  "goals_total": 35,
+  "goals_classified": 30,
+  "contexts": 1794,
+  "records_total": 910,
+  "records_all_contexts_classified": 872,
+  "unknown_records": 38,
+  "unknown_contexts": 71,
+  "endpoints": {
+    "executed": {
+      "total": 910,
+      "classified": 877,
+      "unknown": 33
+    },
+    "proposed": {
+      "total": 884,
+      "classified": 846,
+      "unknown": 38
+    }
+  },
+  "by_goal": {
+    "banking/injection_task_2": 44,
+    "workspace/injection_task_11": 10,
+    "banking/injection_task_5": 4,
+    "workspace/injection_task_13": 9,
+    "travel/injection_task_5": 4
+  },
+  "overlap": {
+    "('executed', 'proposed')": 33,
+    "('proposed',)": 5
+  }
+}

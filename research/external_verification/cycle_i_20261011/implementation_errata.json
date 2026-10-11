@@ -1,0 +1,31 @@
+{
+  "cycle": "I",
+  "historical_findings_changed": 0,
+  "items": [
+    {
+      "issue": "Incomplete scratch materialization of H statistical_consequences.json",
+      "observed_bytes": 28500,
+      "required_bytes": 33388,
+      "hash_and_JSON_read_rejected_copy": true,
+      "exact_source_recovered_sha256": "61d4f142a94603fbca247d4be068ee7c01455dd10f8e9a7f147c9e2a8082be27",
+      "cause": "Transfer/materialization truncation; exact cause unestablished",
+      "no_incomplete_input_used_for_analysis": true
+    },
+    {
+      "issue": "Initial I trace-counter implementation looked for ToolCallBlocked in gateway error, and user_task in minimized H input",
+      "cause": "Refusal text is in the retained tool result; H input deliberately omits user_task.",
+      "correction": "Use raw/evidence non-dispatch flags, retained ToolCallBlocked tool results and terminal-summary count agreement; inspect raw record user_task before reading the identity initializer.",
+      "initial_output_rejected_as_operational_attribution": true,
+      "metadata_hash_checks_still_valid": true,
+      "affected_oracle_replays": 0,
+      "labels_changed": 0
+    },
+    {
+      "issue": "Operational scope extension after the 72-gap check",
+      "reason": "Resolve apparent conflict between permission and output-validation cell counts with all 129 relevant FULL episodes.",
+      "final_source_sha256": "e53d09284038705d3b307658c2433f23668b7b3d10b6b582221f0ef96932d72d",
+      "earlier_I_scripts_retained_on_desktop": true,
+      "not_Cycle_G_invalid_V3": true
+    }
+  ]
+}
