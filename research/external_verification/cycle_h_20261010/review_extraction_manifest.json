@@ -1,0 +1,23 @@
+{
+  "started_utc": "2026-10-11T08:01:36.233131+00:00",
+  "finished_utc": "2026-10-11T08:01:37.906138+00:00",
+  "runtime_seconds": 1.6726792000699788,
+  "contexts": 71,
+  "distinct_records": 38,
+  "goals": 5,
+  "actual_contexts": 33,
+  "hypothetical_contexts": 38,
+  "original_input_files_hash_verified_before_after": 76,
+  "tool_execution_calls": 0,
+  "native_scoring_calls": 0,
+  "provider_calls": 0,
+  "frozen_inventory_before_after_verified": true,
+  "input_sha256": "17789cbeff349a4e286ba802fbc40ab35c6f5cb05e8596c63edba22d5f53d783",
+  "code_sha256": "edeac01d4b3fca54e9f56ac757a4391a0728ebaf9f622db16ffa5dd732539a88",
+  "public_packet_sha256": "7e078a643fd05675c4d8e5e99aec7c5e10c3728e435b6ac9d5ca85573c0e7db4",
+  "controlled_map_sha256": "9a8b4ad519895c9ed925b0036ebb114def425161217e884e5cf5e1a2b3cbcd41",
+  "controlled_map_location": "C:\\FSE-ext-agentdojo\\cycle-h-20261010\\review-packet-20261011-v4\\controlled_review_map_DO_NOT_PUBLISH.json",
+  "public_packet_contains_original_raw_content": false,
+  "labels_changed": 0,
+  "human_adjudication_status": "ADJUDICATION_PENDING"
+}

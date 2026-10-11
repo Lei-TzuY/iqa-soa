@@ -1,0 +1,82 @@
+{
+  "audit": "Cycle H targeted accepted-mock-transaction adjudication",
+  "rubric_sha256": "ec3b81b709c7a4c81203720dbbaa9619f3d49b9cd785d471074885f689667f97",
+  "started_utc": "2026-10-10T17:39:53.423971+00:00",
+  "finished_utc": "2026-10-10T17:39:54.911838+00:00",
+  "runtime_seconds": 1.486975000007078,
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "records": 18,
+  "targeted_selection_complete": true,
+  "affected_ambiguous_contexts": 32,
+  "reverse_order_context_checks": 35,
+  "independent_oracle_calls": 0,
+  "new_model_calls": 0,
+  "network_calls": 0,
+  "binding": {
+    "exact_historical_outputs": 62,
+    "dispatched": 62,
+    "tool_errors": 0,
+    "blocked_proposals": 3
+  },
+  "original_input_files_before_after": 36,
+  "original_input_hash_map_sha256": "971dce034633f0a5e62e19eafc876d6eb247cae1d288069c465c875068c24fc4",
+  "source_hashes": {
+    "runner": "4d8604db3109e03966e98f10833a8078bfc20723621f24764dd5b5b88e18b674",
+    "evaluator": "78e82ca2634f332935520fef43f224f3a36b0dc95ad368d4086778711cc6e732",
+    "cycle_f_helpers": "942104d6e2d24cca6ed8b05b3a1c3a12c6c85a992a025a6f863668809e764204",
+    "cycle_f_records": "68a099a6c876b517807a493ce2129ae5e721634053229b6e0e98949352bb16e8"
+  },
+  "frozen_source_provenance": {
+    "code": {
+      "scripts/fse2027_ext/__init__.py": "6268b66d24bd9a86dbdba86e8cc9f77717d77df6c65bdedb0c90338e048a3449",
+      "scripts/fse2027_ext/adapter.py": "d0c6cd23de178ba11abec6cecdd488051ec434abf7ed18eaf53574f65ae31743",
+      "scripts/fse2027_ext/analysis.py": "ab554d1c9a4c192f79a542f4884d05cd5eef73db706c2bbfc720db0789d09615",
+      "scripts/fse2027_ext/cell.py": "574ef6278105f329d04473c16acd973ade5939ae55c798d61714719e9e9c6cfb",
+      "scripts/fse2027_ext/cli.py": "f81e5370c421c5ee671cfa15daf713fd672f7eef8edb1b900ea03083d243caf5",
+      "scripts/fse2027_ext/constants.py": "4d3ae7786802bb16441d28ed317388bd11b82d242219a46769003c66f679fae5",
+      "scripts/fse2027_ext/freeze.py": "cceb9624b3efb4b32f186b7bd669a149c1aed615206cad91db2801ace4261b6d",
+      "scripts/fse2027_ext/llm.py": "d4e5f85cc92e762b951b55a085695b36fdd31e4db83b614a6ee22eb8d32fff3a",
+      "scripts/fse2027_ext/policy_compiler.py": "9ea6c989e3d39fa54a990e135372b3425690eafb109a4a7114e55d10a48a46d1",
+      "scripts/fse2027_ext/population.py": "bc7891a6c4838255017f3bc6865f7674b4fba328ae837d9f75fd4601faf15158",
+      "scripts/fse2027_ext/preflight.py": "000142768aebab68a7f933d316ee5c39ad7b16ebad862b7e645088d4463315ec",
+      "scripts/fse2027_ext/runner.py": "488c2a6e3304c0d67f4ca45f76953493a5e7f249a53068e00834ee7fd0e61e63",
+      "scripts/fse2027_ext/toolmap.py": "3200297c6b1187dddfee9f144e3a07290161d08b234cd2b095f906e52bae439a",
+      "tests/fse2027_ext/conftest.py": "bb548aaafdb4b5a4fbabb94d79990d541ab8ad7eaf9f727b7055b0464ebe00fe",
+      "tests/fse2027_ext/scripted.py": "8e318ff0e53e0ad1d5c258f01b62eacfbc7bd0cfe89230ea8308878a5dc985f6",
+      "tests/fse2027_ext/test_ext_equivalence.py": "f46e2363baefc912a531a06be125f4f5ff568ad522919a357bbbcf1ac3623dad",
+      "tests/fse2027_ext/test_ext_lifecycle.py": "fe34010fca9563d88fe2e23e985b9be74fecb511c76bc1cab50477bec41e51e8",
+      "tests/fse2027_ext/test_ext_llm.py": "1f791a73390931343856734309f7c7ce1ec19a674ff96a0c750ba4e3f98d22ba",
+      "tests/fse2027_ext/test_ext_mediation.py": "96ac953b3242019752e52dd0fc1325fed5fb24257b697a634ef9a30e510b1dcd",
+      "tests/fse2027_ext/test_ext_toolmap.py": "78063386b1f0737f76a2bcfa15b922ed26175374a8283d2cf4008aa8bedcf617",
+      "configs/policies/default.xml": "256a8205fa944f74e12642925298260848fae5ebbb320f695ce0a234ea9f63e5",
+      "schemas/qa-policy.xsd": "6d91ffd055043d1499a0c97e65d66a5883c559bd75be81c5b26864a053c468ce"
+    },
+    "study_documents": {
+      "results/fse2027-external-replication-v1/benchmark-selection.json": "17decd7a3569ed4ecb7a41c3fa3dab675ca00dcef16ae8bb8ecf258e2690b897",
+      "results/fse2027-external-replication-v1/benchmark-selection.md": "45a2e78698cdba91302af005e53feddb9111f913f79c29fba1f232fdeda9f48a",
+      "results/fse2027-external-replication-v1/state-recovery.json": "2ec799e7f41e1e0647d638b8ecb1a86e56e702f78d93d13e198ddadf8a606f36",
+      "results/fse2027-external-replication-v1/population.json": "c9b03882bd0926e1b14250f2d3b1d4a7b8e3c5352e6b93679a6df868c38748da",
+      "results/fse2027-external-replication-v1/structural-blockability.json": "16afcd302e5d3d7ac883ff0918b2b50dcc91d603739755b486f59d53bfddb826",
+      "results/fse2027-external-replication-v1/qualification-schedule.json": "b3dbe23aa0ca563ce521b816f8dc3012313bed1be79fbc4ba0ddc6dec6559bd5",
+      "results/fse2027-external-replication-v1/protocol.json": "9fff8039ed9395be203c466f8298f1b698348eac19256ef14426a614cb5639dd",
+      "results/fse2027-external-replication-v1/governance-mapping.json": "84bdacf8a056d40bc57aa89e4bb7e15f9ea6e52df082634b6cd04e23c012bd09",
+      "results/fse2027-external-replication-v1/governance-mapping.md": "9f3721f867b15cb3c0746ee7502048dd8f4764bf29e90234b8b289e8fa802607",
+      "results/fse2027-external-replication-v1/metric-crosswalk.json": "ff27ec3faaf37153a62ad5504284a59c28954f828e0cdf67e8c215817d4b7b33",
+      "results/fse2027-external-replication-v1/metric-crosswalk.md": "1f2d3ac1a420f77e0b6922cba8e312a0eb802c0b9c7f0f91f63e09eb507ff600",
+      "results/fse2027-external-replication-v1/qualification-contract.json": "151dc184d60f5a4f5a8d0f6154c244d0735defebac9d577d05216d3cb0557531",
+      "results/fse2027-external-replication-v1/analysis-plan.json": "ecf44a0e7371d38375075ac7aad74b9512633a97729195eab39cf2e762e9608c",
+      "results/fse2027-external-replication-v1/external-design-review.md": "7614926838f948dcacc4661a942da6926807fba73e2cb54c396d86a0334231c9",
+      "results/fse2027-external-replication-v1/reviewer-gate.md": "0b8f36613f99b7cb85cd9c5039e8dca8969773ccf1bdcc6af60161a1b67b1eae"
+    },
+    "iqa_soa_source_tree": {
+      "files": 53,
+      "sha256": "5e39162320c4d05f67cebfdd74758994c5b6102b01905958a0bf63d09b8c0f78"
+    },
+    "agentdojo_installed_tree": {
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "python": "3.12.10"
+  },
+  "limitations": "Source-grounded mock-contract adjudication, not human review or external banking. Only selected B3/B8 contexts are updated; other G ambiguities remain. Shared deterministic mock replay only restores historical observations; proposals are hypothetical."
+}

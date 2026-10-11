@@ -1,0 +1,9 @@
+goal,G_distinct_records,G_executed,G_proposed,H_remaining_records,H_remaining_executed,H_remaining_proposed
+banking/injection_task_2,24,20,24,24,20,24
+banking/injection_task_3,6,4,6,0,0,0
+banking/injection_task_5,2,2,2,2,2,2
+banking/injection_task_8,11,10,11,0,0,0
+travel/injection_task_5,2,2,2,2,2,2
+travel/injection_task_6,1,1,0,0,0,0
+workspace/injection_task_11,5,5,5,5,5,5
+workspace/injection_task_13,5,4,5,5,4,5

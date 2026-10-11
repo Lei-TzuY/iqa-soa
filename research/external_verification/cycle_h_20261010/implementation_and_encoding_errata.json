@@ -1,0 +1,78 @@
+{
+  "status": "AUDIT_IMPLEMENTATION_PROVENANCE_NOT_EMPIRICAL_SOURCE_FAILURES",
+  "labels_from_failed_attempts_accepted": 0,
+  "cycle_g_invalid_v3": {
+    "excluded": true,
+    "source": "../cycle_g_20261010/invalid_v3_run.json",
+    "reason": "Wrong balance-disclosure objective instead of banking3 phone model. All 26 decisions and 52 apparent false-positive endpoints remain invalid; only valid V1/V2/V4 findings are inherited."
+  },
+  "frozen_v2_text_hash_field": {
+    "field": "text_binding.canonical_text_sha256",
+    "actual_encoding": "raw UTF-8 final-output text bytes, NOT canonical JSON-string bytes",
+    "sha256": "d987a908dcab1a55579ab4babfefec175d62eda2bafa254ff11e0be48a13c3c6",
+    "preservation": "Frozen V2 JSON is unchanged. Successful evaluator explicitly computes the raw UTF-8 digest. This erratum corrects the field description, not the binding or verdict."
+  },
+  "successful_execution_summary_scope_note": {
+    "source": "execution_summary.json",
+    "correction": "Its inherited title/limitations mention B3/B8 only. Actual successful population also includes the selected Travel6 clarification-only record, as proved by the 18-record selection, 35 contexts and output records. Original successful summary bytes are preserved."
+  },
+  "failed_targeted_replay_attempts": [
+    {
+      "attempt": 1,
+      "pid": 31880,
+      "wrapper_runtime_seconds": 3.51,
+      "result": "Consistency check failed; first record was not localized in that error. Later implementation investigation identified acknowledgement-number and labelled-ID parsing problems. Do not attribute this first failure exclusively to one cause.",
+      "runner_sha256": "1d98e548156f1f4f2a40e81daf52c22bf886e4b8214ab0404fe634a36fbf5d53",
+      "evaluator_sha256": "5832fbe32868bd97db643fad3345df2f9724795211cba6f57ad5dbd833511309",
+      "output_directory_created": false
+    },
+    {
+      "attempt": 2,
+      "pid": 53560,
+      "wrapper_runtime_seconds": 3.46,
+      "result": "Integer original arguments versus runtime-coerced float acknowledgement produced a literal-format mismatch. Successful checker compares acknowledged numeric values while binding full historical output bytes.",
+      "output_directory_created": false
+    },
+    {
+      "attempt": 3,
+      "pid": 12608,
+      "wrapper_runtime_seconds": 3.42,
+      "result": "Primary overview parser confused explicit transaction IDs 6/7 with monetary amounts. Successful parser removes labelled IDs before parsing otherwise unlabelled amounts.",
+      "output_directory_created": false
+    },
+    {
+      "attempt": 4,
+      "pid": 8636,
+      "wrapper_runtime_seconds": 3.64,
+      "result": "Canonical-JSON-string hash was compared with a previously computed raw-UTF8 text hash. Successful evaluator uses the correct raw UTF-8 encoding.",
+      "output_directory_created": false
+    }
+  ],
+  "failed_review_extractions": [
+    {
+      "version": "review extractor v1",
+      "pid": 60020,
+      "wrapper_runtime_seconds": 3.64,
+      "code_sha256": "4d11b0e7514aebb0b056f1f448c2a8ecbdb8d4b26d994c5485c48113a1968903",
+      "result": "Assumed a nonexistent price_per_night field; retained hotel fixture has price_min/price_max. Final cards compare both rankings and report their agreement without choosing a pricing interpretation.",
+      "output_directory_created": false
+    },
+    {
+      "version": "review extractor v2",
+      "pid": 17480,
+      "wrapper_runtime_seconds": 3.50,
+      "result": "Authorized FULL executed_action identifies the native function by resource, not a function field. Final extraction uses the frozen resource/arguments schema, preserving proposed native-call arguments separately.",
+      "output_directory_created": false
+    }
+  ],
+  "superseded_review_extraction": {
+    "version": "review extractor v3",
+    "status": "SUPERSEDED_PACKET_PRESENTATION",
+    "source": "superseded_review_packet_v3_manifest.json",
+    "reason": "The calendar participant display included the account owner without distinguishing self from the five other meeting participants. Final v4 packet excludes self and verifies exactly five others. No empirical labels were assigned or changed. Original v3 packet/map remain in their isolated desktop output.",
+    "labels_changed": 0
+  },
+  "rule_changes_caused_by_implementation_failures": 0,
+  "v2_rule_amendment": "Travel6 narrow absent-speech-act rule was separately source-grounded and frozen before its successful H replay. It is not an implementation-driven favorable relabeling.",
+  "retention_limit": "Intermediate replay v2/v3/v4 code bytes were not recovered into the Git artifact; their observed failure messages and wrapper runtimes are recorded. No nonexistent source hash or failed outcome label is invented."
+}
