@@ -1,0 +1,724 @@
+{
+  "fingerprints": [
+    {
+      "raw_pointer": "confirmatory/cells/00026-qwen-off/raw.json",
+      "goal": "travel/user_task_7",
+      "evidence_equivalence_sha256": "b6901c72fa1653bc5d4c1cb0a845625f23bb673a2f098d3f7a698739f16df338"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00027-qwen-full/raw.json",
+      "goal": "travel/user_task_7",
+      "evidence_equivalence_sha256": "b6901c72fa1653bc5d4c1cb0a845625f23bb673a2f098d3f7a698739f16df338"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00032-qwen-off/raw.json",
+      "goal": "slack/user_task_9",
+      "evidence_equivalence_sha256": "3256cdd11904c097df56072c50186af1164d3905202e257a5f1a18fbc660657c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00033-qwen-full/raw.json",
+      "goal": "slack/user_task_9",
+      "evidence_equivalence_sha256": "3256cdd11904c097df56072c50186af1164d3905202e257a5f1a18fbc660657c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00042-qwen-full/raw.json",
+      "goal": "slack/user_task_10",
+      "evidence_equivalence_sha256": "419aef0e26b586dd6b2355af3dbb491d19c5e846a75cc81569251341c8bfac46"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00043-qwen-off/raw.json",
+      "goal": "slack/user_task_10",
+      "evidence_equivalence_sha256": "419aef0e26b586dd6b2355af3dbb491d19c5e846a75cc81569251341c8bfac46"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00056-qwen-off/raw.json",
+      "goal": "workspace/user_task_34",
+      "evidence_equivalence_sha256": "2f283c77c98004f8ca03746d3df91849705f026612ea0a6da07ce735a864f42e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00057-qwen-full/raw.json",
+      "goal": "workspace/user_task_34",
+      "evidence_equivalence_sha256": "c78d4107c0bf1b00112b27b646b68f85665e1667ca7f8871f92df915cdce4f9d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00066-qwen-full/raw.json",
+      "goal": "travel/user_task_1",
+      "evidence_equivalence_sha256": "10566af3b93a530270066ec73ad22631f758bff41db758c4ea2e7a2fe9c34882"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00067-qwen-off/raw.json",
+      "goal": "travel/user_task_1",
+      "evidence_equivalence_sha256": "10566af3b93a530270066ec73ad22631f758bff41db758c4ea2e7a2fe9c34882"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00072-qwen-off/raw.json",
+      "goal": "slack/user_task_5",
+      "evidence_equivalence_sha256": "eb544e54f69e3291cc7852615f1420790ae0c00938f687caa3f01b2a12f3fc86"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00073-qwen-full/raw.json",
+      "goal": "slack/user_task_5",
+      "evidence_equivalence_sha256": "eb544e54f69e3291cc7852615f1420790ae0c00938f687caa3f01b2a12f3fc86"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00074-qwen-full/raw.json",
+      "goal": "banking/user_task_7",
+      "evidence_equivalence_sha256": "39b9a08c1ef654e0a74072bffd4d12a296a800535eef49f41508dd6f5d083dad"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00075-qwen-off/raw.json",
+      "goal": "banking/user_task_7",
+      "evidence_equivalence_sha256": "39b9a08c1ef654e0a74072bffd4d12a296a800535eef49f41508dd6f5d083dad"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00082-qwen-full/raw.json",
+      "goal": "workspace/user_task_21",
+      "evidence_equivalence_sha256": "b51ebcacd2538b938bd9279daaa03439c236842e0185b7ffe63ff6af57ab3195"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00083-qwen-off/raw.json",
+      "goal": "workspace/user_task_21",
+      "evidence_equivalence_sha256": "b51ebcacd2538b938bd9279daaa03439c236842e0185b7ffe63ff6af57ab3195"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00084-qwen-off/raw.json",
+      "goal": "slack/user_task_13",
+      "evidence_equivalence_sha256": "8dfd1d1831765cd7f92633cd7e3ad6493848cc8dd01fbefc3192c543e1e9ca4c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00085-qwen-full/raw.json",
+      "goal": "slack/user_task_13",
+      "evidence_equivalence_sha256": "8dfd1d1831765cd7f92633cd7e3ad6493848cc8dd01fbefc3192c543e1e9ca4c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00092-qwen-off/raw.json",
+      "goal": "travel/user_task_8",
+      "evidence_equivalence_sha256": "ffd4011066dc80773edf287488ca40fe92696530abe48f75cd274cd60c11e9eb"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00093-qwen-full/raw.json",
+      "goal": "travel/user_task_8",
+      "evidence_equivalence_sha256": "ffd4011066dc80773edf287488ca40fe92696530abe48f75cd274cd60c11e9eb"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00094-qwen-off/raw.json",
+      "goal": "workspace/user_task_32",
+      "evidence_equivalence_sha256": "6b8f135c100caa09ff10bb7991ea903f68699d9198ef27cb7bed416aa8f4ae5b"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00095-qwen-full/raw.json",
+      "goal": "workspace/user_task_32",
+      "evidence_equivalence_sha256": "6b8f135c100caa09ff10bb7991ea903f68699d9198ef27cb7bed416aa8f4ae5b"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00096-qwen-full/raw.json",
+      "goal": "workspace/user_task_12",
+      "evidence_equivalence_sha256": "9302b2ea418229803eda551cb9ce0b7239b6013e3315d39d0f310e8654cf3ac4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00097-qwen-off/raw.json",
+      "goal": "workspace/user_task_12",
+      "evidence_equivalence_sha256": "9302b2ea418229803eda551cb9ce0b7239b6013e3315d39d0f310e8654cf3ac4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00108-qwen-off/raw.json",
+      "goal": "slack/user_task_14",
+      "evidence_equivalence_sha256": "0584091c1184dec4f305271f3c23fb8e604b5e83dced11154b9fedd2e0b2f0c2"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00109-qwen-full/raw.json",
+      "goal": "slack/user_task_14",
+      "evidence_equivalence_sha256": "0584091c1184dec4f305271f3c23fb8e604b5e83dced11154b9fedd2e0b2f0c2"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00122-qwen-full/raw.json",
+      "goal": "banking/user_task_4",
+      "evidence_equivalence_sha256": "cec23231c767fc6f67aecc0f9ee830edb8e6a9c908fdbf2f13646270a49e22c4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00123-qwen-off/raw.json",
+      "goal": "banking/user_task_4",
+      "evidence_equivalence_sha256": "cec23231c767fc6f67aecc0f9ee830edb8e6a9c908fdbf2f13646270a49e22c4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00132-qwen-off/raw.json",
+      "goal": "banking/user_task_1",
+      "evidence_equivalence_sha256": "3dae6ffee6c5b44016d3a9117ea4f75185f30bd01a4cf766726b45fb8485e7d0"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00133-qwen-full/raw.json",
+      "goal": "banking/user_task_1",
+      "evidence_equivalence_sha256": "3dae6ffee6c5b44016d3a9117ea4f75185f30bd01a4cf766726b45fb8485e7d0"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00162-qwen-off/raw.json",
+      "goal": "workspace/user_task_16",
+      "evidence_equivalence_sha256": "d6231a24457d76868ae53ecdf5d3367b3fc43b94af3404e9badd13fc6163dc85"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00163-qwen-full/raw.json",
+      "goal": "workspace/user_task_16",
+      "evidence_equivalence_sha256": "d6231a24457d76868ae53ecdf5d3367b3fc43b94af3404e9badd13fc6163dc85"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00166-qwen-off/raw.json",
+      "goal": "workspace/user_task_6",
+      "evidence_equivalence_sha256": "fadf44a3fe29d5df2fd6f042997403ded3bfd3d55e0d5a8cb99a827600d826ad"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00167-qwen-full/raw.json",
+      "goal": "workspace/user_task_6",
+      "evidence_equivalence_sha256": "fadf44a3fe29d5df2fd6f042997403ded3bfd3d55e0d5a8cb99a827600d826ad"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00168-qwen-off/raw.json",
+      "goal": "slack/user_task_12",
+      "evidence_equivalence_sha256": "fe7c88fa001d23848c706a70db3c11f744f5adbefc3882ad0eecc3851d0a215c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00169-qwen-full/raw.json",
+      "goal": "slack/user_task_12",
+      "evidence_equivalence_sha256": "fe7c88fa001d23848c706a70db3c11f744f5adbefc3882ad0eecc3851d0a215c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00196-qwen-full/raw.json",
+      "goal": "travel/user_task_3",
+      "evidence_equivalence_sha256": "65aff2687635dbee7d6e1adfd4090897ce5ec46ddcee9aaa63d1df4b2dee4a73"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00197-qwen-off/raw.json",
+      "goal": "travel/user_task_3",
+      "evidence_equivalence_sha256": "5b200b2fe6b41da72f62e2dded76ebbdb8fc6dddecd7790136ce5d17b683ffef"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00212-qwen-off/raw.json",
+      "goal": "workspace/user_task_20",
+      "evidence_equivalence_sha256": "8f86af276950abe1e05304854a33d59c34637afe0f2641b7b77884540a23f2c3"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00213-qwen-full/raw.json",
+      "goal": "workspace/user_task_20",
+      "evidence_equivalence_sha256": "8f86af276950abe1e05304854a33d59c34637afe0f2641b7b77884540a23f2c3"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00218-qwen-off/raw.json",
+      "goal": "banking/user_task_15",
+      "evidence_equivalence_sha256": "d66c4add0617d583c6e8d9a03d313493aa365883f85150446a0e111aae5708a7"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00219-qwen-full/raw.json",
+      "goal": "banking/user_task_15",
+      "evidence_equivalence_sha256": "d66c4add0617d583c6e8d9a03d313493aa365883f85150446a0e111aae5708a7"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00222-qwen-full/raw.json",
+      "goal": "slack/user_task_7",
+      "evidence_equivalence_sha256": "f09cefe3c508ab5734bb97c28cae2595363aa7e2687961e344eadc521bdeeb6c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00223-qwen-off/raw.json",
+      "goal": "slack/user_task_7",
+      "evidence_equivalence_sha256": "f09cefe3c508ab5734bb97c28cae2595363aa7e2687961e344eadc521bdeeb6c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00234-qwen-off/raw.json",
+      "goal": "workspace/user_task_22",
+      "evidence_equivalence_sha256": "5efa1e7ae1ee609c9f19469215520e4adf4c67186a269effaa17716d064c7531"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00235-qwen-full/raw.json",
+      "goal": "workspace/user_task_22",
+      "evidence_equivalence_sha256": "5efa1e7ae1ee609c9f19469215520e4adf4c67186a269effaa17716d064c7531"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00256-qwen-full/raw.json",
+      "goal": "slack/user_task_0",
+      "evidence_equivalence_sha256": "3fe7f2e48eafb4d720867eda8ea8bbe4def87d5e55893e2c5d725c275a933be1"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00257-qwen-off/raw.json",
+      "goal": "slack/user_task_0",
+      "evidence_equivalence_sha256": "3fe7f2e48eafb4d720867eda8ea8bbe4def87d5e55893e2c5d725c275a933be1"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00334-qwen-off/raw.json",
+      "goal": "workspace/user_task_9",
+      "evidence_equivalence_sha256": "66186f1f1cb19eb48708454d56d9d318b1ea8781ebcb3124c0fc925fdf55507f"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00335-qwen-full/raw.json",
+      "goal": "workspace/user_task_9",
+      "evidence_equivalence_sha256": "66186f1f1cb19eb48708454d56d9d318b1ea8781ebcb3124c0fc925fdf55507f"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00338-qwen-full/raw.json",
+      "goal": "workspace/user_task_26",
+      "evidence_equivalence_sha256": "7d18f0710e57c3ee2b9e340fa0ea0ebc903089903b13642aa962b4f5f9773426"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00339-qwen-off/raw.json",
+      "goal": "workspace/user_task_26",
+      "evidence_equivalence_sha256": "7d18f0710e57c3ee2b9e340fa0ea0ebc903089903b13642aa962b4f5f9773426"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00346-qwen-full/raw.json",
+      "goal": "banking/user_task_2",
+      "evidence_equivalence_sha256": "63313b2eb0f85e171f019257865b45633e734a6193fea3ed33c05a31b6a0cda4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00347-qwen-off/raw.json",
+      "goal": "banking/user_task_2",
+      "evidence_equivalence_sha256": "63313b2eb0f85e171f019257865b45633e734a6193fea3ed33c05a31b6a0cda4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00376-qwen-full/raw.json",
+      "goal": "banking/user_task_12",
+      "evidence_equivalence_sha256": "836122a0d17c21b6ac644dd2fc945a62f8d95d5b1f0894b14101e51ed2eea130"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00377-qwen-off/raw.json",
+      "goal": "banking/user_task_12",
+      "evidence_equivalence_sha256": "836122a0d17c21b6ac644dd2fc945a62f8d95d5b1f0894b14101e51ed2eea130"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00380-qwen-full/raw.json",
+      "goal": "banking/user_task_13",
+      "evidence_equivalence_sha256": "09cfb498add6fa67bbde24dc5d1a75f15b56ee0e8dab9df2f72bedaa2660e0fd"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00381-qwen-off/raw.json",
+      "goal": "banking/user_task_13",
+      "evidence_equivalence_sha256": "09cfb498add6fa67bbde24dc5d1a75f15b56ee0e8dab9df2f72bedaa2660e0fd"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00386-qwen-full/raw.json",
+      "goal": "workspace/user_task_35",
+      "evidence_equivalence_sha256": "504045877ad0cf20b49e1b6258c29ae052266668d0e5d4fef5dd4f55755a7805"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00387-qwen-off/raw.json",
+      "goal": "workspace/user_task_35",
+      "evidence_equivalence_sha256": "504045877ad0cf20b49e1b6258c29ae052266668d0e5d4fef5dd4f55755a7805"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00398-qwen-off/raw.json",
+      "goal": "workspace/user_task_7",
+      "evidence_equivalence_sha256": "c1f058a72cfcdc7e84746b2376a14286c36a63f7dae83cc7c6efb8b3663f281e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00399-qwen-full/raw.json",
+      "goal": "workspace/user_task_7",
+      "evidence_equivalence_sha256": "c1f058a72cfcdc7e84746b2376a14286c36a63f7dae83cc7c6efb8b3663f281e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00402-qwen-full/raw.json",
+      "goal": "travel/user_task_0",
+      "evidence_equivalence_sha256": "6be0711426ecc6fbdd70d534c896837c81c10e48f0f36642e38ad93b0e19156d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00403-qwen-off/raw.json",
+      "goal": "travel/user_task_0",
+      "evidence_equivalence_sha256": "6be0711426ecc6fbdd70d534c896837c81c10e48f0f36642e38ad93b0e19156d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00416-qwen-full/raw.json",
+      "goal": "banking/user_task_0",
+      "evidence_equivalence_sha256": "5f835596fdf0565956749e582bd5e0a4c8cbb95f82b4491de9dc39e96d480cb1"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00417-qwen-off/raw.json",
+      "goal": "banking/user_task_0",
+      "evidence_equivalence_sha256": "5f835596fdf0565956749e582bd5e0a4c8cbb95f82b4491de9dc39e96d480cb1"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00436-qwen-full/raw.json",
+      "goal": "travel/user_task_4",
+      "evidence_equivalence_sha256": "9d763b19185b1a8b27b3678a6a0505e688ada26cd689ea83500310625ed65b0e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00437-qwen-off/raw.json",
+      "goal": "travel/user_task_4",
+      "evidence_equivalence_sha256": "9d763b19185b1a8b27b3678a6a0505e688ada26cd689ea83500310625ed65b0e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00466-qwen-full/raw.json",
+      "goal": "slack/user_task_2",
+      "evidence_equivalence_sha256": "591d5b7387f1c517823f55bc4831a98d15e9a6eb771f89bb5a288d23774e4dd8"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00467-qwen-off/raw.json",
+      "goal": "slack/user_task_2",
+      "evidence_equivalence_sha256": "591d5b7387f1c517823f55bc4831a98d15e9a6eb771f89bb5a288d23774e4dd8"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00472-qwen-off/raw.json",
+      "goal": "workspace/user_task_8",
+      "evidence_equivalence_sha256": "66b33131422465978dd22b1fb91562eb523e6bb88446894c69089779b22c0817"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00473-qwen-full/raw.json",
+      "goal": "workspace/user_task_8",
+      "evidence_equivalence_sha256": "66b33131422465978dd22b1fb91562eb523e6bb88446894c69089779b22c0817"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00478-mistral-off/raw.json",
+      "goal": "workspace/user_task_22",
+      "evidence_equivalence_sha256": "d33001fa5649ff24a92f18d6f99358b0a37fb174c68fc7cbc4dbb14509e0f15d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00479-mistral-full/raw.json",
+      "goal": "workspace/user_task_22",
+      "evidence_equivalence_sha256": "749b7b566ab88c02aa9d3976de7a5d7ffafc2588521715817297f312cbce5d01"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00510-mistral-off/raw.json",
+      "goal": "banking/user_task_13",
+      "evidence_equivalence_sha256": "09cfb498add6fa67bbde24dc5d1a75f15b56ee0e8dab9df2f72bedaa2660e0fd"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00511-mistral-full/raw.json",
+      "goal": "banking/user_task_13",
+      "evidence_equivalence_sha256": "09cfb498add6fa67bbde24dc5d1a75f15b56ee0e8dab9df2f72bedaa2660e0fd"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00526-mistral-full/raw.json",
+      "goal": "workspace/user_task_34",
+      "evidence_equivalence_sha256": "f69f309e1fde8f0de6f51dafe739ce982dded897d2cec6a38f0be27d64b32acd"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00527-mistral-off/raw.json",
+      "goal": "workspace/user_task_34",
+      "evidence_equivalence_sha256": "f69f309e1fde8f0de6f51dafe739ce982dded897d2cec6a38f0be27d64b32acd"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00564-mistral-off/raw.json",
+      "goal": "travel/user_task_3",
+      "evidence_equivalence_sha256": "5631b4216c002091bb6bda7b644ad0db342ff132416af351f988aad33b3a2262"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00565-mistral-full/raw.json",
+      "goal": "travel/user_task_3",
+      "evidence_equivalence_sha256": "0e253f51d490dec1ee5fba83f691c2178a4ccccac12cd6e97f9cbd2c64fdbd4f"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00568-mistral-full/raw.json",
+      "goal": "workspace/user_task_9",
+      "evidence_equivalence_sha256": "e47a496e792642b38dbbb6a72ba1dcf83c212cf4fff012613aa7a980c0d162f9"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00569-mistral-off/raw.json",
+      "goal": "workspace/user_task_9",
+      "evidence_equivalence_sha256": "e47a496e792642b38dbbb6a72ba1dcf83c212cf4fff012613aa7a980c0d162f9"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00584-mistral-off/raw.json",
+      "goal": "workspace/user_task_35",
+      "evidence_equivalence_sha256": "70f5d49846f023e36f86126b4ab08272eecb6addea9d19c16022626f6e1ac124"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00585-mistral-full/raw.json",
+      "goal": "workspace/user_task_35",
+      "evidence_equivalence_sha256": "052ffb5644c011a7e607e458ab563b404e24229ae5f8d6f11b7bf2c7017f6bbe"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00598-mistral-off/raw.json",
+      "goal": "travel/user_task_1",
+      "evidence_equivalence_sha256": "b917eafc8249699b85b03ce28a47e8a8515b99909ce01553ec1a1c20149bfb93"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00599-mistral-full/raw.json",
+      "goal": "travel/user_task_1",
+      "evidence_equivalence_sha256": "b917eafc8249699b85b03ce28a47e8a8515b99909ce01553ec1a1c20149bfb93"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00614-mistral-off/raw.json",
+      "goal": "workspace/user_task_20",
+      "evidence_equivalence_sha256": "aac790145f7dc83c273d1b5de801e973e6508a3a3feb16ecb37f596e10781771"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00615-mistral-full/raw.json",
+      "goal": "workspace/user_task_20",
+      "evidence_equivalence_sha256": "aac790145f7dc83c273d1b5de801e973e6508a3a3feb16ecb37f596e10781771"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00626-mistral-full/raw.json",
+      "goal": "workspace/user_task_26",
+      "evidence_equivalence_sha256": "d82ab738c127746cbeb9f26e454f7a13e5d75c643ef72fa4076f857550b27307"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00627-mistral-off/raw.json",
+      "goal": "workspace/user_task_26",
+      "evidence_equivalence_sha256": "d82ab738c127746cbeb9f26e454f7a13e5d75c643ef72fa4076f857550b27307"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00632-mistral-full/raw.json",
+      "goal": "slack/user_task_2",
+      "evidence_equivalence_sha256": "921cfe597f68f1605580c4ed0f74a6738fcce19b6d6b048e743152ae4c80672e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00633-mistral-off/raw.json",
+      "goal": "slack/user_task_2",
+      "evidence_equivalence_sha256": "921cfe597f68f1605580c4ed0f74a6738fcce19b6d6b048e743152ae4c80672e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00634-mistral-off/raw.json",
+      "goal": "workspace/user_task_7",
+      "evidence_equivalence_sha256": "5d39755deaa7571f731ce98aed819713c913565f5c4158fca61c9f0d3f409ce4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00635-mistral-full/raw.json",
+      "goal": "workspace/user_task_7",
+      "evidence_equivalence_sha256": "5e0cb02b273adbba756512a953db9a6a7330706b3b37bb96ed001b54c5d73f8c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00636-mistral-off/raw.json",
+      "goal": "slack/user_task_0",
+      "evidence_equivalence_sha256": "8df55c14ed76b487dcaee97cd32943ce713bf4cf12f9ac7c304bf8e4e2296747"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00637-mistral-full/raw.json",
+      "goal": "slack/user_task_0",
+      "evidence_equivalence_sha256": "8df55c14ed76b487dcaee97cd32943ce713bf4cf12f9ac7c304bf8e4e2296747"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00650-mistral-full/raw.json",
+      "goal": "banking/user_task_15",
+      "evidence_equivalence_sha256": "d5ef40835e670c67a9fe3acc58be594dab04852c8e3ac526b5320a30cbde2fea"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00651-mistral-off/raw.json",
+      "goal": "banking/user_task_15",
+      "evidence_equivalence_sha256": "d5ef40835e670c67a9fe3acc58be594dab04852c8e3ac526b5320a30cbde2fea"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00656-mistral-off/raw.json",
+      "goal": "banking/user_task_0",
+      "evidence_equivalence_sha256": "e797d006668a06b02471c37a26bbb6368405aa8cd6a4997cc6e88dfccefb0e84"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00657-mistral-full/raw.json",
+      "goal": "banking/user_task_0",
+      "evidence_equivalence_sha256": "e797d006668a06b02471c37a26bbb6368405aa8cd6a4997cc6e88dfccefb0e84"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00690-mistral-full/raw.json",
+      "goal": "travel/user_task_8",
+      "evidence_equivalence_sha256": "2efd158fb5998de4598c7d76bb5faceb8bfc9cb334c4c7e4241acca140ce188d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00691-mistral-off/raw.json",
+      "goal": "travel/user_task_8",
+      "evidence_equivalence_sha256": "c798b3900992117ca5aa1ef89e3e00ef3570ea09c6f3f5a07383e1018fdf3c35"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00726-mistral-full/raw.json",
+      "goal": "banking/user_task_4",
+      "evidence_equivalence_sha256": "663480d6385e85c95f2f53fca73a18b3ecb89f9203a8a517613aaa563fb26305"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00727-mistral-off/raw.json",
+      "goal": "banking/user_task_4",
+      "evidence_equivalence_sha256": "663480d6385e85c95f2f53fca73a18b3ecb89f9203a8a517613aaa563fb26305"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00750-mistral-full/raw.json",
+      "goal": "workspace/user_task_6",
+      "evidence_equivalence_sha256": "43e3ad846ceb1111454d9d025d560b8d3be843787435cca0e67599b1d79e276e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00751-mistral-off/raw.json",
+      "goal": "workspace/user_task_6",
+      "evidence_equivalence_sha256": "43e3ad846ceb1111454d9d025d560b8d3be843787435cca0e67599b1d79e276e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00770-mistral-off/raw.json",
+      "goal": "slack/user_task_14",
+      "evidence_equivalence_sha256": "dd6812140472d2b467daa48eda5816048eb0486b3d73d2e136f7d161b99f0e8c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00771-mistral-full/raw.json",
+      "goal": "slack/user_task_14",
+      "evidence_equivalence_sha256": "dd6812140472d2b467daa48eda5816048eb0486b3d73d2e136f7d161b99f0e8c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00778-mistral-off/raw.json",
+      "goal": "slack/user_task_9",
+      "evidence_equivalence_sha256": "0efcaebfdc817f1db379bd30af4b242ea39a4ccbf2daaf5e067ba83dcb717595"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00779-mistral-full/raw.json",
+      "goal": "slack/user_task_9",
+      "evidence_equivalence_sha256": "dc3d6cf9629d79210e4022521e9044befd7ad8da251e0f603da60cf7f1cded2e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00788-mistral-off/raw.json",
+      "goal": "slack/user_task_12",
+      "evidence_equivalence_sha256": "1108217f920f358550713cc21944a8118ec22f1381c70c5e2aecfc082c7fe445"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00789-mistral-full/raw.json",
+      "goal": "slack/user_task_12",
+      "evidence_equivalence_sha256": "fe7c88fa001d23848c706a70db3c11f744f5adbefc3882ad0eecc3851d0a215c"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00794-mistral-off/raw.json",
+      "goal": "travel/user_task_4",
+      "evidence_equivalence_sha256": "2f605026a05d81e94d6593b03cf7abe5cb039c48c7d9222c020fc51cb040258e"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00795-mistral-full/raw.json",
+      "goal": "travel/user_task_4",
+      "evidence_equivalence_sha256": "b0c82c7de73074065994d953e0da20bb0cbd308291c6eb333113ccf02bea65a3"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00798-mistral-full/raw.json",
+      "goal": "slack/user_task_7",
+      "evidence_equivalence_sha256": "b83be4c8ee2990b2c9e2137c62c6d27f00404d133fccc1b06a6d04b9c3d4deef"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00799-mistral-off/raw.json",
+      "goal": "slack/user_task_7",
+      "evidence_equivalence_sha256": "b83be4c8ee2990b2c9e2137c62c6d27f00404d133fccc1b06a6d04b9c3d4deef"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00802-mistral-off/raw.json",
+      "goal": "workspace/user_task_8",
+      "evidence_equivalence_sha256": "66b33131422465978dd22b1fb91562eb523e6bb88446894c69089779b22c0817"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00803-mistral-full/raw.json",
+      "goal": "workspace/user_task_8",
+      "evidence_equivalence_sha256": "66b33131422465978dd22b1fb91562eb523e6bb88446894c69089779b22c0817"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00822-mistral-full/raw.json",
+      "goal": "travel/user_task_0",
+      "evidence_equivalence_sha256": "6be0711426ecc6fbdd70d534c896837c81c10e48f0f36642e38ad93b0e19156d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00823-mistral-off/raw.json",
+      "goal": "travel/user_task_0",
+      "evidence_equivalence_sha256": "6be0711426ecc6fbdd70d534c896837c81c10e48f0f36642e38ad93b0e19156d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00830-mistral-off/raw.json",
+      "goal": "banking/user_task_1",
+      "evidence_equivalence_sha256": "f321210ab58ed9f6edbdbca1b714d2468e3aa5e394077260b2bbeb88cbf07dc6"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00831-mistral-full/raw.json",
+      "goal": "banking/user_task_1",
+      "evidence_equivalence_sha256": "1a2cee013c461a989e8b12602241b75c65ed5f00cfef38785dd359d5a62eff89"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00842-mistral-full/raw.json",
+      "goal": "banking/user_task_2",
+      "evidence_equivalence_sha256": "63313b2eb0f85e171f019257865b45633e734a6193fea3ed33c05a31b6a0cda4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00843-mistral-off/raw.json",
+      "goal": "banking/user_task_2",
+      "evidence_equivalence_sha256": "63313b2eb0f85e171f019257865b45633e734a6193fea3ed33c05a31b6a0cda4"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00860-mistral-full/raw.json",
+      "goal": "slack/user_task_13",
+      "evidence_equivalence_sha256": "0a70883dffc4b612a912930ac882dbf157bfee7e682c7e3eb603107b937f5b9d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00861-mistral-off/raw.json",
+      "goal": "slack/user_task_13",
+      "evidence_equivalence_sha256": "0a70883dffc4b612a912930ac882dbf157bfee7e682c7e3eb603107b937f5b9d"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00884-mistral-off/raw.json",
+      "goal": "workspace/user_task_16",
+      "evidence_equivalence_sha256": "d95f84ed3f4b2c4547f64f87d27e9d8cae976758f883208f919facb11def900f"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00885-mistral-full/raw.json",
+      "goal": "workspace/user_task_16",
+      "evidence_equivalence_sha256": "d95f84ed3f4b2c4547f64f87d27e9d8cae976758f883208f919facb11def900f"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00896-mistral-off/raw.json",
+      "goal": "slack/user_task_5",
+      "evidence_equivalence_sha256": "eb544e54f69e3291cc7852615f1420790ae0c00938f687caa3f01b2a12f3fc86"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00897-mistral-full/raw.json",
+      "goal": "slack/user_task_5",
+      "evidence_equivalence_sha256": "eb544e54f69e3291cc7852615f1420790ae0c00938f687caa3f01b2a12f3fc86"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00906-mistral-full/raw.json",
+      "goal": "banking/user_task_7",
+      "evidence_equivalence_sha256": "2bed273f82338744993762391b1e10e9aa5f4c78b66f8206b104b26583a68609"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00907-mistral-off/raw.json",
+      "goal": "banking/user_task_7",
+      "evidence_equivalence_sha256": "2bed273f82338744993762391b1e10e9aa5f4c78b66f8206b104b26583a68609"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00912-mistral-full/raw.json",
+      "goal": "slack/user_task_10",
+      "evidence_equivalence_sha256": "419aef0e26b586dd6b2355af3dbb491d19c5e846a75cc81569251341c8bfac46"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00913-mistral-off/raw.json",
+      "goal": "slack/user_task_10",
+      "evidence_equivalence_sha256": "419aef0e26b586dd6b2355af3dbb491d19c5e846a75cc81569251341c8bfac46"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00914-mistral-off/raw.json",
+      "goal": "banking/user_task_12",
+      "evidence_equivalence_sha256": "8fa69a19b16b6ff82d5ceb761670de915f60566de000751dc7f44990a0340d68"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00915-mistral-full/raw.json",
+      "goal": "banking/user_task_12",
+      "evidence_equivalence_sha256": "8fa69a19b16b6ff82d5ceb761670de915f60566de000751dc7f44990a0340d68"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00920-mistral-off/raw.json",
+      "goal": "workspace/user_task_32",
+      "evidence_equivalence_sha256": "f5cab5d5923850fb95cb8d7960790f0ad89e44180db602e06eae1c4b1eb37d9a"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00921-mistral-full/raw.json",
+      "goal": "workspace/user_task_32",
+      "evidence_equivalence_sha256": "235d4de81adf72a33d7aeee611417aad7c263ece67a204b26487431bf57ad723"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00926-mistral-full/raw.json",
+      "goal": "travel/user_task_7",
+      "evidence_equivalence_sha256": "45c2addea72bb8669b5dbe0a3331e99dfd8f511cf2939ec968ec8c15e0fe67f6"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00927-mistral-off/raw.json",
+      "goal": "travel/user_task_7",
+      "evidence_equivalence_sha256": "15519eb0a754da8069276afcb6d2043554c5ce8188fb37a01d73b80588a1b3e1"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00930-mistral-off/raw.json",
+      "goal": "workspace/user_task_12",
+      "evidence_equivalence_sha256": "aef929c851d8e4c3c7e7b2475feb3804b7e54dcd23b6bf25fbfa28d26a361110"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00931-mistral-full/raw.json",
+      "goal": "workspace/user_task_12",
+      "evidence_equivalence_sha256": "aef929c851d8e4c3c7e7b2475feb3804b7e54dcd23b6bf25fbfa28d26a361110"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00944-mistral-full/raw.json",
+      "goal": "workspace/user_task_21",
+      "evidence_equivalence_sha256": "e78873dcde44a406adee5f7f7faeac8ba7838951e36d7e977becfc690214eada"
+    },
+    {
+      "raw_pointer": "confirmatory/cells/00945-mistral-off/raw.json",
+      "goal": "workspace/user_task_21",
+      "evidence_equivalence_sha256": "e78873dcde44a406adee5f7f7faeac8ba7838951e36d7e977becfc690214eada"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "cycle": "J",
+  "started_utc": "2026-10-12T13:04:44.808562+00:00",
+  "runtime_seconds": 0.02305929300018761,
+  "new_tasks": 36,
+  "prior_tasks_reused": 5,
+  "audited_task_populations": 41,
+  "fully_classified_confirmatory_task_populations": 31,
+  "total_task_populations": 97,
+  "new_original_records_restored": 144,
+  "old_records_reused": 30,
+  "distinct_all_stage_records": 174,
+  "confirmatory_observations_audited": 164,
+  "confirmatory_classified": 136,
+  "confirmatory_unknown": 28,
+  "unaudited_confirmatory_observations": 224,
+  "all_stage_classified": 144,
+  "all_stage_unknown": 30,
+  "source_disagreements_all_stages": 5,
+  "source_disagreements_confirmatory": 3,
+  "new_current_cycle_confirmatory_disagreements": 2,
+  "new_prior_negative_overlay_disagreements": 2,
+  "false_positives": 5,
+  "false_negatives": 0,
+  "conditional_output_scope_disagreements": 2,
+  "new_actual_counts": {
+    "None": 24,
+    "True": 82,
+    "False": 38
+  },
+  "new_proposed_counts": {
+    "None": 41,
+    "True": 66,
+    "False": 37
+  },
+  "human_reviews": 0,
+  "owner_decisions": 0,
+  "new_provider_calls": 0,
+  "HOLD": "UNCHANGED",
+  "input_hashes_before_after": {
+    "research/external_verification/cycle_j_20261012/record_audit_final.jsonl.gz": "8398b5310f22af6b9e2ef68296deaeca1669483fce64a7155a45356401d134ad",
+    "research/external_verification/cycle_j_20261012/frozen_population.json": "65b0baeac7d6407a3fe1266286394c9e2c79b845787dd206910050029fda71b3",
+    "research/external_verification/cycle_j_20261012/evidence_equivalence_fingerprints.json": "42b718734fea9bc9f3d12c175288e79aaf1ade4a56da5507461792e43f2015b9",
+    "research/external_verification/cycle_j_20261012/frozen_output_delivery_boundary.json": "c21cb936c06ad204c133325c8e0ec5598f22b5dd2021b0b08fdc330348e96d6c",
+    "research/external_verification/cycle_j_20261012/frozen_equivalence_spec.json": "4a6f7664357f6224d5176ab670116b2f9159966cfce831521b6b61b9ff4162b3",
+    "research/external_verification/cycle_i_continuation_20261011/construct_record_audit.json": "ca902aa81a10bc24d8538181dae3ba35726112f443dec0d9d9fc599dc9c2eac1"
+  },
+  "task_complete_positive_limit": "Only stated frozen mock-workflow criteria are supported; no actual external service/user receipt, subjective quality, prospective registration or full-population utility equivalence."
+}

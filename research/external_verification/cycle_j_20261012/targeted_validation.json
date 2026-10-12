@@ -1,0 +1,22 @@
+{
+  "test_command": "python -B -m unittest discover -s tests -p 'test_benign_construct_cycle_j.py' -v",
+  "tests": 5,
+  "result": "PASS",
+  "runtime_seconds": 0.003,
+  "fixture_status": "Deterministic regressions, not empirical observations",
+  "original_restore": {
+    "record_order_checks": 288,
+    "endpoint_order_checks": 288
+  },
+  "saved_context_correction": {
+    "affected_context_order_checks": 84,
+    "unaffected_context_consistency_checks": 204
+  },
+  "final_targeted_check": {
+    "order_checks": 32
+  },
+  "human_reviews": 0,
+  "source_oracle_calls": 0,
+  "provider_calls": 0,
+  "CI": "Exact new head to be verified after guarded integration; CI is software verification only."
+}

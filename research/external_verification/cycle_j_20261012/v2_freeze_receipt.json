@@ -1,0 +1,9 @@
+{
+  "version": "CYCLE-J-BENIGN-V2",
+  "frozen_utc": "2026-10-12T11:35:51.394461+00:00",
+  "addendum_sha256": "e1bc3cab1c3ebbde991c14871a392a62b768423f694d802a58957637f7b19607",
+  "parent_rubric_sha256": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+  "V1_outcomes_known": true,
+  "before_V2_comparison": true,
+  "original_record_replay_repeated": false
+}

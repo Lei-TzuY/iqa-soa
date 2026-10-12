@@ -1,0 +1,52 @@
+{
+  "cycle": "J_FINAL_V2_2_AND_TIMELINE",
+  "started_utc": "2026-10-12T12:26:57.168775+00:00",
+  "finished_utc": "2026-10-12T12:26:58.143762+00:00",
+  "runtime_seconds": 0.9747715999837965,
+  "original_records_retained": 144,
+  "targeted_records": 16,
+  "targeted_contexts": 32,
+  "order_checks": 32,
+  "labels": {
+    "executed:None": 20,
+    "proposed:None": 41,
+    "executed:True": 86,
+    "proposed:True": 66,
+    "executed:False": 38,
+    "proposed:False": 37
+  },
+  "web_rule_sha256": "9f71775ae97c36cd61da4e0807319e00de786dc8f871c9f967e918f10ee9b73b",
+  "field_rule_sha256": "1516125c335012214dfd1753b94e2fc4f1f8444b6d3eb482bdd61beeb904d520",
+  "timeline_rule_sha256": "30515b04a299af8f038525148a08ec51a475072e6476caec48a8618216d6b876",
+  "code_sha256": "03e505e6957d79f965b4116fb4214b063106b2c24a7bc6dfd595f8d4b268b268",
+  "evaluator_sha256": "3b5bf334a5d017775ecdc07e2af1617a2d45fb588c84f5e4db90dde4742ed90a",
+  "bound_inputs_before_after": {
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_web_binding_v2_2.json": "9f71775ae97c36cd61da4e0807319e00de786dc8f871c9f967e918f10ee9b73b",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_travel_fields_v1.json": "1516125c335012214dfd1753b94e2fc4f1f8444b6d3eb482bdd61beeb904d520",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_timeline_rule.json": "30515b04a299af8f038525148a08ec51a475072e6476caec48a8618216d6b876",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz": "19228a6e82b1d3944199489fb22a94dddf9a4894b53276e067bd29200c4cfe8a",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\corrected-v2\\run\\record_audit.jsonl.gz": "20b4273a469f7b9d3657cf2c5f91104cc128777da6cd96707e22d71fdddaeccd",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00066-qwen-full\\raw.json": "dcd399dc1c662f1cdbe3bb248da336825f8b3095a3e9d34ccfec8bead1120913",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00067-qwen-off\\raw.json": "50f73f141eccb64f6aefc30b0c7471140e6a290f1c9ea446186bac6058f1c649",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00196-qwen-full\\raw.json": "543ff4fe512b5b532c50fbb9daf748813b29368efac231ad8bd8a4d1d82640d3",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00197-qwen-off\\raw.json": "350c48040bb9e918887e0870d55202d2e075e2d37dd60387bf24958e8e961475",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00436-qwen-full\\raw.json": "bfd6d9997f67a0e49a1c7c005664ae6d8e25979c9a8e79b07451f59d1706c21f",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00437-qwen-off\\raw.json": "19aab7533bfdb9803b15b016193db548be73b4eb6ba8eb4c7cdf402762bee1ff",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00564-mistral-off\\raw.json": "13d041ddc09ed7c4fae47f820ac59fb88d83e1d4def605b6b7ab1629061a5e23",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00565-mistral-full\\raw.json": "7c76af1f143f386ae2a9a102e7c516cba48edc7506c5f5591e86f99a85b68872",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00598-mistral-off\\raw.json": "b6cae8b4606220f7c51ff89fb870e781bc2fa72e1c8f0c3ddddb123e6fddce38",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00599-mistral-full\\raw.json": "a9211ac6a9573440201be0f988349860e5b38b528a795afb142248b63ee26886",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00794-mistral-off\\raw.json": "b70b9f651428c15a60018d62d27585e10014262965edd0fc8f8fc7b7ab9a01e7",
+    "C:\\Users\\User\\Desktop\\FSE\\results\\fse2027-external-replication-v1\\confirmatory\\cells\\00795-mistral-full\\raw.json": "aed1f19ee843955c9a3367ac05005c4f8b4553cb08eda2436c01c628c9e76622"
+  },
+  "new_tool_calls": 0,
+  "provider_calls": 0,
+  "original_oracle_calls": 0,
+  "human_reviews": 0,
+  "artifact_sha256": {
+    "assistant_text_provenance.json": "84d0fd7a17c506f1aa6bbe958b82e724d7d52e1baf02df0e8f75ae06600a7e8b",
+    "final_differential.json": "faed7d4613b24ed915786dca1bc7f1ecf43549bd5aa32a154febfb1e34afda82",
+    "private_final_contexts_DO_NOT_PUBLISH.jsonl.gz": "4550c435152b7e0ab8c5f1d055c8843e77339dde7e11a76c633b8eefaf4f052c",
+    "record_audit.jsonl.gz": "8398b5310f22af6b9e2ef68296deaeca1669483fce64a7155a45356401d134ad"
+  }
+}

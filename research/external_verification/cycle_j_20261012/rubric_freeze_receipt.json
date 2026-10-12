@@ -1,0 +1,10 @@
+{
+  "version": "CYCLE-J-BENIGN-V1",
+  "frozen_utc": "2026-10-12T11:11:18.144315+00:00",
+  "rubric_sha256": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+  "bytes": 56737,
+  "root": "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z",
+  "new_original_record_results_inspected": false,
+  "prior_five_task_outcomes_known": true,
+  "no_external_registration_or_human_review_claim": true
+}

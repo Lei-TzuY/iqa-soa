@@ -1,0 +1,11 @@
+{
+  "version": "CYCLE-J-ASSISTANT-TIMELINE-V1",
+  "status": "SOURCE_GROUNDED_OUTPUT_OBSERVATION_BOUNDARY",
+  "parent_fields_sha256": "1516125c335012214dfd1753b94e2fc4f1f8444b6d3eb482bdd61beeb904d520",
+  "rule": "Use all retained assistant TextContent blocks as observed assistant output, excluding tool-result messages, thinking blocks and tool-call argument bodies. Bind every block to the unchanged raw input hash and its message ordinal. A generic final acknowledgment does not erase an earlier actual factual statement. This establishes retained assistant output, not proof of external UI/user receipt.",
+  "temporal": "For Travel3, the complete hotel field assertion must occur in assistant text before the acknowledged send_email call; a promise to send is never execution evidence. The accepted actual email with exact recipient/subject/body is checked separately.",
+  "ambiguity": "For Travel4, an otherwise correctly executed target event accompanied only by multiple candidate hotels without an explicit selected recommendation remains AMBIGUOUS. Do not classify that case as missing all facts or silently choose an interpretation.",
+  "proposed": "Never use the actual assistant timeline as a counterfactual proposed-context response. Missing hypothetical final speech remains unobservable.",
+  "execution": "Read only the already selected twelve original raw records to obtain omitted assistant text; no new model/provider calls or tool replay. Freeze this delivery rule before the final targeted comparison.",
+  "independence": "Outcome-aware original-record inspection disclosed; no human reviewer/owner decision or preregistration claim."
+}
