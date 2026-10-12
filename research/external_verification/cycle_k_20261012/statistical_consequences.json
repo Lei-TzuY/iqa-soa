@@ -1,0 +1,106 @@
+{
+  "fixed_population": {
+    "pairs": 194,
+    "observations": 388,
+    "tasks": 97,
+    "task_units_per_model": 97,
+    "model_weights": {
+      "qwen": "1/2",
+      "mistral": "1/2"
+    }
+  },
+  "frozen_source_defined_S2": {
+    "fraction": "3/194",
+    "estimate": 0.015463917525773196
+  },
+  "frozen_S2_CI_unchanged": [
+    -0.010309278,
+    0.041237113
+  ],
+  "frozen_S2_p_unchanged": 0.452555474,
+  "J_known_corrections_rest_source_fixed": {
+    "fraction": "1/97",
+    "estimate": 0.010309278350515464
+  },
+  "K_known_corrections_rest_source_fixed": {
+    "fraction": "1/194",
+    "estimate": 0.005154639175257732
+  },
+  "K_model_conditional_points": {
+    "qwen": {
+      "fraction": "0",
+      "estimate": 0.0
+    },
+    "mistral": {
+      "fraction": "1/97",
+      "estimate": 0.010309278350515464
+    }
+  },
+  "conditional_native_rest_fixed_bounds": {
+    "lower": {
+      "fraction": "-33/194",
+      "estimate": -0.17010309278350516
+    },
+    "upper": {
+      "fraction": "17/97",
+      "estimate": 0.17525773195876287
+    },
+    "unknown_labels": 67,
+    "free_groups": 67,
+    "zero_contribution_groups": 0,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "population_wide_independent_classifications_only_bounds": {
+    "lower": {
+      "fraction": "-81/194",
+      "estimate": -0.4175257731958763
+    },
+    "upper": {
+      "fraction": "41/97",
+      "estimate": 0.422680412371134
+    },
+    "unknown_labels": 163,
+    "free_groups": 163,
+    "zero_contribution_groups": 0,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "matched_evidence_native_rest_fixed_scenario": {
+    "lower": {
+      "fraction": "-6/97",
+      "estimate": -0.061855670103092786
+    },
+    "upper": {
+      "fraction": "13/194",
+      "estimate": 0.06701030927835051
+    },
+    "unknown_labels": 67,
+    "free_groups": 45,
+    "zero_contribution_groups": 20,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "matched_evidence_unaudited_free_scenario": {
+    "lower": {
+      "fraction": "-30/97",
+      "estimate": -0.30927835051546393
+    },
+    "upper": {
+      "fraction": "61/194",
+      "estimate": 0.31443298969072164
+    },
+    "unknown_labels": 163,
+    "free_groups": 141,
+    "zero_contribution_groups": 20,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "relaxed_date_time_representation_scenario": {
+    "fraction": "1/194",
+    "estimate": 0.005154639175257732
+  },
+  "changed_construct_correct_verbal_duration_disregard_wrong_formatted_value": {
+    "fraction": "1/97",
+    "estimate": 0.010309278350515464,
+    "status": "ALTERNATIVE_POST_HOC_CONSTRUCT_NOT_APPROVED_ORIGINAL_SUCCESS",
+    "assumption": "Accept correct verbal duration despite the wrong requested formatted answer, and relax the two spacing-format failures. This abandons original requested output conditions; source/historical labels and principal K decisions are unchanged."
+  },
+  "meaning": "All new estimates and binary-label completion bounds are POST-HOC. Matching evidence additionally assumes deterministic equal judgments on the entire retained rubric-relevant evidence; no actual client delivery or unseen timestamps are inferred. Original eligibility/clustering/weights are unchanged. Bounds are not CIs. No new significance/equivalence claim; S2 gate closed and S3 descriptive."
+}

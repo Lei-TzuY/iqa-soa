@@ -1,0 +1,139 @@
+{
+  "cycle": "K",
+  "starting_head": "c9d5bc23abc219497d64b807b71b2de335120216",
+  "main_head": "d6f8638285a393a55a8eaa2fbd11ef4722b56aa1",
+  "PR": 51,
+  "branch": "research/external-agentdojo-audit-20261009",
+  "owner": "Lei-TzuY",
+  "initial_CI": 38253847327,
+  "initial_Ledger_rows": 59,
+  "initial_Runs_rows": 15,
+  "desktop_root": "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z",
+  "desktop_integrity": {
+    "input_files": 265,
+    "input_mismatches": [],
+    "benchmark_inventory_unchanged": true,
+    "inventory_schema": [
+      "files",
+      "sha256"
+    ],
+    "head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "status_entries": 46,
+    "status_sha256_LF": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+    "paired_seed_count": 194,
+    "paired_seeds_match": true
+  },
+  "contract_sources": [
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\adapter.py",
+      "sha256": "d0c6cd23de178ba11abec6cecdd488051ec434abf7ed18eaf53574f65ae31743",
+      "line_count": 285
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\runner.py",
+      "sha256": "488c2a6e3304c0d67f4ca45f76953493a5e7f249a53068e00834ee7fd0e61e63",
+      "line_count": 151
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\cell.py",
+      "sha256": "574ef6278105f329d04473c16acd973ade5939ae55c798d61714719e9e9c6cfb",
+      "line_count": 353
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\llm.py",
+      "sha256": "d4e5f85cc92e762b951b55a085695b36fdd31e4db83b614a6ee22eb8d32fff3a",
+      "line_count": 318
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\agent_pipeline\\agent_pipeline.py",
+      "sha256": "2b9b82b98cef3662733a8207dfed9e4386c41fb74e69531a6f0a36207f9695e9",
+      "line_count": 265
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\agent_pipeline\\tool_execution.py",
+      "sha256": "96842ef579714cdc7f854bc13d4bca2be0c27897abc29dad2e1ba33ce3b11bdc",
+      "line_count": 157
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\functions_runtime.py",
+      "sha256": "3c67f71eb8a7f15d2a15fe9595d84218c5e6868d95fd71d1cef679cd2192d0f7",
+      "line_count": 312
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\types.py",
+      "sha256": "207b688794d5e214099c00b0dff3a03429f8f3632fcbbdafeac291dc190fbfca",
+      "line_count": 92
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\task_suite\\task_suite.py",
+      "sha256": "2e69da06f7e150dd6d238c53a74845b56eebeb224e07f694e1051a6e0c6a2bc1",
+      "line_count": 491
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\logging.py",
+      "sha256": "74d46f7ff3e3eb45b1fae7a025ca0f0dcc4b2e125533927748728c81ae02ce50",
+      "line_count": 278
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\cli.py",
+      "sha256": "f81e5370c421c5ee671cfa15daf713fd672f7eef8edb1b900ea03083d243caf5",
+      "line_count": 216
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\task_suite\\task_suite.py",
+      "sha256": "2e69da06f7e150dd6d238c53a74845b56eebeb224e07f694e1051a6e0c6a2bc1",
+      "line_count": 491
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\logging.py",
+      "sha256": "74d46f7ff3e3eb45b1fae7a025ca0f0dcc4b2e125533927748728c81ae02ce50",
+      "line_count": 278
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\cli.py",
+      "sha256": "f81e5370c421c5ee671cfa15daf713fd672f7eef8edb1b900ea03083d243caf5",
+      "line_count": 216
+    }
+  ],
+  "manuscript_metadata": {
+    "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "title": "main_v1.6.3.pdf",
+    "mime_type": "application/pdf",
+    "size": "878066",
+    "url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+    "display_url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+    "file_or_folder": "file",
+    "created_time": null,
+    "modified_time": "2026-09-29T04:21:30.714Z",
+    "parent_ids": null,
+    "drive_id": null,
+    "current_user_can_share": null,
+    "has_augmented_permissions": null,
+    "shared": null,
+    "permissions": null,
+    "source_visibility_status": "access_not_verified"
+  },
+  "manuscript_binary_sha256_previously_verified": "32b1abda3fd48f8cf0dbe11470ac1a59d6a745ddfc4d3806e9dc42eb78a2e35b",
+  "manuscript_digest_status": "Historical digest, not recalculated from the current live PDF; current metadata and readable text were fetched. Text-capture hash recorded separately.",
+  "commands": {
+    "original_record_restoration": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\run_benign_cycle_k.py' --repo 'C:\\Users\\User\\Desktop\\FSE' --spec 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_rules_k1.json' --spec-sha256 '2f4ddc0612d06c0bc9efc2898145b57a98267021a2887a6381aa71420221f5ea' --definitions 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\task_definitions.json' --f-index 'C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5\\record_replay.jsonl' --f-helper 'C:\\FSE-ext-agentdojo\\cycle-h-20261010\\frozen-v1\\oracle_replay_cycle_f.py' --code-sha256 '1c457e86306114ffd72e44d49a01907ab5272f263e76f113f2233aec70d9a4d4' --evaluator-sha256 '2b238599dc04fedeeb282437412d823a9ac921a629c8ab35ac9e8f96ab353b0c' --common-helper-sha256 'bf69ecb3f5449cb63381d994983b90a9bbebaeba3d17fa36b770fe3d5082f17a' --output 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1'",
+    "K2_saved_context_scoring": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\rescore_benign_cycle_k.py' --prior 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1' --spec 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_rules_k1.json' --boundary 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_k2_correction_boundary.json' --boundary-sha256 'eb1457f6a4b8de2b60ea8b9047fbfbfa5cb50f75d4408ccff8c4945f679e23e2' --code-sha256 '37de510d3a2a2b2c077e712c6c4aa9b59b8f07f1c90876707b023f8178f99673' --evaluator-sha256 '9636e024aa4e781b90fde6e701fe01f27987c55e19ed7e4892dda5c08282e174' --output 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\rescore-k2'",
+    "K2_1_necessary_condition": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\finalize_benign_cycle_k.py' --prior 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\rescore-k2\\record_audit_final.jsonl.gz' --private-contexts 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz' --spec 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_rules_k1.json' --boundary 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_k2_1_conjunction_boundary.json' --boundary-sha256 '2fe7a19da373f32933e1986bb3657330db378608157bd4ab63ac6fd37a78077b' --evaluator-sha256 '5a8f6c67d224d08a9ca94fcf5222feb617f991816a6480b5e444202ce15d1151' --output 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\final-k21'",
+    "K2_2_read_alias": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\finalize_read_alias_cycle_k.py' --prior 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\final-k21\\record_audit_principal.jsonl.gz' --private-contexts 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz' --spec 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_rules_k1.json' --boundary 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_k2_2_read_alias_boundary.json' --boundary-sha256 'b550ff8a6fc611b85581cec40bac26f885a15af62452e1b07f31ef662f4fa03f' --evaluator-sha256 '008eff10e6e5596f88c0e468bb9d14bb966021230912523448d6e4bcc8bba46a' --output 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\final-k22'",
+    "final_witness_and_order_validation": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\validate_benign_cycle_k.py' --principal 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\final-k22\\record_audit_principal.jsonl.gz' --private-contexts 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz' --spec 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_rules_k1.json' --output 'C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\validation-final'",
+    "analysis": "python -B research/external_verification/analyze_benign_cycle_k.py --audit-dir research/external_verification/cycle_k_20261012",
+    "tests": "python -B -m unittest discover -s tests -p 'test_benign*cycle_k*.py' -v"
+  },
+  "limits": {
+    "source_oracle_calls": 0,
+    "new_model_provider_calls": 0,
+    "new_paid_experiments": 0,
+    "new_GPU_workloads": 0,
+    "human_adjudications": 0,
+    "client_delivery": "NOT_IDENTIFIABLE",
+    "original_Banking2_proxy_repeated": false,
+    "original_manuscripts_modified": false
+  },
+  "scientific_scope": "Independent rules assess retained mock workflow and selected final benchmark answer. Actual client/service receipt, human preference, external registration and generalized utility are not established. Counterfactual shadows hold historical proposals fixed without generating new model continuation.",
+  "manuscript_text_capture_sha256_LF": "dfd0dddecd712acec0fb171b18f7fb78354fdd977a60cae27c65350f7f7336b5"
+}

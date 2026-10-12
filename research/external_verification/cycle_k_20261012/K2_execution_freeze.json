@@ -1,0 +1,10 @@
+{
+  "frozen_utc": "2026-10-12T16:01:24.408197+00:00",
+  "K2_saved_contexts_not_yet_rescored": true,
+  "files": {
+    "benign_construct_cycle_k_v2.py": "9636e024aa4e781b90fde6e701fe01f27987c55e19ed7e4892dda5c08282e174",
+    "rescore_benign_cycle_k.py": "37de510d3a2a2b2c077e712c6c4aa9b59b8f07f1c90876707b023f8178f99673",
+    "frozen_k2_correction_boundary.json": "eb1457f6a4b8de2b60ea8b9047fbfbfa5cb50f75d4408ccff8c4945f679e23e2"
+  },
+  "regressions_passed": 4
+}

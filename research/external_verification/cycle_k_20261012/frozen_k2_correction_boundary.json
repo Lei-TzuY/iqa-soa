@@ -1,0 +1,20 @@
+{
+  "cycle": "K",
+  "version": "K2",
+  "frozen_utc": "2026-10-12T15:56:47.684007+00:00",
+  "status": "OUTCOME_AWARE_POST_HOC_IMPLEMENTATION_CORRECTION_AND_ABSTENTION_BOUNDARY",
+  "K1_rubric_sha256": "2f4ddc0612d06c0bc9efc2898145b57a98267021a2887a6381aa71420221f5ea",
+  "no_original_tool_replay_required": true,
+  "rules": {
+    "email_tokens": "Exclude sentence punctuation after a valid email token; exact original recipient remains required. K1 false Slack17 mismatches are scorer error, not benchmark defects.",
+    "family_invitation": "A notification to the substantive original reunion correspondent has uncertain implied authorization. Correct date/time/location/duration with such a participant is AMBIGUOUS; no owner or human approval is invented.",
+    "read_effects": "Correct event creation with only unrelated read-flag changes remains scope-ambiguous. Preserve objectively wrong event dates as FALSE independently of that ambiguity.",
+    "scoped_negation": "Do not interpret a statement that other restaurants are closed as negation of the positively recommended target. Bind values to the named card and field labels; wrong explicit ratings/addresses/optimal company are decisive FALSE.",
+    "explicit_refusal": "An explicit inability/refusal with no retained assistant answer fails the selected-final-output construct; proposals cannot inherit actual text. This is not proof of external client delivery.",
+    "quoted_IDs": "Quotes/markdown/list delimiters are representation, not part of numeric file identity. Require the complete source-derived set and supported association.",
+    "requested_format": "The original frozen K1 exact YYYY-MM-DD HH:MM requirement remains. A date and time separated by at has correct numerical fields but fails that contiguous requested representation. Report these formatting-only decisions separately and also give an explicit relaxed-format scenario.",
+    "duration": "Parse explicit answer-duration assertions separately from supporting meeting/lunch times. An explicit 11:30 output for a 01:30 gap is a wrong formatted value even when earlier prose states the correct duration; retain both factual facets.",
+    "show_unread": "Verify every initially unread message against the selected final assistant text. Full normalized body/subject/sender matches support the recorded-answer construct. A final no-unread assertion after retrieval read the original messages does not show the initial messages; if an earlier assistant statement showed them, delivery remains unresolved. Tool results alone do not supply an assistant answer."
+  },
+  "authorization": "No human/owner semantic decisions are approved; all genuine scope/quality/presentation uncertainties remain UNKNOWN."
+}
