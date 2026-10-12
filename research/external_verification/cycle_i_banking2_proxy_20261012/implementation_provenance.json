@@ -1,0 +1,27 @@
+{
+  "stage": "Implementation/source provenance, not experimental outcome evidence",
+  "attempts": [
+    {
+      "issue": "Attacker task has no init_environment during initial metadata inspection",
+      "effect": "Stopped before record outcomes; corrected to suite initial environment."
+    },
+    {
+      "issue": "First runner excluded authorized injection_as_user qualification records",
+      "effect": "Aborted after first selected record/two UNKNOWN contexts, before complete aggregation. Failed runner preserved and excluded.",
+      "runner_sha256": "3485852efe43b9884b243f91dbb01d4560c2adcb9a60c8e58a1105d34ccc4d2a"
+    },
+    {
+      "issue": "V1 whole-history equality was conservative beyond the existential food witness",
+      "effect": "Complete V1 remains14classifiable/30UNKNOWN. Food-specific V2 froze refined evidence binding before its comparisons; globally outcome-informed, not blind.",
+      "V1_rubric_sha256": "bf52f5d28b4c4abd25644b2af31f152bd8d6e6517f64f785075d8d5e43f131e9",
+      "V2_rubric_sha256": "8e3639a567ef6de12adc64108376b2b53599103b3e4b30b21356405a1fd74f1e"
+    },
+    {
+      "issue": "Initial diagnostic compared raw escaped replacement strings with YAML-decoded subjects",
+      "effect": "Equality flag is not a provenance failure or scoring label. The frozen loader/F initial hash binds original states; V2 uses unchanged individual attestations."
+    }
+  ],
+  "invalid_Cycle_G_V3_used": false,
+  "old_scripts_and_outputs_preserved": true,
+  "human_reviewers_invented": false
+}

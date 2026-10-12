@@ -1,0 +1,65 @@
+{
+  "records": 24,
+  "contexts": 44,
+  "contexts_by_endpoint": {
+    "executed": 20,
+    "proposed": 24
+  },
+  "proxy_classifiable": 44,
+  "V1_to_V2_changed_contexts": 30,
+  "record_kinds": {
+    "security": 22,
+    "injection_as_user": 2
+  },
+  "all_Banking2_prior_contexts": 52,
+  "all_Banking2_prior_records": 26,
+  "outside_current_reassessment_contexts": 8,
+  "entirely_unreassessed_records": 2,
+  "unreassessed_contexts_in_selected_records": 4,
+  "records_with_any_unreassessed_context": 6,
+  "unreassessed_Banking2_context_status": "Eight prior H FALSE contexts carried forward as fixed inputs, not newly reassessed or newly validated by this run.",
+  "source_endpoint_comparisons": 60,
+  "source_endpoint_disagreements": 0,
+  "source_disagreeing_distinct_records": 0,
+  "contexts_with_source_comparison": 42,
+  "contexts_without_recorded_source_endpoint": 2,
+  "original_personal_preference_contexts_changed": 0,
+  "original_H_labels_digest_unchanged": "35c149695e1f6b1fd02c01f459878b6c0b98c887e3effb5076af32b16cfeca90",
+  "other_goal_labels_changed": 0,
+  "original_H_coverage_unchanged": {
+    "goals_all_retained_contexts_classifiable": 30,
+    "executed": {
+      "classifiable": 877,
+      "total": 910
+    },
+    "proposed": {
+      "classifiable": 846,
+      "total": 884
+    },
+    "all_contexts_classifiable_records": 872,
+    "total_records": 910
+  },
+  "original_H_remaining_unchanged": {
+    "contexts": 71,
+    "records": 38,
+    "goals": 5,
+    "executed": 33,
+    "proposed": 38
+  },
+  "unrestricted_manuscript": "HOLD_UNCHANGED",
+  "personal_preference": "AMBIGUOUS / NOT IDENTIFIABLE FROM RETAINED PURCHASE HISTORY",
+  "independent_human_reviews": 0,
+  "analysis_started_utc": "2026-10-12T06:41:20.608200+00:00",
+  "runtime_seconds": 0.12106586200025049,
+  "input_hashes_before_after": {
+    "research/external_verification/cycle_h_20261010/record_semantic_coverage.csv.gz": "8a02769283675624444f65cbee52343650b6a69afdd7f442d779b10df81c6454",
+    "research/external_verification/cycle_h_20261010/statistical_consequences.json": "61d4f142a94603fbca247d4be068ee7c01455dd10f8e9a7f147c9e2a8082be27",
+    "research/external_verification/cycle_g_20261010/original_record_metadata.json.gz": "67700d4a783831cf277374085bfeda8ba591e8b1624a8acec3dfe2837c84132f",
+    "research/external_verification/cycle_g_20261010/statistical_consequences.json": "7d39650befb155e992b9a88b04fb7052d29cf15cbecc01f319a8d708d14629d4",
+    "research/external_verification/cycle_i_banking2_proxy_20261012/selected_contexts.json": "055a8caae39666ac39ca33725e75a4da30745d2bf2b83292a36ad51fefd164bb",
+    "research/external_verification/cycle_i_banking2_proxy_20261012/frozen_proxy_rubric_v1.json": "bf52f5d28b4c4abd25644b2af31f152bd8d6e6517f64f785075d8d5e43f131e9",
+    "research/external_verification/cycle_i_banking2_proxy_20261012/frozen_proxy_rubric_v2.json": "8e3639a567ef6de12adc64108376b2b53599103b3e4b30b21356405a1fd74f1e",
+    "research/external_verification/cycle_i_banking2_proxy_20261012/whole_history_v1/proxy_records.jsonl.gz": "3b0c3492d0a2946484f6b327e1e8a6af9ca66170438fa883e228e0419f95bdea",
+    "research/external_verification/cycle_i_banking2_proxy_20261012/food_attestation_v2/proxy_records.jsonl.gz": "5e0d9edc671cf839549f5d4975e03d84d600a519be70184fcdc41154b9e11d82"
+  }
+}

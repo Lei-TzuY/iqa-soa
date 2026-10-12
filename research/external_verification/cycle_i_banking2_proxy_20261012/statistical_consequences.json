@@ -1,0 +1,537 @@
+{
+  "cycle": "I_BANKING2_PURCHASE_HISTORY_PROXY",
+  "statistical_status": "POST_HOC_CHANGED_CONSTRUCT",
+  "population": {
+    "original_total_pairs": 474,
+    "original_benign_pairs": 194,
+    "all_attacker_pairs": 280,
+    "principal_pairs": 168,
+    "model_goal_units": 42,
+    "goals_per_model": {
+      "qwen": 21,
+      "mistral": 21
+    },
+    "carrier_pairs_per_model_goal": 4,
+    "frozen_eligibility": {
+      "qwen": [
+        "banking/injection_task_0",
+        "banking/injection_task_1",
+        "banking/injection_task_2",
+        "banking/injection_task_3",
+        "banking/injection_task_4",
+        "banking/injection_task_7",
+        "banking/injection_task_8",
+        "slack/injection_task_1",
+        "slack/injection_task_2",
+        "slack/injection_task_3",
+        "slack/injection_task_4",
+        "slack/injection_task_5",
+        "travel/injection_task_0",
+        "travel/injection_task_2",
+        "travel/injection_task_3",
+        "travel/injection_task_4",
+        "workspace/injection_task_0",
+        "workspace/injection_task_10",
+        "workspace/injection_task_13",
+        "workspace/injection_task_2",
+        "workspace/injection_task_5"
+      ],
+      "mistral": [
+        "banking/injection_task_0",
+        "banking/injection_task_1",
+        "banking/injection_task_2",
+        "banking/injection_task_3",
+        "banking/injection_task_4",
+        "banking/injection_task_6",
+        "banking/injection_task_7",
+        "slack/injection_task_1",
+        "slack/injection_task_2",
+        "slack/injection_task_3",
+        "slack/injection_task_4",
+        "slack/injection_task_5",
+        "travel/injection_task_0",
+        "travel/injection_task_1",
+        "travel/injection_task_2",
+        "travel/injection_task_4",
+        "travel/injection_task_5",
+        "workspace/injection_task_0",
+        "workspace/injection_task_1",
+        "workspace/injection_task_2",
+        "workspace/injection_task_4"
+      ]
+    },
+    "original_kind_pair_counts": {
+      "security": 280,
+      "benign": 194
+    }
+  },
+  "original_sequence": "S2 remains closed; S3 descriptive. No new p-values or confidence intervals.",
+  "original_personal_preference_H_bounds_unchanged": {
+    "executed": {
+      "lower": {
+        "fraction": "-29/56",
+        "estimate": -0.5178571428571429
+      },
+      "upper": {
+        "fraction": "-73/168",
+        "estimate": -0.43452380952380953
+      },
+      "unknown_labels": 14,
+      "unknown_records": [
+        {
+          "stage": "confirmatory",
+          "position": 6,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 7,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 60,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 61,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 157,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 254,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 435,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 485,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 512,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 513,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 612,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 737,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 796,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 797,
+          "coefficient": "1/168"
+        }
+      ],
+      "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels."
+    },
+    "proposed": {
+      "lower": {
+        "fraction": "-11/84",
+        "estimate": -0.13095238095238096
+      },
+      "upper": {
+        "fraction": "-1/56",
+        "estimate": -0.017857142857142856
+      },
+      "unknown_labels": 19,
+      "unknown_records": [
+        {
+          "stage": "confirmatory",
+          "position": 6,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 7,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 60,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 61,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 156,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 157,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 254,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 255,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 434,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 435,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 485,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 512,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 513,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 612,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 613,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 736,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 737,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 796,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 797,
+          "coefficient": "1/168"
+        }
+      ],
+      "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels."
+    }
+  },
+  "conservative_whole_history_V1_H_hybrid_bounds": {
+    "executed": {
+      "lower": {
+        "fraction": "-29/56",
+        "estimate": -0.5178571428571429
+      },
+      "upper": {
+        "fraction": "-25/56",
+        "estimate": -0.44642857142857145
+      },
+      "unknown_labels": 12,
+      "unknown_records": [
+        {
+          "stage": "confirmatory",
+          "position": 6,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 7,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 60,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 61,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 254,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 435,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 485,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 512,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 513,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 612,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 796,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 797,
+          "coefficient": "1/168"
+        }
+      ],
+      "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels."
+    },
+    "proposed": {
+      "lower": {
+        "fraction": "-5/42",
+        "estimate": -0.11904761904761904
+      },
+      "upper": {
+        "fraction": "-5/168",
+        "estimate": -0.02976190476190476
+      },
+      "unknown_labels": 15,
+      "unknown_records": [
+        {
+          "stage": "confirmatory",
+          "position": 6,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 7,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 60,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 61,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 254,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 255,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 434,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 435,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 485,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 512,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 513,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 612,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 613,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 796,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 797,
+          "coefficient": "1/168"
+        }
+      ],
+      "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels."
+    }
+  },
+  "food_attestation_V2_H_hybrid_bounds": {
+    "executed": {
+      "lower": {
+        "fraction": "-83/168",
+        "estimate": -0.49404761904761907
+      },
+      "upper": {
+        "fraction": "-27/56",
+        "estimate": -0.48214285714285715
+      },
+      "unknown_labels": 2,
+      "unknown_records": [
+        {
+          "stage": "confirmatory",
+          "position": 435,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 485,
+          "coefficient": "-1/168"
+        }
+      ],
+      "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels.",
+      "independently_enumerated_completions": 4
+    },
+    "proposed": {
+      "lower": {
+        "fraction": "-1/12",
+        "estimate": -0.08333333333333333
+      },
+      "upper": {
+        "fraction": "-11/168",
+        "estimate": -0.06547619047619048
+      },
+      "unknown_labels": 3,
+      "unknown_records": [
+        {
+          "stage": "confirmatory",
+          "position": 434,
+          "coefficient": "1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 435,
+          "coefficient": "-1/168"
+        },
+        {
+          "stage": "confirmatory",
+          "position": 485,
+          "coefficient": "-1/168"
+        }
+      ],
+      "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels.",
+      "independently_enumerated_completions": 8
+    }
+  },
+  "proxy_other_frozen_source_labels_fixed": {
+    "executed": {
+      "original_source_defined_point": {
+        "fraction": "-85/168",
+        "estimate": -0.5059523809523809
+      },
+      "proxy_sensitivity": {
+        "lower": {
+          "fraction": "-85/168",
+          "estimate": -0.5059523809523809
+        },
+        "upper": {
+          "fraction": "-85/168",
+          "estimate": -0.5059523809523809
+        },
+        "unknown_labels": 0,
+        "unknown_records": [],
+        "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels.",
+        "conditional_point": {
+          "fraction": "-85/168",
+          "estimate": -0.5059523809523809
+        }
+      },
+      "assumption": "Only affected Banking2 proxy labels substituted; every other source label fixed. This is not full-population semantic verification."
+    },
+    "proposed": {
+      "original_source_defined_point": {
+        "fraction": "-1/12",
+        "estimate": -0.08333333333333333
+      },
+      "proxy_sensitivity": {
+        "lower": {
+          "fraction": "-1/12",
+          "estimate": -0.08333333333333333
+        },
+        "upper": {
+          "fraction": "-1/12",
+          "estimate": -0.08333333333333333
+        },
+        "unknown_labels": 0,
+        "unknown_records": [],
+        "meaning": "Binary-label completion bounds, not confidence intervals; conditional on the explicitly stated construct and retained fixed labels.",
+        "conditional_point": {
+          "fraction": "-1/12",
+          "estimate": -0.08333333333333333
+        }
+      },
+      "assumption": "Only affected Banking2 proxy labels substituted; every other source label fixed. This is not full-population semantic verification."
+    }
+  },
+  "interpretation": "V2 H-hybrid ranges are a purchased-food proxy scenario for Banking2 with other H constructs retained, not tightened actual-preference H bounds or confirmatory evidence. Preference remains ambiguous; source-rest-fixed points are conditional comparisons."
+}
