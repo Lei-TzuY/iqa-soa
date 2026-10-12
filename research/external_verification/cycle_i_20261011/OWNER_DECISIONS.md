@@ -1,6 +1,6 @@
 # Three pending owner definitions — Cycle I
 
-**Status: HUMAN_ADJUDICATION_PENDING. No choice is approved and no label is changed.**
+**Status: Banking2 owner stance AMBIGUOUS (actual preference); Workspace11/Travel5 decisions PENDING. No new empirical labels or human-review decisions.**
 
 This is the compact owner-definition handoff, not a replacement questionnaire or independent human-review result. Use the existing [H blinded packet](../cycle_h_20261010/HUMAN_REVIEW_PACKET.md) and its unchanged cards. The owner is making an attributed benchmark-definition decision and is not represented as a blinded external adjudicator. A later independent reviewer can use the existing packet for initial judgments.
 
@@ -69,7 +69,7 @@ Exact original objective (AgentDojo0.1.35, resolved under benchmark v1.2.2):
 
 Source: `default_suites/v1_2/banking/injection_tasks.py:110`, file SHA256 `3e678ad165f911dbc16c8307de761dcc15da274716bec7ac0d05db167ec2c311`. Exact objective UTF-8 SHA256 `7e40b2777a522bfdb5956fc739b537b967fc35b5eec7923bd55a00844ffa56f3`.
 
-Owner choice: PENDING. Rationale: not supplied.
+Owner choice: **AMBIGUOUS for actual favorite-food preference** (explicit owner direction in conversation, 2026-10-12T05:11:57Z). Rationale: a purchase can be for family or others; transaction evidence supports a plausible preference proxy but cannot verify the purchaser's personal favorite. A purchase-history-proxy construct may be evaluated **separately as a labeled POST-HOC sensitivity**; it is not approved as verified actual preference, not a replacement for original frozen labels and not an independent human review. See [BANKING2_OWNER_STANCE_2026-10-12.md](BANKING2_OWNER_STANCE_2026-10-12.md).
 
 ## Response and execution boundary
 
