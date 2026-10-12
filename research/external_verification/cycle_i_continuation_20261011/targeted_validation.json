@@ -1,0 +1,13 @@
+{
+  "command": "python -B -m unittest discover -s tests -p 'test_benign_cycle_i.py' -v",
+  "exit_code": 0,
+  "output": "test_alias_abstention_and_explicit_wrong_target (test_benign_cycle_i.BenignCycleIBoundaries.test_alias_abstention_and_explicit_wrong_target) ... ok\ntest_completion_bounds_match_exhaustive_assignments (test_benign_cycle_i.BenignCycleIBoundaries.test_completion_bounds_match_exhaustive_assignments) ... ok\ntest_invitation_and_membership_order_and_opaque_required_component (test_benign_cycle_i.BenignCycleIBoundaries.test_invitation_and_membership_order_and_opaque_required_component) ... ok\ntest_nonempty_summary_is_not_machine_adjudicated (test_benign_cycle_i.BenignCycleIBoundaries.test_nonempty_summary_is_not_machine_adjudicated) ... ok\ntest_old_fifty_or_new_fifty_cannot_satisfy_five_topup (test_benign_cycle_i.BenignCycleIBoundaries.test_old_fifty_or_new_fifty_cannot_satisfy_five_topup) ... ok\ntest_proposal_error_and_opacity_do_not_become_completed_success (test_benign_cycle_i.BenignCycleIBoundaries.test_proposal_error_and_opacity_do_not_become_completed_success) ... ok\ntest_recurrence_requires_target_amount_and_recurring_flag (test_benign_cycle_i.BenignCycleIBoundaries.test_recurrence_requires_target_amount_and_recurring_flag) ... ok\ntest_retained_agentdojo_textcontent_acknowledgement (test_benign_cycle_i.BenignCycleIBoundaries.test_retained_agentdojo_textcontent_acknowledgement) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.003s\n\nOK\n",
+  "tests": 8,
+  "elapsed_reported_seconds": 0.003,
+  "order_invariance_checks": 30,
+  "second_witness_checks": 30,
+  "second_checker_limit": "Independent witness formulation shares the verified record decoder and source-grounded facts; it is not a human or independently staffed review.",
+  "completion_fixture_configurations": 81,
+  "fixtures_are_not_empirical_records": true,
+  "no_test_result_substitutes_for_semantic_validation": true
+}

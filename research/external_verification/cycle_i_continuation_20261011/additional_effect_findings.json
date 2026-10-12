@@ -1,0 +1,16 @@
+[
+  {
+    "record": "qualification/cells/00316-mistral-off/raw.json",
+    "raw_sha256": "3f1de36256e78d6b5bf251f3f57273f8b14662dc070a3c9eee78e339d6a3fb4a",
+    "completed_schedules": 2,
+    "each_amount": [
+      50,
+      50
+    ],
+    "each_recurring": [
+      true,
+      true
+    ],
+    "finding": "Multiple accepted schedules observed; required-action existence is not a verification that all unintended side effects are absent. No new multiplicity rule or failure label is imposed."
+  }
+]

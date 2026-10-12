@@ -1,0 +1,41 @@
+{
+  "original_source_S2": {
+    "fraction": "3/194",
+    "estimate": 0.015463917525773196
+  },
+  "original_benign_pairs": 194,
+  "model_strata": {
+    "qwen": 97,
+    "mistral": 97
+  },
+  "targeted_native_rest_fixed_POST_HOC_bounds": {
+    "lower": {
+      "fraction": "0",
+      "estimate": 0
+    },
+    "upper": {
+      "fraction": "2/97",
+      "estimate": 0.020618556701030927
+    },
+    "unknown_labels": 4
+  },
+  "sparse_independently_classified_semantic_POST_HOC_bounds": {
+    "lower": {
+      "fraction": "-187/194",
+      "estimate": -0.9639175257731959
+    },
+    "upper": {
+      "fraction": "185/194",
+      "estimate": 0.9536082474226805
+    },
+    "unknown_labels": 372
+  },
+  "meaning": "Binary-label completion bounds, not confidence intervals. Native-rest-fixed sensitivity assumes all unaudited source labels unchanged; sparse semantic bounds treat every unaudited label as unknown. No new significance or noninferiority/equivalence test.",
+  "original_fixed_sequence": "S2 closes the gate; S3 remains descriptive. No historical statistic is overwritten.",
+  "all_unadjudicated_native_labels_fixed_POST_HOC_point_sensitivity": {
+    "fraction": "1/97",
+    "estimate": 0.010309278350515464,
+    "observed_label_correction": "-1/194",
+    "assumption": "All unaudited and unadjudicated utility labels remain at their historical source values solely for this comparison. It is not an independently validated full-population semantic estimate."
+  }
+}

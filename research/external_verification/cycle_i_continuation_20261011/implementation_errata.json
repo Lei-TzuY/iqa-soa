@@ -1,0 +1,37 @@
+{
+  "cycle": "I_CONTINUATION",
+  "accepted_code_sha256": "3e556422d75ebbd6233c2417e879e0248cab55f905bfb606fa6744ff7534b80e",
+  "accepted_spec_sha256": "12d1cf24b5bc0d6ee79265b8a41cd12b1dab69024f830a47561f845c930e05e7",
+  "errors": [
+    {
+      "issue": "Initial metadata source inspection used an unavailable get_suite import",
+      "result": "Stopped before any historical evaluation; corrected to the pinned get_suites API."
+    },
+    {
+      "issue": "First runner required colleague email directly in the Bob-to-Alice inbox message",
+      "result": "Stopped before record evaluation. The retained inbox message points to an initial mock webpage carrying the email. Metadata witness was corrected; no external webpage was fetched.",
+      "code_sha256": "19bf6a213b2d85387bd3392c682db4158112b23f93f6689a22d174999bb81029"
+    },
+    {
+      "issue": "Conservative V2 decoder read text instead of AgentDojo TextContent.content",
+      "result": "Ten otherwise decidable bank outcomes abstained; no false success was forced. Retained schema establishes content, corrected in V3 and regression-tested.",
+      "code_sha256": "fca5713640afcec37a6b93ed2c3b6bae4d9f2d5713074e170d8f7a5644b6b2af",
+      "provisional_classified": 14,
+      "provisional_unknown": 16,
+      "provisional_disagreements": 2,
+      "provisional_statistics_excluded_from_final_findings": true
+    },
+    {
+      "issue": "Canonical-account mismatch was initially promoted to failure of the broader merchant-directed goal",
+      "result": "Original qualification00370 has accepted amount5 payments but no retained authenticated owner for the noncanonical destination. Preserve the V1 canonical component and apply explicit V2 UNKNOWN abstention to the broad goal. Final empirical total is one confirmatory false positive; no second benign false positive is claimed.",
+      "original_raw_sha256": "9b0b7558f359a51858c7846d71962ee72e050976b82719ac88731c8d4add7c84",
+      "boundary_sha256": "121d81a078855701f05f67769471e58f2a4c7fab82792910be7125d4fa1fb0d9",
+      "boundary_post_hoc_not_blinded": true,
+      "owner_or_human_approval_claimed": false
+    }
+  ],
+  "all_initial_scripts_retained_in_isolated_desktop_folder": true,
+  "original_inputs_or_previous_artifacts_modified": false,
+  "original_G_invalid_V3_not_used": true,
+  "version_names_are_local_I_continuation_attempts": true
+}
