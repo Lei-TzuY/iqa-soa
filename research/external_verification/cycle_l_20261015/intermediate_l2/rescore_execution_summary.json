@@ -1,0 +1,36 @@
+{
+  "started_utc": "2026-10-15T10:05:30.945958+00:00",
+  "runtime_seconds": 0.7357988000003388,
+  "records": 96,
+  "targeted_records": 28,
+  "targeted_contexts": 56,
+  "label_changes": 26,
+  "full_reverse_order_and_immutability_checks": 192,
+  "new_tool_calls": 0,
+  "human_reviews": 0,
+  "provider_calls": 0,
+  "actual_counts": {
+    "None": 68,
+    "True": 4,
+    "False": 24
+  },
+  "proposed_counts": {
+    "None": 78,
+    "True": 2,
+    "False": 16
+  },
+  "input_hashes_before_after": {
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1\\record_audit.jsonl.gz": "40d6d69a49b8d1a1cfcc754ec4487c23f2b1c4570f778509eda6f648080fb400",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz": "18f333245e52fef81f6fcd50ea6188d05e624e87f94a6485809eb61303e3e515",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1\\execution_summary.json": "c12e2e41c60d9a1a42a11c1b280e6ea207b39bfa0c83c836800153dfb649bdbf",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json": "b26c60986c975356f1272d7ac3e853981f440f0f25bf1098a73e652e14b1e39c",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_refinement_l2.json": "b2459b84a5b6956e07e8c53e7131143701a9dcd9e85160b4f3b05905f72a3fd9",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\rescore_benign_cycle_l_v2.py": "6a13a8644cf609c73f720a43cb7593730ae652cd14d52dcb5bd89c0df510fe73",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\benign_construct_cycle_l_v2.py": "45cf727d9e1fd4445ad1aaff5b06308c2745bbe696fde46d09b744e576085b3b",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\benign_construct_cycle_l.py": "f4ab04fe5fbb0121099c0217b1d3e12158a79f4f1bbf5307f8f2ac03a97d0a87"
+  },
+  "artifact_sha256": {
+    "record_audit_principal.jsonl.gz": "13b9b1b00462080ee7cf41d77d3e40d4595bf2e66de81f5edb0ec4e98f32af52",
+    "scoring_differential.csv": "c59487d7fb7b7038f717768cfdc40b7c0e18431b9629860dba18371556559649"
+  }
+}

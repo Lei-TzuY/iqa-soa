@@ -1,0 +1,179 @@
+{
+  "cycle": "L",
+  "expected_parent": "dc59240faaa77cfe07e2c12bdb86ddae6b6f9dd9",
+  "main": "d6f8638285a393a55a8eaa2fbd11ef4722b56aa1",
+  "existing_PR": 51,
+  "owner": "Lei-TzuY",
+  "branch": "research/external-agentdojo-audit-20261009",
+  "initial_CI": {
+    "id": 38287401331,
+    "head": "dc59240faaa77cfe07e2c12bdb86ddae6b6f9dd9",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "live_ledger_checkpoint": {
+    "Ledger_populated_rows": 65,
+    "Runs_populated_rows": 16,
+    "last_cycle": "K"
+  },
+  "desktop": {
+    "name": "DESKTOP-FLR11EU",
+    "head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "preexisting_status_entries": 46,
+    "status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+    "possible_concurrency": "Several unrelated Codex/service processes; no observed FSE analysis writer. Exclusive global writer ownership not claimed. New outputs isolated and inputs stable.",
+    "root": "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z",
+    "python": "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe"
+  },
+  "source_binding": {
+    "AgentDojo_inventory": {
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "f_record_index_sha256": "68a099a6c876b517807a493ce2129ae5e721634053229b6e0e98949352bb16e8",
+    "f_helper_sha256": "942104d6e2d24cca6ed8b05b3a1c3a12c6c85a992a025a6f863668809e764204",
+    "summary_sha256": {
+      "qualification": "0a288b751f90fdaab240d23266fc27d4b8a4b62f54bb1b937a5ae78c2a8d49c2",
+      "confirmatory": "d4661a2051051a3e81ef0b0e4ddf5ce1e628621208ca065344d55d96a661ffa0"
+    },
+    "tool_sha256": {
+      "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "banking_client.py": "0e4273f521db7ff6d5e7f7f552e917b11940102abd932aea8a2998b517441b42",
+      "calendar_client.py": "5d551339fb87237dd1414a003b26f4f851dbdd2b0826225025e44f16420add22",
+      "cloud_drive_client.py": "19376d95731c46477037986319bc8522b4bc96f4924e730b11906df23fc00b93",
+      "email_client.py": "782adb70c81ec765919ae835494fac163dbb46f21ef46f6dcf18eab390b5e294",
+      "file_reader.py": "09438864a1e1ac6564df3e4f7eb60a9a224de2ef8a92c4eb4899f7768ce49d6d",
+      "slack.py": "c70dbc7b3356e93a1c2bd4e78700859ea58b36adbf8169e51b03f355b0a5fe69",
+      "travel_booking_client.py": "ad6b3441a38a1ff4bdc7227a15fb9ed764a7906baf2f75902bdb70f2100f69ba",
+      "types.py": "691ed3353bd04e9f8233c4f70901daefb564e56209a8946f516496520aca3c13",
+      "user_account.py": "f097c4b2b6cd6784272987d8d37dd7cc5d599620d64b371f7c2af8e65d7ad673",
+      "web.py": "246cc534a939ade2864bb62441d8452de7a840d007147c22391ad07bff91594c"
+    },
+    "task_definitions_sha256": "e9547afe4d7da2ff110bdd313d70f58da436cedd2ce493a363a4a7ed79642897"
+  },
+  "commands": {
+    "executed_command.json": [
+      "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\run_benign_cycle_l.py",
+      "--repo",
+      "C:\\Users\\User\\Desktop\\FSE",
+      "--spec",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json",
+      "--definitions",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\task_definitions.json",
+      "--f-index",
+      "C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5\\record_replay.jsonl",
+      "--f-helper",
+      "C:\\FSE-ext-agentdojo\\cycle-h-20261010\\frozen-v1\\oracle_replay_cycle_f.py",
+      "--output",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1",
+      "--spec-sha256",
+      "b26c60986c975356f1272d7ac3e853981f440f0f25bf1098a73e652e14b1e39c",
+      "--code-sha256",
+      "13bd61c664c35248544c519d8003728e26993fe7aa5714bb680d5eb7cb58c3e1",
+      "--evaluator-sha256",
+      "f4ab04fe5fbb0121099c0217b1d3e12158a79f4f1bbf5307f8f2ac03a97d0a87",
+      "--common-helper-sha256",
+      "bf69ecb3f5449cb63381d994983b90a9bbebaeba3d17fa36b770fe3d5082f17a"
+    ],
+    "executed_refinement_v2_command.json": [
+      "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\rescore_benign_cycle_l_v2.py",
+      "--input",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1",
+      "--spec",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json",
+      "--boundary",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_refinement_l2.json",
+      "--output",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l2"
+    ],
+    "executed_final_command.json": [
+      "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\finalize_benign_cycle_l.py",
+      "--input",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1",
+      "--baseline",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l2",
+      "--spec",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json",
+      "--boundary",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_necessary_condition_l3.json",
+      "--output",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\final-l3"
+    ],
+    "executed_complete_command.json": [
+      "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\complete_benign_cycle_l.py",
+      "--input",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1",
+      "--baseline",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\final-l3",
+      "--spec",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json",
+      "--boundary",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_representation_l4.json",
+      "--output",
+      "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\final-l4"
+    ]
+  },
+  "source_guard": {
+    "checked_utc": "2026-10-15T10:19:03.724763+00:00",
+    "bound_files": 201,
+    "mismatches": {},
+    "source_inventory": {
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "benign_pairs": 194,
+    "pairs_with_identical_retained_seed": 194,
+    "desktop_head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+    "new_mock_calls_since_L1": 0
+  },
+  "opaque_clock_reads": {
+    "actual": 2,
+    "proposed": 26,
+    "meaning": "Unretained clock fields remain opaque; no missing deadline, date, ordering or delivery fact is supplied by a synthetic clock."
+  },
+  "terminal_unprocessed_emissions": 0,
+  "historical_integrity": {
+    "existing_Git_blobs_locally_verified": 202,
+    "mismatches": 0,
+    "K_manifest_artifacts_verified": 45,
+    "older_manifest_entries_checked": 115,
+    "intentional_historical_manifest_difference": "CycleI OWNER_DECISIONS.md was subsequently updated by the authorized Banking2 stance. Current bytes match live K-head Git blob; original earlier manifest remains historical. No unexpected mismatch."
+  },
+  "manuscript": {
+    "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "title": "main_v1.6.3.pdf",
+    "bytes": 878066,
+    "modified_utc": "2026-09-29T04:21:30.714Z",
+    "readable_text_sha256": "dfd0dddecd712acec0fb171b18f7fb78354fdd977a60cae27c65350f7f7336b5",
+    "historical_binary_digest_not_new_live_hash": "32b1abda3fd48f8cf0dbe11470ac1a59d6a745ddfc4d3806e9dc42eb78a2e35b"
+  },
+  "private_material": "Original raw/evidence, restored contexts, retained message bodies and source-to-record identity maps are not published. Public ledgers contain controlled pointers/hashes and minimized facts. Named literals already in the benchmark implementation are source constants, not recovered private identities.",
+  "restrictions": {
+    "new_model_calls": 0,
+    "provider_calls": 0,
+    "source_oracle_calls": 0,
+    "human_decisions": 0,
+    "new_acquisition": 0,
+    "GPU_workloads": 0,
+    "manuscript_edits": 0,
+    "new_PRs": 0,
+    "historical_HOLD": "UNCHANGED"
+  }
+}

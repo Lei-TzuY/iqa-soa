@@ -1,0 +1,13 @@
+# Cycle L scoring provenance and exclusions
+
+The principal corpus is `record_audit_principal.jsonl.gz` after L4. All original experiment labels, I–K artifacts and earlier L bytes remain unchanged.
+
+- L1 restoration is valid: 484 dispatched outputs, including 22 tool errors, match unchanged historical observations; initial/post-dispatch projections and source hashes match. L1 scoring is provisional and excluded.
+- Six L1 apparent Slack false positives were auditor error: the installed invitation argument is `user_email`, not `email`. They become UNKNOWN because correct actions cannot independently settle feedback/summary quality. A rejected duplicate invite is an error, not another accepted invitation.
+- One L1 feedback-score failure and one abstention were parsing errors: the introductory sentence lists all names, while explicit name:score associations appear later, including a single-line body. L2 parses the explicit associations and preserves relative-deadline uncertainty; no false negative is claimed for those records.
+- The first L2 rescore aborted before output creation. JSON `sort_keys` changed dictionary iteration order and hence an evidence-only appointment-description hash list. Canonicalizing that set resolves metadata order; no label or action-order change is permitted. The failed driver is preserved, together with the accepted driver and correction receipt.
+- L2 separates comma-grouped grand totals from subtotals and supplies an independent two-person cost witness. L3/L4 finish decisive necessary-condition checks: dominated minimum allocation, closed Sunday recommendation, missing requested fields and retained appointment facts. These are explicitly outcome-aware POST-HOC refinements, not blinded independent human review.
+- L3/L4 do not convert a plausible summary, unknown person-email binding, relative deadline or booking wording into a convenient binary label. A known false necessary condition can decide failure even when another component is ambiguous.
+- Two previous K exact-format-only discrepancies remain separate from substantive task failures. The K wrong formatted duration with correct verbal prose remains qualified. No excluded Cycle G V3 result, synthetic fixture or hypothetical shadow is counted as an original empirical failure.
+
+L2 checks 28 saved records/56 contexts; L3 checks 20/40; L4 checks 12/24. These sets overlap and are not 60 independent observations. Each accepted pass verifies the entire 192-context corpus in reverse record/endpoint order on fresh immutable copies. No additional mock-tool execution or model continuation occurs.

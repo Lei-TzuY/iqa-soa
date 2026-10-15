@@ -1,0 +1,7 @@
+{
+  "frozen_utc": "2026-10-15T10:05:24.154765+00:00",
+  "failed_first_rescore": "L2 first attempt aborted before any output directory creation: order check compared an evidence-only list across sort_keys serialization. Initial event dictionary insertion order was lost in saved JSON; all affected labels and reasons were identical.",
+  "resolution": "Canonicalize only description_sha256 evidence lists as sets; preserve action and temporal lists exactly. Full 192-context immutable/reverse checks still required. No original-record/tool replay.",
+  "driver_sha256": "6a13a8644cf609c73f720a43cb7593730ae652cd14d52dcb5bd89c0df510fe73",
+  "evaluator_unchanged": "45cf727d9e1fd4445ad1aaff5b06308c2745bbe696fde46d09b744e576085b3b"
+}
