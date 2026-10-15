@@ -1,0 +1,9 @@
+{
+  "frozen_utc": "2026-10-15T10:04:15.206570+00:00",
+  "status": "BEFORE_TARGETED_RESCORING",
+  "files": {
+    "benign_construct_cycle_l_v2.py": "45cf727d9e1fd4445ad1aaff5b06308c2745bbe696fde46d09b744e576085b3b",
+    "rescore_benign_cycle_l.py": "8844810b5c74ff9af55034d908b758b0b52aab97dcf09fbb205581539870676e",
+    "frozen_refinement_l2.json": "b2459b84a5b6956e07e8c53e7131143701a9dcd9e85160b4f3b05905f72a3fd9"
+  }
+}

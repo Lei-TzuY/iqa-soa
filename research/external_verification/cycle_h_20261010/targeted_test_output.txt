@@ -1,0 +1,20 @@
+test_actual_retained_weights_and_bounds (test_cycle_h_adjudication.Identifiability.test_actual_retained_weights_and_bounds) ... ok
+test_completion_bounds_equal_exhaustive_binary_assignments (test_cycle_h_adjudication.Identifiability.test_completion_bounds_equal_exhaustive_binary_assignments) ... ok
+test_packet_is_pending_minimized_and_metadata_blinded (test_cycle_h_adjudication.Identifiability.test_packet_is_pending_minimized_and_metadata_blinded) ... ok
+test_saved_replay_integrity_and_new_discrepancy_scope (test_cycle_h_adjudication.Identifiability.test_saved_replay_integrity_and_new_discrepancy_scope) ... ok
+test_error_with_partial_transition_never_counts_success (test_cycle_h_adjudication.RuleFixtures.test_error_with_partial_transition_never_counts_success) ... ok
+test_missing_phone_witness_abstains (test_cycle_h_adjudication.RuleFixtures.test_missing_phone_witness_abstains) ... ok
+test_no_transition_is_not_executed_success (test_cycle_h_adjudication.RuleFixtures.test_no_transition_is_not_executed_success) ... ok
+test_opaque_overview_abstains (test_cycle_h_adjudication.RuleFixtures.test_opaque_overview_abstains) ... ok
+test_order_invariance_separate_proposed_shadow (test_cycle_h_adjudication.RuleFixtures.test_order_invariance_separate_proposed_shadow) ... ok
+test_overview_preserves_recipient_amount_association (test_cycle_h_adjudication.RuleFixtures.test_overview_preserves_recipient_amount_association) ... ok
+test_phone_family_abstains (test_cycle_h_adjudication.RuleFixtures.test_phone_family_abstains) ... ok
+test_recorded_verdict_is_ignored_and_contexts_immutable (test_cycle_h_adjudication.RuleFixtures.test_recorded_verdict_is_ignored_and_contexts_immutable) ... ok
+test_unreviewed_language_abstains (test_cycle_h_adjudication.RuleFixtures.test_unreviewed_language_abstains) ... ok
+test_wrong_target_fails (test_cycle_h_adjudication.RuleFixtures.test_wrong_target_fails) ... ok
+test_zero_accepted_information_and_numeric_coercion (test_cycle_h_adjudication.RuleFixtures.test_zero_accepted_information_and_numeric_coercion) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.048s
+
+OK

@@ -1,0 +1,42 @@
+{
+  "cycle": "K",
+  "version": "K2",
+  "started_utc": "2026-10-12T16:02:18.794964+00:00",
+  "runtime_seconds": 0.566881800070405,
+  "records": 128,
+  "affected_records": 64,
+  "checks": {
+    "unaffected_context_checks": 128,
+    "immutability_checks": 256,
+    "affected_contexts_evaluated": 128,
+    "reverse_order_checks": 256
+  },
+  "differential_rows": 48,
+  "actual_counts": {
+    "False": 37,
+    "True": 54,
+    "None": 37
+  },
+  "proposed_counts": {
+    "False": 20,
+    "True": 12,
+    "None": 96
+  },
+  "semantic_label_changes": 35,
+  "input_hashes_before_after": {
+    "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_k2_correction_boundary.json": "eb1457f6a4b8de2b60ea8b9047fbfbfa5cb50f75d4408ccff8c4945f679e23e2",
+    "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\rescore_benign_cycle_k.py": "37de510d3a2a2b2c077e712c6c4aa9b59b8f07f1c90876707b023f8178f99673",
+    "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\benign_construct_cycle_k_v2.py": "9636e024aa4e781b90fde6e701fe01f27987c55e19ed7e4892dda5c08282e174",
+    "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\code\\frozen_rules_k1.json": "2f4ddc0612d06c0bc9efc2898145b57a98267021a2887a6381aa71420221f5ea",
+    "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1\\record_audit.jsonl.gz": "6cb78b50a5db33e2b37c3f316f88216b78aaa3f0c9cd2c4941a50989c967055d",
+    "C:\\FSE-ext-agentdojo\\cycle-k-benign-20261012T154300Z\\run-k1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz": "0e704f43bc4191ff0ad887bfbc6fc105b2909c535941933895aade758ef1010a"
+  },
+  "new_mock_tool_calls": 0,
+  "new_provider_calls": 0,
+  "original_oracle_calls": 0,
+  "human_reviews": 0,
+  "artifact_sha256": {
+    "record_audit_final.jsonl.gz": "1e701df426932ccc432e36e8ce8bf26ce34940d63a67ca629b49c43c3e4dbc94",
+    "scoring_differential.csv": "0fc775a66d76568f5d18b7b281a6bc71e58e7d593e3770540fff4b7011253308"
+  }
+}

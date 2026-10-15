@@ -1,0 +1,11 @@
+{
+  "cycle": "I",
+  "status": "HUMAN_ADJUDICATION_PENDING",
+  "owner_decisions": [],
+  "independent_human_reviews": [],
+  "stage_D": "UNEXECUTED",
+  "new_semantic_labels": 0,
+  "affected_record_replays": 0,
+  "uses_existing_H_packet": true,
+  "packet_sha256": "7e078a643fd05675c4d8e5e99aec7c5e10c3728e435b6ac9d5ca85573c0e7db4"
+}

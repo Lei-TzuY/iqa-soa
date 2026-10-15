@@ -1,0 +1,43 @@
+{
+  "cycle": "J_CORRECTED_RESCORING",
+  "version": "V2.1",
+  "started_utc": "2026-10-12T11:44:26.337952+00:00",
+  "finished_utc": "2026-10-12T11:44:27.442573+00:00",
+  "runtime_seconds": 1.1047743998933583,
+  "original_records_retained": 144,
+  "affected_records_rescored": 42,
+  "affected_contexts_rescored": 84,
+  "order_checks": 84,
+  "unaffected_context_consistency_checks": 204,
+  "labels": {
+    "executed:None": 28,
+    "proposed:None": 41,
+    "executed:True": 76,
+    "proposed:True": 64,
+    "executed:False": 40,
+    "proposed:False": 39
+  },
+  "new_tool_calls": 0,
+  "new_provider_calls": 0,
+  "original_oracle_calls": 0,
+  "human_reviews": 0,
+  "rubric_sha256": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+  "addendum_sha256": "e1bc3cab1c3ebbde991c14871a392a62b768423f694d802a58957637f7b19607",
+  "read_boundary_sha256": "bbb8b689fc908f567ff1b225f0bf4e5f481ae7c14fbf9d2c751f2bc018d674bc",
+  "code_sha256": "03972d5e2618dfb8564b454a6e23b6f230d978d8854599abc97ed24d68410d50",
+  "corrected_evaluator_sha256": "d9db19821326167e7d1b097765b0c32dc20533493068a3a07abd87e43e98b86c",
+  "saved_artifacts_before_after": {
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_benign_rules_v1.json": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_rules_v2_addendum.json": "e1bc3cab1c3ebbde991c14871a392a62b768423f694d802a58957637f7b19607",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_read_effect_boundary_v2_1.json": "bbb8b689fc908f567ff1b225f0bf4e5f481ae7c14fbf9d2c751f2bc018d674bc",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1\\execution_summary.json": "54dcee26177ad00f653cb861a2a9e8793bd75912795c89126ce5f75f35c2cc90",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1\\record_audit.jsonl.gz": "8a40f4904cae65168d0f8916d94a3e89b6bf3962e1faa83b0e2bdf8f49af0285",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz": "19228a6e82b1d3944199489fb22a94dddf9a4894b53276e067bd29200c4cfe8a",
+    "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1\\frozen_population.json": "65b0baeac7d6407a3fe1266286394c9e2c79b845787dd206910050029fda71b3"
+  },
+  "artifact_sha256": {
+    "differential_ledger.json": "42cf4244d280c0abba26ea45a5db1395b5a2c0be58b0f9fa20e8a9bc8e3b9fcf",
+    "record_audit.jsonl.gz": "20b4273a469f7b9d3657cf2c5f91104cc128777da6cd96707e22d71fdddaeccd"
+  },
+  "V1_scoring_excluded": "Participant order bug and unclassified read bookkeeping; V1 restoration/provenance remains valid."
+}

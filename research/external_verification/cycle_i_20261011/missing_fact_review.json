@@ -1,0 +1,101 @@
+{
+  "cycle": "I",
+  "status": "NOT_IDENTIFIABLE_FROM_RETAINED_EVIDENCE",
+  "banking5": {
+    "account_fields": [
+      "balance",
+      "iban",
+      "transactions",
+      "scheduled_transactions"
+    ],
+    "finite_capacity_authoritative_fact": null,
+    "source_gold_example_amount": 1000000,
+    "source_gold_example_is_not_an_enforced_upper_bound": true,
+    "source_security_total_gt_10_is_not_a_maximum": true,
+    "remaining_contexts": 4,
+    "labels_changed": 0
+  },
+  "workspace13": {
+    "other_meeting_participants": 5,
+    "initial_contacts": 18,
+    "matching_explicit_contact_entries": 0,
+    "complete_authenticated_first_name_map": null,
+    "source_email_split_naming_is_a_proxy_not_authenticated_identity": true,
+    "remaining_contexts": 9,
+    "labels_changed": 0
+  },
+  "source_pointers": [
+    {
+      "path": "default_suites/v1/tools/banking_client.py",
+      "sha256": "0e4273f521db7ff6d5e7f7f552e917b11940102abd932aea8a2998b517441b42",
+      "symbols": [
+        {
+          "name": "BankAccount",
+          "line": 20,
+          "end": 24
+        },
+        {
+          "name": "send_money",
+          "line": 55,
+          "end": 79
+        }
+      ]
+    },
+    {
+      "path": "default_suites/v1/tools/email_client.py",
+      "sha256": "782adb70c81ec765919ae835494fac163dbb46f21ef46f6dcf18eab390b5e294",
+      "symbols": [
+        {
+          "name": "search_contacts_by_email",
+          "line": 247,
+          "end": 253
+        }
+      ]
+    },
+    {
+      "path": "default_suites/v1/tools/calendar_client.py",
+      "sha256": "5d551339fb87237dd1414a003b26f4f851dbdd2b0826225025e44f16420add22",
+      "symbols": []
+    },
+    {
+      "path": "default_suites/v1_2/banking/injection_tasks.py",
+      "sha256": "3e678ad165f911dbc16c8307de761dcc15da274716bec7ac0d05db167ec2c311",
+      "symbols": [
+        {
+          "name": "InjectionTask5",
+          "line": 241,
+          "end": 272
+        }
+      ]
+    },
+    {
+      "path": "default_suites/v1_2/workspace/injection_tasks.py",
+      "sha256": "d11a9a4aa86085a1b0e8cea20652dd20f903adedfc6065175a0ead858c29e4a3",
+      "symbols": [
+        {
+          "name": "InjectionTask13",
+          "line": 371,
+          "end": 441
+        }
+      ]
+    },
+    {
+      "path": "data/suites/banking/environment.yaml",
+      "sha256": "3f539da1d97779b244cd122afc683dc69d602f338e1b3c42d126cbde33611c8b"
+    },
+    {
+      "path": "data/suites/workspace/environment.yaml",
+      "sha256": "08a22c4eac0f72012e23c135cf3157b6fa7b35881b57bd2e910a5b059c02d157"
+    },
+    {
+      "path": "data/suites/workspace/include/calendar.yaml",
+      "sha256": "69b0ae96804e986b5a0dba694ad6ca34cf01c8c6b57bb8ceb618d9ed8640b803"
+    },
+    {
+      "path": "data/suites/workspace/include/inbox.yaml",
+      "sha256": "e6fac364bfb0e89d3d0251ef8079ffa2791504673a426029034356b8228f2082"
+    }
+  ],
+  "original_contract_sha256": "151dc184d60f5a4f5a8d0f6154c244d0735defebac9d577d05216d3cb0557531",
+  "new_operational_definition": "UNAPPROVED; any future proxy remains a separately identified post-hoc construct"
+}

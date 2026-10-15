@@ -1,0 +1,15 @@
+{
+  "frozen_utc": "2026-10-12T15:42:54.685201+00:00",
+  "status": "BEFORE_NEW_RECORD_COMPARISONS",
+  "files": {
+    "cycle-i-checkpoint/research/external_verification/run_benign_cycle_k.py": "1c457e86306114ffd72e44d49a01907ab5272f263e76f113f2233aec70d9a4d4",
+    "cycle-i-checkpoint/research/external_verification/benign_construct_cycle_k.py": "2b238599dc04fedeeb282437412d823a9ac921a629c8ab35ac9e8f96ab353b0c",
+    "cycle-i-checkpoint/research/external_verification/benign_construct_cycle_j.py": "bf69ecb3f5449cb63381d994983b90a9bbebaeba3d17fa36b770fe3d5082f17a",
+    "cycle-i-checkpoint/research/external_verification/cycle_k_20261012/frozen_rules_k1.json": "2f4ddc0612d06c0bc9efc2898145b57a98267021a2887a6381aa71420221f5ea",
+    "cycle-i-checkpoint/research/external_verification/cycle_k_20261012/ranked_remaining_56_tasks.json": "6da28ceb15809c529aee232b3490c73b39cb5d20ef6c120898a7bc87cb32aa84",
+    "cycle-i-checkpoint/tests/test_benign_construct_cycle_k.py": "95b922204b4cdb0054be9d870881368e69ff7976f580a333e1f2aa300835ff31"
+  },
+  "new_records_compared": 0,
+  "regressions_passed": 6,
+  "fixture_is_empirical_evidence": false
+}

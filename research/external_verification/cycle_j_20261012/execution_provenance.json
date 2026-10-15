@@ -1,0 +1,116 @@
+{
+  "starting_checkpoint": {
+    "utc": "2026-10-12T11:04:41.174Z",
+    "PR": 51,
+    "head": "328844a71d8acc1fc825b101225de421e026324c",
+    "branch": "research/external-agentdojo-audit-20261009",
+    "owner": "Lei-TzuY",
+    "draft": true,
+    "CI": 38214573577,
+    "CI_conclusion": "success",
+    "QA42_head": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+    "desktop_head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "desktop_status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+    "desktop_status_rows": 46,
+    "Ledger_rows": 53,
+    "Runs_rows": 14,
+    "concurrent_writer": "No active DC sessions; pre-existing PID45224 has inaccessible command details, global exclusivity cannot be claimed. Use isolated outputs, before/after selected hashes and observed-head guard.",
+    "summary_sha256": {
+      "qualification": "0a288b751f90fdaab240d23266fc27d4b8a4b62f54bb1b937a5ae78c2a8d49c2",
+      "confirmatory": "d4661a2051051a3e81ef0b0e4ddf5ce1e628621208ca065344d55d96a661ffa0"
+    }
+  },
+  "rule_binding": {
+    "spec_sha256": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+    "spec_bytes": 56737,
+    "construct_record_audit.json": "ca902aa81a10bc24d8538181dae3ba35726112f443dec0d9d9fc599dc9c2eac1",
+    "additional_effect_findings.json": "b357e1d30625354cdee927adc215386350c33afe6c4c18f3e9540c7afcd2b242",
+    "frozen_benign_rules_v1.json": "12d1cf24b5bc0d6ee79265b8a41cd12b1dab69024f830a47561f845c930e05e7",
+    "frozen_identity_boundary_v2.json": "121d81a078855701f05f67769471e58f2a4c7fab82792910be7125d4fa1fb0d9"
+  },
+  "V1_freeze": {
+    "version": "CYCLE-J-BENIGN-V1",
+    "frozen_utc": "2026-10-12T11:11:18.144315+00:00",
+    "rubric_sha256": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+    "bytes": 56737,
+    "root": "C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z",
+    "new_original_record_results_inspected": false,
+    "prior_five_task_outcomes_known": true,
+    "no_external_registration_or_human_review_claim": true
+  },
+  "V2_freeze": {
+    "version": "CYCLE-J-BENIGN-V2",
+    "frozen_utc": "2026-10-12T11:35:51.394461+00:00",
+    "addendum_sha256": "e1bc3cab1c3ebbde991c14871a392a62b768423f694d802a58957637f7b19607",
+    "parent_rubric_sha256": "53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38",
+    "V1_outcomes_known": true,
+    "before_V2_comparison": true,
+    "original_record_replay_repeated": false
+  },
+  "read_boundary_freeze": {
+    "version": "CYCLE-J-V2.1-READ-EFFECT-BOUNDARY",
+    "frozen_utc": "2026-10-12T11:38:21.658795+00:00",
+    "sha256": "bbb8b689fc908f567ff1b225f0bf4e5f481ae7c14fbf9d2c751f2bc018d674bc",
+    "before_corrected_comparisons": true,
+    "outcome_aware": true
+  },
+  "web_freeze": {
+    "version": "CYCLE-J-V2.2-WEB-RESULT-BINDING",
+    "frozen_utc": "2026-10-12T12:06:29.430220+00:00",
+    "sha256": "9f71775ae97c36cd61da4e0807319e00de786dc8f871c9f967e918f10ee9b73b",
+    "before_V2_2_comparison": true,
+    "outcome_aware": true
+  },
+  "fields_freeze": {
+    "version": "CYCLE-J-FINITE-TRAVEL-FIELDS-V1",
+    "frozen_utc": "2026-10-12T12:09:39.298083+00:00",
+    "sha256": "1516125c335012214dfd1753b94e2fc4f1f8444b6d3eb482bdd61beeb904d520",
+    "before_original_travel_answer_inspection": true,
+    "outcome_aware_action_results": true
+  },
+  "timeline_freeze": {
+    "version": "CYCLE-J-ASSISTANT-TIMELINE-V1",
+    "frozen_utc": "2026-10-12T12:20:35.797927+00:00",
+    "sha256": "30515b04a299af8f038525148a08ec51a475072e6476caec48a8618216d6b876",
+    "before_final_comparison": true,
+    "outcome_aware": true
+  },
+  "commands": {
+    "original_restoration": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run_benign_cycle_j.py' --repo 'C:\\Users\\User\\Desktop\\FSE' --spec 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_benign_rules_v1.json' --spec-sha256 '53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38' --definitions 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\task_definitions.json' --f-index 'C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5\\record_replay.jsonl' --f-helper 'C:\\FSE-ext-agentdojo\\cycle-h-20261010\\frozen-v1\\oracle_replay_cycle_f.py' --output 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1'",
+    "corrected_saved_contexts": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\corrected-v2\\rescore_benign_cycle_j.py' --prior-run 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1' --spec 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_benign_rules_v1.json' --spec-sha256 '53fb4cd079eeb216a1f3e7a249adeee56440c76b58262861daa434119c9edb38' --addendum 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_rules_v2_addendum.json' --addendum-sha256 'e1bc3cab1c3ebbde991c14871a392a62b768423f694d802a58957637f7b19607' --read-boundary 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_read_effect_boundary_v2_1.json' --boundary-sha256 'bbb8b689fc908f567ff1b225f0bf4e5f481ae7c14fbf9d2c751f2bc018d674bc' --output 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\corrected-v2\\run'",
+    "final_web_and_travel": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\final-v2-2\\finalize_benign_cycle_j.py' --repo 'C:\\Users\\User\\Desktop\\FSE' --initial-run 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\run-v1' --prior-run 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\corrected-v2\\run' --spec 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_benign_rules_v1.json' --web-rule 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_web_binding_v2_2.json' --web-sha256 '9f71775ae97c36cd61da4e0807319e00de786dc8f871c9f967e918f10ee9b73b' --field-rule 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_travel_fields_v1.json' --field-sha256 '1516125c335012214dfd1753b94e2fc4f1f8444b6d3eb482bdd61beeb904d520' --timeline-rule 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\frozen_timeline_rule.json' --timeline-sha256 '30515b04a299af8f038525148a08ec51a475072e6476caec48a8618216d6b876' --output 'C:\\FSE-ext-agentdojo\\cycle-j-benign-20261012T111037Z\\final-v2-2\\run'",
+    "analysis": "python -B research/external_verification/summarize_benign_cycle_j.py --audit-dir research/external_verification/cycle_j_20261012",
+    "software_checks": "python -B -m unittest discover -s tests -p 'test_benign_construct_cycle_j.py' -v"
+  },
+  "final_original_input_guard": {
+    "utc": "2026-10-12T12:59:48.852886+00:00",
+    "bound_inputs": 294,
+    "mismatches": [],
+    "source_inventory": {
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "seed_matched_pairs": 194,
+    "provider_calls": 0
+  },
+  "manuscript_metadata": {
+    "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "title": "main_v1.6.3.pdf",
+    "mime_type": "application/pdf",
+    "size": "878066",
+    "url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+    "display_url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+    "file_or_folder": "file",
+    "created_time": null,
+    "modified_time": "2026-09-29T04:21:30.714Z",
+    "parent_ids": null,
+    "drive_id": null,
+    "current_user_can_share": null,
+    "has_augmented_permissions": null,
+    "shared": null,
+    "permissions": null,
+    "source_visibility_status": "access_not_verified"
+  },
+  "privacy": "Original bodies and private contexts remain on controlled desktop; public artifacts contain source hashes, minimized facts and controlled pointers.",
+  "original_bank2_proxy_repeated": false
+}

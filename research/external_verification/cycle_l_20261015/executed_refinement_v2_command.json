@@ -1,0 +1,15 @@
+[
+  "C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe",
+  "-X",
+  "utf8",
+  "-B",
+  "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\rescore_benign_cycle_l_v2.py",
+  "--input",
+  "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1",
+  "--spec",
+  "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json",
+  "--boundary",
+  "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_refinement_l2.json",
+  "--output",
+  "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l2"
+]

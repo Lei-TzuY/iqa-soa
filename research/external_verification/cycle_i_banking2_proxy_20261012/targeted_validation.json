@@ -1,0 +1,14 @@
+{
+  "command": "python -B -m unittest discover -s tests -p 'test_banking2_proxy_cycle_i.py' -v",
+  "tests": 12,
+  "result": "PASS",
+  "reported_seconds": 0.003,
+  "fixtures_not_empirical_records": true,
+  "record_reverse_checks": 44,
+  "endpoint_reverse_checks": 44,
+  "second_witness_checks": 44,
+  "new_executed_completions_enumerated": 4,
+  "new_proposed_completions_enumerated": 8,
+  "second_arithmetic": "Independent model/goal/carrier aggregation matches record coefficients",
+  "second_witness_limit": "Shared decoder/source/restoration; no independent human staffing."
+}

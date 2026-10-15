@@ -1,0 +1,98 @@
+{
+  "cycle": "L",
+  "status": "POST_HOC",
+  "fixed_population": {
+    "pairs": 194,
+    "observations": 388,
+    "tasks": 97,
+    "task_pairs_per_model": 97,
+    "weights": {
+      "qwen": "1/2",
+      "mistral": "1/2"
+    }
+  },
+  "frozen_source_defined_S2": {
+    "fraction": "3/194",
+    "estimate": 0.015463917525773196
+  },
+  "frozen_CI_unchanged": [
+    -0.010309278,
+    0.041237113
+  ],
+  "frozen_p_unchanged": 0.452555474,
+  "historical_J_corrections_rest_native_fixed": {
+    "fraction": "1/97",
+    "estimate": 0.010309278350515464
+  },
+  "historical_K_corrections_rest_native_fixed": {
+    "fraction": "1/194",
+    "estimate": 0.005154639175257732
+  },
+  "L_known_corrections_other_source_labels_fixed": {
+    "fraction": "1/194",
+    "estimate": 0.005154639175257732
+  },
+  "L_conditional_model_strata": {
+    "qwen": {
+      "fraction": "0",
+      "estimate": 0.0
+    },
+    "mistral": {
+      "fraction": "1/97",
+      "estimate": 0.010309278350515464
+    }
+  },
+  "audited_unresolved_completion_bounds": {
+    "lower": {
+      "fraction": "-61/194",
+      "estimate": -0.31443298969072164
+    },
+    "upper": {
+      "fraction": "61/194",
+      "estimate": 0.31443298969072164
+    },
+    "unknown_labels": 122,
+    "free_groups": 122,
+    "zero_contribution_groups": 0,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "population_wide_completion_bounds": {
+    "lower": {
+      "fraction": "-61/194",
+      "estimate": -0.31443298969072164
+    },
+    "upper": {
+      "fraction": "61/194",
+      "estimate": 0.31443298969072164
+    },
+    "unknown_labels": 122,
+    "free_groups": 122,
+    "zero_contribution_groups": 0,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "matching_evidence_equality_scenario": {
+    "lower": {
+      "fraction": "-11/97",
+      "estimate": -0.1134020618556701
+    },
+    "upper": {
+      "fraction": "11/97",
+      "estimate": 0.1134020618556701
+    },
+    "unknown_labels": 122,
+    "free_groups": 82,
+    "zero_contribution_groups": 38,
+    "status": "POST_HOC_BINARY_COMPLETION_BOUNDS_NOT_CONFIDENCE_INTERVALS"
+  },
+  "independent_ungrouped_coefficient_witness": {
+    "lower": {
+      "fraction": "-61/194",
+      "estimate": -0.31443298969072164
+    },
+    "upper": {
+      "fraction": "61/194",
+      "estimate": 0.31443298969072164
+    }
+  },
+  "meaning": "Every observation is now examined under bounded criteria; unresolved labels remain free, so audited and population-wide bounds coincide. Matching retained evidence additionally assumes deterministic equal adjudication, not missing client delivery or external preference facts. All new calculations are POST-HOC binary-label completion bounds, not CIs. No new p-value, significance, equivalence or no-cost claim. S2 gate closed; S3 descriptive."
+}

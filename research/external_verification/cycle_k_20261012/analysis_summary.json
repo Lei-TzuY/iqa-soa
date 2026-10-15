@@ -1,0 +1,43 @@
+{
+  "cycle": "K",
+  "started_utc": "2026-10-12T17:47:28.718906+00:00",
+  "runtime_seconds": 0.04338546999861137,
+  "new_tasks": 32,
+  "new_records": 128,
+  "new_actual_counts": {
+    "False": 35,
+    "True": 54,
+    "None": 39
+  },
+  "new_proposed_counts": {
+    "False": 18,
+    "True": 12,
+    "None": 98
+  },
+  "task_populations_examined": 73,
+  "task_populations_fully_classified": 50,
+  "total_task_populations": 97,
+  "confirmatory_audited": 292,
+  "confirmatory_classified": 225,
+  "confirmatory_audited_unresolved": 67,
+  "confirmatory_unaudited": 96,
+  "all_stage_records": 302,
+  "new_strict_discrepancy_records": 5,
+  "new_core_discrepancy_records": 3,
+  "new_format_only_records": 2,
+  "new_disagreement_pair_units": 3,
+  "new_disagreement_task_clusters": 3,
+  "historical_E_J_false_positive_records_preserved": 5,
+  "cumulative_strict_false_positive_records": 10,
+  "human_decisions": 0,
+  "new_provider_calls": 0,
+  "HOLD": "UNCHANGED",
+  "input_hashes_before_after": {
+    "research/external_verification/cycle_k_20261012/record_audit_principal.jsonl.gz": "b004ed3e26fb4f7427517d61f7cfe388d4a1db9f0c24d1a02b9f0d9061d93839",
+    "research/external_verification/cycle_j_20261012/frozen_population.json": "65b0baeac7d6407a3fe1266286394c9e2c79b845787dd206910050029fda71b3",
+    "research/external_verification/cycle_j_20261012/principal_record_decisions.json.gz": "da9dbc68372e15e3ca699722fd2efbb744714af73a3bc934bdf8abe21e01ee9f",
+    "research/external_verification/cycle_j_20261012/prior_reuse_overlay.json.gz": "9a3ced908a2b631821d5749dd0ae963cd6d1c28de4199838cc2f602543316446",
+    "research/external_verification/cycle_j_20261012/evidence_equivalence_fingerprints.json": "42b718734fea9bc9f3d12c175288e79aaf1ade4a56da5507461792e43f2015b9",
+    "research/external_verification/cycle_k_20261012/final_validation_and_witnesses.json": "420f3cfa458555cb0ddaf10c766af186ae7e34a89a9d72428deaa21a688f755e"
+  }
+}

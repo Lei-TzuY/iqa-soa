@@ -1,0 +1,100 @@
+{
+  "observed_utc": "2026-10-12T06:47:16.866Z",
+  "expected_head": "6bd647103851fa7ba7c9630111474ad2a44b3d3b",
+  "base_tree": "d883e263f05626f178129b1549346d2b1db6023a",
+  "branch": "research/external-agentdojo-audit-20261009",
+  "owner": "Lei-TzuY",
+  "draft": true,
+  "parent_CI": {
+    "id": 38207038962,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "QA42_head": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+  "ledger_rows": 49,
+  "runs_rows": 13,
+  "historical_native_cells": 620,
+  "source_inventory": {
+    "files": 112,
+    "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+  },
+  "desktop_head": "413f020619fcd1abb68d993820963dd04199cb5d",
+  "desktop_status_entries": 46,
+  "desktop_status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+  "isolated_directory": "C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z",
+  "concurrency": "No active sessions; inaccessible existing Python PID45224 remains. Selected inputs/source stable, not global desktop exclusivity.",
+  "source_integrity": {
+    "cycle_h_20261010": {
+      "manifest_sha256": "84d0353ebb91f3b5479781ba00102bf22e8c3f6c80a9438277398d92ce5469d2",
+      "materialized_matches": 20,
+      "authorized_version_changes": []
+    },
+    "cycle_i_20261011": {
+      "manifest_sha256": "390348ef0ac4403fb8934d84de4c19b6b360ea7f31eeda40774c987994b40075",
+      "materialized_matches": 16,
+      "authorized_version_changes": [
+        {
+          "path": "research/external_verification/cycle_i_20261011/OWNER_DECISIONS.md",
+          "historical_sha256": "36e48a49617f906c74d8e948f4560284191136ec53997ef4b467d8739defe0cb",
+          "current_authorized_sha256": "f7d29d3226519c1d336398b318948ce500c87dd37dc6ebd4e74abd917ff45e38",
+          "reason": "owner commit6bd647103851fa7ba7c9630111474ad2a44b3d3b explicitly updated stance; historical content preserved in Git"
+        }
+      ]
+    },
+    "cycle_i_continuation_20261011": {
+      "manifest_sha256": "a92702ac8a03d8514584b1c4aa81ddd3912b2e3bd1827982b04ce0e9e44cd5a6",
+      "materialized_matches": 19,
+      "authorized_version_changes": []
+    }
+  },
+  "authorized_stance_sha256": "7407e276e3885923efd67ce86eaf5992393a5c6ca6de46afe23725a82f846ab8",
+  "current_handoff_sha256": "f7d29d3226519c1d336398b318948ce500c87dd37dc6ebd4e74abd917ff45e38",
+  "V1_command": "& C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe -X utf8 -B C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\run_banking2_proxy_cycle_i_v2.py --repo C:\\Users\\User\\Desktop\\FSE --f-index C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5\\record_replay.jsonl --f-helper C:\\FSE-ext-agentdojo\\cycle-h-20261010\\frozen-v1\\oracle_replay_cycle_f.py --spec C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\frozen_proxy_rubric_v1.json --selection C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\selected_contexts.json --output C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\run-v2 --spec-sha256 bf52f5d28b4c4abd25644b2af31f152bd8d6e6517f64f785075d8d5e43f131e9",
+  "V2_command": "& C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe -X utf8 -B C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\food-attestation-v2\\run_banking2_proxy_cycle_i.py --repo C:\\Users\\User\\Desktop\\FSE --f-index C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5\\record_replay.jsonl --f-helper C:\\FSE-ext-agentdojo\\cycle-h-20261010\\frozen-v1\\oracle_replay_cycle_f.py --spec C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\food-attestation-v2\\frozen_proxy_rubric_v2.json --selection C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\food-attestation-v2\\selected_contexts.json --output C:\\FSE-ext-agentdojo\\cycle-i-banking2-proxy-20261012T054325Z\\food-attestation-v2\\run --spec-sha256 8e3639a567ef6de12adc64108376b2b53599103b3e4b30b21356405a1fd74f1e",
+  "diagnostic_command": "& C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe -X utf8 -B -c \"import base64;exec(base64.b64decode('aW1wb3J0IHBhdGhsaWIsanNvbixoYXNobGliLGRhdGV0aW1lCmZyb20gYWdlbnRkb2pvLnRhc2tfc3VpdGUubG9hZF9zdWl0ZXMgaW1wb3J0IGdldF9zdWl0ZXMKcD1wYXRobGliLlBhdGgoIkM6XFxGU0UtZXh0LWFnZW50ZG9qb1xcY3ljbGUtaS1iYW5raW5nMi1wcm94eS0yMDI2MTAxMlQwNTQzMjVaIik7cj1qc29uLmxvYWRzKChwLydzZWxlY3RlZF9jb250ZXh0cy5qc29uJykucmVhZF90ZXh0KCkpO3BhaXJzPXsoeFsnc3RhZ2UnXSxpbnQoeFsncG9zaXRpb24nXSkpOnggZm9yIHggaW4gcn07cz1nZXRfc3VpdGVzKCd2MS4yLjInKVsnYmFua2luZyddO2RlZmF1bHRzPXMuZ2V0X2luamVjdGlvbl92ZWN0b3JfZGVmYXVsdHMoKTthPXBhdGhsaWIuUGF0aChyJ0M6XFVzZXJzXFVzZXJcRGVza3RvcFxGU0VccmVzdWx0c1xmc2UyMDI3LWV4dGVybmFsLXJlcGxpY2F0aW9uLXYxJykKZGVmIGgoeCk6cmV0dXJuIGhhc2hsaWIuc2hhMjU2KGpzb24uZHVtcHMoeCxzb3J0X2tleXM9VHJ1ZSxlbnN1cmVfYXNjaWk9RmFsc2Usc2VwYXJhdG9ycz0oJywnLCc6JykpLmVuY29kZSgpKS5oZXhkaWdlc3QoKQpyZWY9anNvbi5sb2FkcygocC8nZnJvemVuX3Byb3h5X3J1YnJpY192MS5qc29uJykucmVhZF90ZXh0KCkpWydpbml0aWFsX2Zvb2RfZXZpZGVuY2UnXVsnYWxsX2luaXRpYWxfdHJhbnNhY3Rpb25fcHJvamVjdGlvbnMnXQpkZWYgcHJvamVjdGlvbihlKTpyZXR1cm4gW3snc3ViamVjdCc6dC5zdWJqZWN0LCdhbW91bnQnOnQuYW1vdW50LCdkYXRlJzpzdHIodC5kYXRlKSwncmVjaXBpZW50X3NoYTI1Nic6aGFzaGxpYi5zaGEyNTYodC5yZWNpcGllbnQuZW5jb2RlKCkpLmhleGRpZ2VzdCgpfSBmb3IgdCBpbiBlLmJhbmtfYWNjb3VudC50cmFuc2FjdGlvbnNdCm91dD1bXQpmb3Iga2V5LGMgaW4gc29ydGVkKHBhaXJzLml0ZW1zKCkpOgogcmF3PWpzb24ubG9hZHMoKGEvY1sncmF3X3BvaW50ZXInXSkucmVhZF90ZXh0KCkpO2NsZWFuPXMubG9hZF9hbmRfaW5qZWN0X2RlZmF1bHRfZW52aXJvbm1lbnQoe30pO2RpcnR5PXMubG9hZF9hbmRfaW5qZWN0X2RlZmF1bHRfZW52aXJvbm1lbnQocmF3WydpbmplY3Rpb25zJ10pCiBpZiByYXdbJ3JlY29yZCddWyd1c2VyX3Rhc2snXToKICB0YXNrPXMudXNlcl90YXNrc1tyYXdbJ3JlY29yZCddWyd1c2VyX3Rhc2snXV07Y2xlYW49dGFzay5pbml0X2Vudmlyb25tZW50KGNsZWFuKTtkaXJ0eT10YXNrLmluaXRfZW52aXJvbm1lbnQoZGlydHkpCiBiZWZvcmUsYWZ0ZXI9cHJvamVjdGlvbihjbGVhbikscHJvamVjdGlvbihkaXJ0eSk7Y2hhbmdlcz1bXTtmcmFtZT1UcnVlCiBmb3IgaSwoYixkKSBpbiBlbnVtZXJhdGUoemlwKGJlZm9yZSxhZnRlcikpOgogIGZvciBmaWVsZCBpbiBiOgogICBpZiBiW2ZpZWxkXSE9ZFtmaWVsZF06CiAgICBtYXRjaGVzPVtrIGZvciBrLHYgaW4gZGVmYXVsdHMuaXRlbXMoKSBpZiB2PT1iW2ZpZWxkXSBhbmQgcmF3WydpbmplY3Rpb25zJ10uZ2V0KGspPT1kW2ZpZWxkXV0KICAgIGxlZ2l0PWZpZWxkPT0nc3ViamVjdCcgYW5kIGxlbihtYXRjaGVzKT09MTtmcmFtZT1mcmFtZSBhbmQgbGVnaXQKICAgIGNoYW5nZXMuYXBwZW5kKHsndHJhbnNhY3Rpb25faW5kZXgnOmksJ2ZpZWxkJzpmaWVsZCwnb3JpZ2luYWxfc2hhMjU2JzpoKGJbZmllbGRdKSwnaW5qZWN0ZWRfc2hhMjU2JzpoKGRbZmllbGRdKSwnbWF0Y2hpbmdfZGVjbGFyZWRfY2Fycmllcl9zbG90cyc6bWF0Y2hlcywnZXhhY3Rfc291cmNlX3RlbXBsYXRlX3N1YnN0aXR1dGlvbic6bGVnaXR9KQogZnJhbWU9ZnJhbWUgYW5kIGxlbihiZWZvcmUpPT1sZW4oYWZ0ZXIpIGFuZCBiZWZvcmU9PXJlZgogb3V0LmFwcGVuZCh7J3N0YWdlJzprZXlbMF0sJ3Bvc2l0aW9uJzprZXlbMV0sJ3Jhd19zaGEyNTYnOmhhc2hsaWIuc2hhMjU2KChhL2NbJ3Jhd19wb2ludGVyJ10pLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCksJ3NvdXJjZV9kZWZhdWx0X2luaXRpYWxfaGlzdG9yeV9tYXRjaGVzX2Zyb3plbl9yZWZlcmVuY2UnOmJlZm9yZT09cmVmLCdpbml0aWFsX2hpc3RvcnlfZXF1YWwnOmJlZm9yZT09YWZ0ZXIsJ2NhcnJpZXJfZnJhbWVfdmVyaWZpZWQnOmZyYW1lLCdjaGFuZ2VzJzpjaGFuZ2VzLCdpbmplY3Rpb25fa2V5cyc6c29ydGVkKHJhd1snaW5qZWN0aW9ucyddKX0pCnByaW50KGpzb24uZHVtcHMoeyd1dGMnOmRhdGV0aW1lLmRhdGV0aW1lLm5vdyhkYXRldGltZS50aW1lem9uZS51dGMpLmlzb2Zvcm1hdCgpLCdyZWNvcmRzJzpsZW4ob3V0KSwnZXF1YWxfaGlzdG9yeV9yZWNvcmRzJzpzdW0oeFsnaW5pdGlhbF9oaXN0b3J5X2VxdWFsJ10gZm9yIHggaW4gb3V0KSwnY2Fycmllcl9mcmFtZV92ZXJpZmllZF9yZWNvcmRzJzpzdW0oeFsnY2Fycmllcl9mcmFtZV92ZXJpZmllZCddIGZvciB4IGluIG91dCksJ2RlZmF1bHRfc2xvdF9oYXNoZXMnOntrOmgodikgZm9yIGssdiBpbiBkZWZhdWx0cy5pdGVtcygpfSwncmVjb3JkX2ZpbmRpbmdzJzpvdXR9KSkK'))\"",
+  "final_source_files": [
+    {
+      "name": "banking2_proxy_cycle_i.py",
+      "sha256": "2b2760996cd2394b85e5a515e88d0c7df09f9a076ff67b8f5cbae78279d73619",
+      "bytes": 6269
+    },
+    {
+      "name": "run_banking2_proxy_cycle_i.py",
+      "sha256": "3b804485ced0cd14ae2f35352104f3a5bc5783df09fd48c2f4afee9d15341ec5",
+      "bytes": 19551
+    },
+    {
+      "name": "frozen_proxy_rubric_v2.json",
+      "sha256": "8e3639a567ef6de12adc64108376b2b53599103b3e4b30b21356405a1fd74f1e",
+      "bytes": 11756
+    },
+    {
+      "name": "selected_contexts.json",
+      "sha256": "055a8caae39666ac39ca33725e75a4da30745d2bf2b83292a36ad51fefd164bb",
+      "bytes": 22790
+    }
+  ],
+  "V1_sources": [
+    {
+      "name": "banking2_proxy_cycle_i.py",
+      "sha256": "944e974cf0052a5fbad1bc161701718540f7c9c761187c7f1965de83bad2de68",
+      "bytes": 4912
+    },
+    {
+      "name": "run_banking2_proxy_cycle_i.py",
+      "sha256": "3485852efe43b9884b243f91dbb01d4560c2adcb9a60c8e58a1105d34ccc4d2a",
+      "bytes": 18977
+    },
+    {
+      "name": "frozen_proxy_rubric_v1.json",
+      "sha256": "bf52f5d28b4c4abd25644b2af31f152bd8d6e6517f64f785075d8d5e43f131e9",
+      "bytes": 9737
+    },
+    {
+      "name": "selected_contexts.json",
+      "sha256": "055a8caae39666ac39ca33725e75a4da30745d2bf2b83292a36ad51fefd164bb",
+      "bytes": 22790
+    }
+  ],
+  "raw_kind_fixed_runner_sha256": "388a59bd07432f4dc033961bb73099eeb90136415627c25cedc32c2312a40d1d"
+}

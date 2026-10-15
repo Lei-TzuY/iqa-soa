@@ -1,0 +1,96 @@
+{
+  "cycle": "J",
+  "status": "POST_HOC_PARTIAL_IDENTIFICATION",
+  "fixed_population": {
+    "pairs": 194,
+    "tasks": 97,
+    "confirmatory_observations": 388,
+    "task_pairs_per_model": 97,
+    "model_weights": {
+      "qwen": "1/2",
+      "mistral": "1/2"
+    },
+    "pairwise_endpoint_coefficient": "+/-1/194"
+  },
+  "original_source_defined_S2": {
+    "fraction": "3/194",
+    "estimate": 0.015463917525773196
+  },
+  "original_S2_CI_unchanged": [
+    -0.010309278,
+    0.041237113
+  ],
+  "original_S2_p_unchanged": 0.452555474,
+  "known_discrepancy_corrections_every_other_source_label_fixed": {
+    "fraction": "1/97",
+    "estimate": 0.010309278350515464
+  },
+  "per_model_conditional_points": {
+    "qwen": {
+      "fraction": "0",
+      "estimate": 0.0
+    },
+    "mistral": {
+      "fraction": "2/97",
+      "estimate": 0.020618556701030927
+    }
+  },
+  "conditional_native_rest_fixed_recordwise_bounds": {
+    "lower": {
+      "fraction": "-11/194",
+      "estimate": -0.05670103092783505
+    },
+    "upper": {
+      "fraction": "17/194",
+      "estimate": 0.08762886597938144
+    },
+    "unknown_labels": 28,
+    "free_label_groups": 28,
+    "zero_contribution_groups": 0,
+    "meaning": "Recordwise binary-completion bounds, not confidence intervals; equivalence version additionally assumes uniform deterministic adjudication of matching retained evidence."
+  },
+  "independently_classified_only_unaudited_free_recordwise_bounds": {
+    "lower": {
+      "fraction": "-62/97",
+      "estimate": -0.6391752577319587
+    },
+    "upper": {
+      "fraction": "64/97",
+      "estimate": 0.6597938144329897
+    },
+    "unknown_labels": 252,
+    "free_label_groups": 252,
+    "zero_contribution_groups": 0,
+    "meaning": "Recordwise binary-completion bounds, not confidence intervals; equivalence version additionally assumes uniform deterministic adjudication of matching retained evidence."
+  },
+  "conditional_evidence_equivalence_native_rest_fixed_scenario": {
+    "lower": {
+      "fraction": "-2/97",
+      "estimate": -0.020618556701030927
+    },
+    "upper": {
+      "fraction": "5/97",
+      "estimate": 0.05154639175257732
+    },
+    "unknown_labels": 28,
+    "free_label_groups": 20,
+    "zero_contribution_groups": 6,
+    "meaning": "Recordwise binary-completion bounds, not confidence intervals; equivalence version additionally assumes uniform deterministic adjudication of matching retained evidence."
+  },
+  "conditional_evidence_equivalence_unaudited_free_scenario": {
+    "lower": {
+      "fraction": "-117/194",
+      "estimate": -0.6030927835051546
+    },
+    "upper": {
+      "fraction": "121/194",
+      "estimate": 0.6237113402061856
+    },
+    "unknown_labels": 252,
+    "free_label_groups": 244,
+    "zero_contribution_groups": 6,
+    "meaning": "Recordwise binary-completion bounds, not confidence intervals; equivalence version additionally assumes uniform deterministic adjudication of matching retained evidence."
+  },
+  "output_scope_sensitivity": "Four Travel3 principal labels are UNKNOWN. Retained-transcript output conditionally supports all four, with two conditional source false negatives; that pair-balanced recoding leaves the known-corrected contrast unchanged. No original client presentation contract/human decision is established.",
+  "meaning": "No new confidence intervals or p-values. Original source statistic is separate from post-hoc broader workflow correctness. Native-rest-fixed assumptions are unverified outside coverage. Equivalence scenario assumes matching retained evidence receives the same judgment, including a uniform missing output/presentation interpretation; it is not proof of labels or actual user delivery. S2 gate remains closed; S3 descriptive."
+}

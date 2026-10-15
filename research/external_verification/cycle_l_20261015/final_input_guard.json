@@ -1,0 +1,14 @@
+{
+  "checked_utc": "2026-10-15T10:19:03.724763+00:00",
+  "bound_files": 201,
+  "mismatches": {},
+  "source_inventory": {
+    "files": 112,
+    "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+  },
+  "benign_pairs": 194,
+  "pairs_with_identical_retained_seed": 194,
+  "desktop_head": "413f020619fcd1abb68d993820963dd04199cb5d",
+  "status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+  "new_mock_calls_since_L1": 0
+}

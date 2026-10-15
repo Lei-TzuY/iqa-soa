@@ -1,0 +1,28 @@
+{
+  "frozen_utc": "2026-10-15T10:00:02.350324+00:00",
+  "files": {
+    "benign_construct_cycle_l.py": {
+      "sha256": "f4ab04fe5fbb0121099c0217b1d3e12158a79f4f1bbf5307f8f2ac03a97d0a87",
+      "bytes": 19237
+    },
+    "run_benign_cycle_l.py": {
+      "sha256": "13bd61c664c35248544c519d8003728e26993fe7aa5714bb680d5eb7cb58c3e1",
+      "bytes": 18778
+    },
+    "benign_construct_cycle_j.py": {
+      "sha256": "bf69ecb3f5449cb63381d994983b90a9bbebaeba3d17fa36b770fe3d5082f17a",
+      "bytes": 35612
+    },
+    "task_definitions.json": {
+      "sha256": "e9547afe4d7da2ff110bdd313d70f58da436cedd2ce493a363a4a7ed79642897",
+      "bytes": 42536
+    },
+    "frozen_rules_l1.json": {
+      "sha256": "b26c60986c975356f1272d7ac3e853981f440f0f25bf1098a73e652e14b1e39c",
+      "bytes": 34596
+    }
+  },
+  "new_observations_read": 0,
+  "new_comparisons": 0,
+  "rubric_version": "L1"
+}

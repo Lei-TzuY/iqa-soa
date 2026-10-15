@@ -1,0 +1,383 @@
+[
+  {
+    "raw_pointer": "confirmatory/cells/00066-qwen-full/raw.json",
+    "raw_sha256": "dcd399dc1c662f1cdbe3bb248da336825f8b3095a3e9d34ccfec8bead1120913",
+    "evidence_sha256": "f7a502c31093c4d9c98c97795da6ca261e431edbcb83c18fc9dd85f867d06ad0",
+    "goal": "travel/user_task_1",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 10,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 12,
+        "sha256": "76142383bae687be3d2b9b96d0dc6c749475c4432f291e992ac3aa5292de5276",
+        "characters": 563
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00067-qwen-off/raw.json",
+    "raw_sha256": "50f73f141eccb64f6aefc30b0c7471140e6a290f1c9ea446186bac6058f1c649",
+    "evidence_sha256": "d6d19d333c714c3a89d8a5a19d976ef9ceeee2b50bfc30c5af0ac71369e5eb32",
+    "goal": "travel/user_task_1",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 10,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 12,
+        "sha256": "76142383bae687be3d2b9b96d0dc6c749475c4432f291e992ac3aa5292de5276",
+        "characters": 563
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00196-qwen-full/raw.json",
+    "raw_sha256": "543ff4fe512b5b532c50fbb9daf748813b29368efac231ad8bd8a4d1d82640d3",
+    "evidence_sha256": "8b2f3483a54b8f088c585f92846c35ce9ff7519ec9969a02fd02f2e18017e73b",
+    "goal": "travel/user_task_3",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 10,
+        "sha256": "45f9851c53c4722b11efb23e5146ef3fcc6be4d7f0a5ad913424fc60f2ba48ac",
+        "characters": 219
+      },
+      {
+        "ordinal": 12,
+        "sha256": "0cd903e4b6cb0fcf684cf282725d8c669bcb856a328fc7d6feae490f21778ab4",
+        "characters": 406
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00197-qwen-off/raw.json",
+    "raw_sha256": "350c48040bb9e918887e0870d55202d2e075e2d37dd60387bf24958e8e961475",
+    "evidence_sha256": "8cd5d44667d93b231b7684089ef7d282b544981b1474fba156d531369623061a",
+    "goal": "travel/user_task_3",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 10,
+        "sha256": "45f9851c53c4722b11efb23e5146ef3fcc6be4d7f0a5ad913424fc60f2ba48ac",
+        "characters": 219
+      },
+      {
+        "ordinal": 12,
+        "sha256": "0cd903e4b6cb0fcf684cf282725d8c669bcb856a328fc7d6feae490f21778ab4",
+        "characters": 406
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00436-qwen-full/raw.json",
+    "raw_sha256": "bfd6d9997f67a0e49a1c7c005664ae6d8e25979c9a8e79b07451f59d1706c21f",
+    "evidence_sha256": "4f6435983c1f04d0486819a1296134acdae88d724a786618d872c78d40c08633",
+    "goal": "travel/user_task_4",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 10,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 12,
+        "sha256": "7bb739a35b2a6addb2f023ef01f9a1f7cc3e9433c3413ebde94e8f9f51fc8a87",
+        "characters": 464
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00437-qwen-off/raw.json",
+    "raw_sha256": "19aab7533bfdb9803b15b016193db548be73b4eb6ba8eb4c7cdf402762bee1ff",
+    "evidence_sha256": "4e892acc6e74086139b7297b04eda98f4706ffba3f0ffad33deb1014cdacd0d6",
+    "goal": "travel/user_task_4",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 10,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 12,
+        "sha256": "7bb739a35b2a6addb2f023ef01f9a1f7cc3e9433c3413ebde94e8f9f51fc8a87",
+        "characters": 464
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00564-mistral-off/raw.json",
+    "raw_sha256": "13d041ddc09ed7c4fae47f820ac59fb88d83e1d4def605b6b7ab1629061a5e23",
+    "evidence_sha256": "7e948d0126aa24fd10cf7e3442a6780732d46b854275053e0c27edd4f17d77ac",
+    "goal": "travel/user_task_3",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "13e09d4a5c20db4addf4b739e3e72c6bcc87681a92fc102bbdd581925d50dcad",
+        "characters": 282
+      },
+      {
+        "ordinal": 10,
+        "sha256": "998eae36b67b901140c02e1ad6b4ee6591647c259cb2c082cc306418ee586179",
+        "characters": 73
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00565-mistral-full/raw.json",
+    "raw_sha256": "7c76af1f143f386ae2a9a102e7c516cba48edc7506c5f5591e86f99a85b68872",
+    "evidence_sha256": "2e60f1b8289bf22d82ce0e684bfe1e93288f63c9bbf6b0b98b5c166912c2a6e9",
+    "goal": "travel/user_task_3",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 8,
+        "sha256": "cc90751a919b97de7af3cc03a6639c5a732436de226f6e334a758c5e09cc868e",
+        "characters": 260
+      },
+      {
+        "ordinal": 10,
+        "sha256": "2a9863b27d4744e265c1744e906ebcbe0bb256a632e9d3601970c5c258820461",
+        "characters": 73
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00598-mistral-off/raw.json",
+    "raw_sha256": "b6cae8b4606220f7c51ff89fb870e781bc2fa72e1c8f0c3ddddb123e6fddce38",
+    "evidence_sha256": "baf6e7a53368ea68b4404543eb9c1ffa1dfcd645dee6e314f1e71f595555b6a2",
+    "goal": "travel/user_task_1",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e9483de2e46943cde88d25f85f10dd6e9893196ec32f783cd909e7be0c439112",
+        "characters": 640
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00599-mistral-full/raw.json",
+    "raw_sha256": "a9211ac6a9573440201be0f988349860e5b38b528a795afb142248b63ee26886",
+    "evidence_sha256": "151b8b05bd51c9e865acbe10cd2fe301ca93e36b3702d73fbf46ba4f64893e30",
+    "goal": "travel/user_task_1",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 6,
+        "sha256": "e9483de2e46943cde88d25f85f10dd6e9893196ec32f783cd909e7be0c439112",
+        "characters": 640
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00794-mistral-off/raw.json",
+    "raw_sha256": "b70b9f651428c15a60018d62d27585e10014262965edd0fc8f8fc7b7ab9a01e7",
+    "evidence_sha256": "d1ea6659839907f27e3fd5587df0a9a0c94327bc5174f66200f8844f32e0aceb",
+    "goal": "travel/user_task_4",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 7,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 9,
+        "sha256": "649f7f656cae990ec0a9a47a9b517c7a0385da40e5d98691944ad66f328748d8",
+        "characters": 167
+      }
+    ]
+  },
+  {
+    "raw_pointer": "confirmatory/cells/00795-mistral-full/raw.json",
+    "raw_sha256": "aed1f19ee843955c9a3367ac05005c4f8b4553cb08eda2436c01c628c9e76622",
+    "evidence_sha256": "6abad811b17425fb40cca0838c38341b0670a04ee34e2f4fa5d0f917b3bff2d0",
+    "goal": "travel/user_task_4",
+    "blocks": [
+      {
+        "ordinal": 2,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 4,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 7,
+        "sha256": "1289ca67a6d6d2276aea66711e1873ce752ffe8e26a615301b60cfcb0274a3ac",
+        "characters": 798
+      },
+      {
+        "ordinal": 9,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "characters": 0
+      },
+      {
+        "ordinal": 11,
+        "sha256": "3a5ab2ffee568ca8163f1461d5dbef659131b23e563e69910e075574f18511ce",
+        "characters": 57
+      }
+    ]
+  }
+]

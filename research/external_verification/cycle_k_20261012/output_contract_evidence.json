@@ -1,0 +1,90 @@
+{
+  "cycle": "K",
+  "benchmark_scoring_contract": "FINAL_ASSISTANT_MESSAGE_CONTENT_ONLY",
+  "client_presentation_contract": "NOT_IDENTIFIABLE_FROM_RETAINED_EVIDENCE",
+  "sources": [
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\adapter.py",
+      "sha256": "d0c6cd23de178ba11abec6cecdd488051ec434abf7ed18eaf53574f65ae31743",
+      "line_count": 285
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\runner.py",
+      "sha256": "488c2a6e3304c0d67f4ca45f76953493a5e7f249a53068e00834ee7fd0e61e63",
+      "line_count": 151
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\cell.py",
+      "sha256": "574ef6278105f329d04473c16acd973ade5939ae55c798d61714719e9e9c6cfb",
+      "line_count": 353
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\llm.py",
+      "sha256": "d4e5f85cc92e762b951b55a085695b36fdd31e4db83b614a6ee22eb8d32fff3a",
+      "line_count": 318
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\agent_pipeline\\agent_pipeline.py",
+      "sha256": "2b9b82b98cef3662733a8207dfed9e4386c41fb74e69531a6f0a36207f9695e9",
+      "line_count": 265
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\agent_pipeline\\tool_execution.py",
+      "sha256": "96842ef579714cdc7f854bc13d4bca2be0c27897abc29dad2e1ba33ce3b11bdc",
+      "line_count": 157
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\functions_runtime.py",
+      "sha256": "3c67f71eb8a7f15d2a15fe9595d84218c5e6868d95fd71d1cef679cd2192d0f7",
+      "line_count": 312
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\types.py",
+      "sha256": "207b688794d5e214099c00b0dff3a03429f8f3632fcbbdafeac291dc190fbfca",
+      "line_count": 92
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\task_suite\\task_suite.py",
+      "sha256": "2e69da06f7e150dd6d238c53a74845b56eebeb224e07f694e1051a6e0c6a2bc1",
+      "line_count": 491
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\logging.py",
+      "sha256": "74d46f7ff3e3eb45b1fae7a025ca0f0dcc4b2e125533927748728c81ae02ce50",
+      "line_count": 278
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\cli.py",
+      "sha256": "f81e5370c421c5ee671cfa15daf713fd672f7eef8edb1b900ea03083d243caf5",
+      "line_count": 216
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\task_suite\\task_suite.py",
+      "sha256": "2e69da06f7e150dd6d238c53a74845b56eebeb224e07f694e1051a6e0c6a2bc1",
+      "line_count": 491
+    },
+    {
+      "path": "C:\\FSE-ext-agentdojo\\venv\\Lib\\site-packages\\agentdojo\\logging.py",
+      "sha256": "74d46f7ff3e3eb45b1fae7a025ca0f0dcc4b2e125533927748728c81ae02ce50",
+      "line_count": 278
+    },
+    {
+      "path": "C:\\Users\\User\\Desktop\\FSE\\scripts\\fse2027_ext\\cli.py",
+      "sha256": "f81e5370c421c5ee671cfa15daf713fd672f7eef8edb1b900ea03083d243caf5",
+      "line_count": 216
+    }
+  ],
+  "source_grounded_findings": [
+    "TaskSuite.model_output_from_messages returns messages[-1].content, lines70-75; run_task_with_pipeline feeds that value to the utility checker, lines392-405.",
+    "FSE cell.py captures full history separately, lines65-85 and341-350, and selects only the final assistant output for final_output_text, lines284-289.",
+    "FSE llm.py appends each parsed assistant response to model history, line318. Its provider API client is not a user-facing presentation client.",
+    "TaskSuite.run_task_with_pipeline defaults verbose=False, line347. Logger.get defaults to NullLogger with an empty stack; optional OutputLogger/NotebookLogger facilities do not establish that they were activated for these episodes.",
+    "The audited standalone FSE path defines no user delivery adapter, message-delivery receipts or streaming/presentation subset. Provider parsing/history persistence does not prove delivery to a user."
+  ],
+  "minimal_missing_evidence": [
+    "Original launched presenter/client implementation and configuration, including any external logger/consumer override.",
+    "Message-ID/role/content-bound delivery events or receipts identifying which original messages reached the user.",
+    "A version-resolved contract defining how intermediate assistant and tool messages counted as telling/showing the user."
+  ],
+  "preserved_Travel3": "All four principal J labels and conditional transcript interpretations remain unchanged. No transcript-only success is upgraded to client-visible success."
+}

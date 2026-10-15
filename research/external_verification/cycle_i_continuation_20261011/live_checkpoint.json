@@ -1,0 +1,104 @@
+{
+  "assembled_utc": "2026-10-11T19:20:36.084Z",
+  "integration_parent": "1b686f603a3a0bdc4ae5df8172583678868f63be",
+  "parent_tree": "851fc7a95ccdba1e78f8c4e05ee9ec71e0c8bf61",
+  "branch": "research/external-agentdojo-audit-20261009",
+  "owner": "Lei-TzuY",
+  "draft": true,
+  "qa_head": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+  "previous_ci_run": 38145356040,
+  "previous_ci_status": "success at exact parent; 4/4 jobs",
+  "ledger_rows": 45,
+  "runs_rows": 12,
+  "historical_cells": 570,
+  "owner_decisions": 0,
+  "human_reviews": 0,
+  "pr_issue_comments": 0,
+  "pr_reviews": 0,
+  "desktop_initial": {
+    "utc": "2026-10-11T18:23:50.404658+00:00",
+    "head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "status_entries": 46,
+    "status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+    "archive_exists": true,
+    "runtime_exists": true,
+    "possible_decision_files": [
+      {
+        "name": "controlled_review_map_DO_NOT_PUBLISH.json",
+        "bytes": 68461
+      },
+      {
+        "name": "human_review_packet.json",
+        "bytes": 158909
+      },
+      {
+        "name": "review_extraction_manifest.json",
+        "bytes": 1112
+      }
+    ]
+  },
+  "desktop_final": {
+    "utc": "2026-10-11T19:19:20.481183+00:00",
+    "head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "status_entries": 46,
+    "status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+    "bound_input_files": 64,
+    "changed_input_files": [],
+    "accepted_code_sha256": "3e556422d75ebbd6233c2417e879e0248cab55f905bfb606fa6744ff7534b80e"
+  },
+  "possible_concurrent_writer": "Inaccessible existing Python PID45224 and incomplete PowerShell process inspection; no exclusive desktop ownership claimed. Isolated fresh folder, selected-input hash guards and observed-head Git lease.",
+  "remote_folder": "C:\\FSE-ext-agentdojo\\cycle-i-continuation-20261011T183547Z",
+  "manuscript_metadata": {
+    "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "title": "main_v1.6.3.pdf",
+    "mime_type": "application/pdf",
+    "size": "878066",
+    "url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+    "display_url": "https://drive.google.com/file/d/14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ/view?usp=drivesdk",
+    "file_or_folder": "file",
+    "created_time": null,
+    "modified_time": "2026-09-29T04:21:30.714Z",
+    "parent_ids": null,
+    "drive_id": null,
+    "current_user_can_share": null,
+    "has_augmented_permissions": null,
+    "shared": null,
+    "permissions": null,
+    "source_visibility_status": "access_not_verified"
+  },
+  "scope": "Verified selected-input stability, not global desktop writer exclusivity. No decisions inferred from continuation.",
+  "resumed_prepublication_verification": {
+    "observed_utc": "2026-10-12T04:13:15.918Z",
+    "head": "1b686f603a3a0bdc4ae5df8172583678868f63be",
+    "owner": "Lei-TzuY",
+    "branch": "research/external-agentdojo-audit-20261009",
+    "draft": true,
+    "state": "open",
+    "qa_head": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+    "comments": 0,
+    "reviews": 0,
+    "ledger_rows": 45,
+    "runs_rows": 12,
+    "desktop": {
+      "utc": "2026-10-12T04:12:00.525752+00:00",
+      "head": "413f020619fcd1abb68d993820963dd04199cb5d",
+      "status_entries": 46,
+      "status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+      "bound_input_files": 64,
+      "changed_input_files": [],
+      "accepted_code_sha256": "3e556422d75ebbd6233c2417e879e0248cab55f905bfb606fa6744ff7534b80e"
+    },
+    "source": {
+      "utc": "2026-10-12T04:12:27.099463+00:00",
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "parent_ci": {
+      "id": 38145356040,
+      "head": "1b686f603a3a0bdc4ae5df8172583678868f63be",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "source_guard_command": "& C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe -X utf8 -B -c \"import base64;exec(base64.b64decode('aW1wb3J0IHBhdGhsaWIsaGFzaGxpYixqc29uLGRhdGV0aW1lCnA9cGF0aGxpYi5QYXRoKHInQzpcRlNFLWV4dC1hZ2VudGRvam9cdmVudlxMaWJcc2l0ZS1wYWNrYWdlc1xhZ2VudGRvam8nKQppPXtxLnJlbGF0aXZlX3RvKHApLmFzX3Bvc2l4KCk6aGFzaGxpYi5zaGEyNTYocS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpIGZvciBxIGluIHNvcnRlZChwLnJnbG9iKCcqJykpIGlmIHEuaXNfZmlsZSgpIGFuZCAnX19weWNhY2hlX18nIG5vdCBpbiBxLnBhcnRzfQpwcmludChqc29uLmR1bXBzKHsndXRjJzpkYXRldGltZS5kYXRldGltZS5ub3coZGF0ZXRpbWUudGltZXpvbmUudXRjKS5pc29mb3JtYXQoKSwnZmlsZXMnOmxlbihpKSwnc2hhMjU2JzpoYXNobGliLnNoYTI1Nihqc29uLmR1bXBzKGksc29ydF9rZXlzPVRydWUsZW5zdXJlX2FzY2lpPUZhbHNlLHNlcGFyYXRvcnM9KCcsJywnOicpKS5lbmNvZGUoKSkuaGV4ZGlnZXN0KCl9KSk='))\""
+  }
+}

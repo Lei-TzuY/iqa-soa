@@ -1,0 +1,21 @@
+{
+  "utc": "2026-10-12T11:04:41.174Z",
+  "PR": 51,
+  "head": "328844a71d8acc1fc825b101225de421e026324c",
+  "branch": "research/external-agentdojo-audit-20261009",
+  "owner": "Lei-TzuY",
+  "draft": true,
+  "CI": 38214573577,
+  "CI_conclusion": "success",
+  "QA42_head": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+  "desktop_head": "413f020619fcd1abb68d993820963dd04199cb5d",
+  "desktop_status_sha256": "acfc58a717bb288981705b30144c57f2aa016e44ab2076441007d01f2f757ad4",
+  "desktop_status_rows": 46,
+  "Ledger_rows": 53,
+  "Runs_rows": 14,
+  "concurrent_writer": "No active DC sessions; pre-existing PID45224 has inaccessible command details, global exclusivity cannot be claimed. Use isolated outputs, before/after selected hashes and observed-head guard.",
+  "summary_sha256": {
+    "qualification": "0a288b751f90fdaab240d23266fc27d4b8a4b62f54bb1b937a5ae78c2a8d49c2",
+    "confirmatory": "d4661a2051051a3e81ef0b0e4ddf5ce1e628621208ca065344d55d96a661ffa0"
+  }
+}

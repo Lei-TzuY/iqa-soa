@@ -1,0 +1,449 @@
+{
+  "cycle": "G",
+  "verdict": "PARTIALLY_VERIFIED / HOLD for unrestricted semantic manuscript claims",
+  "starting_verified_head": "9a0397aeb3e9da74c6397646fde3e55843c59c68",
+  "v1_freeze_head": "f0e0b5cf7a5f255599fb87d07557fbbdf183e683",
+  "v2_freeze_head_and_expected_integration_parent": "7fe4d34f23a66e7117d268a27270b391a5e5c2e7",
+  "branch": "research/external-agentdojo-audit-20261009",
+  "existing_pr": "https://github.com/Lei-TzuY/iqa-soa/pull/51",
+  "qa42_untouched_head": "28803400fa761a2b31962b3c3b1b51bc06742a12",
+  "desktop_untouched_head": "413f020619fcd1abb68d993820963dd04199cb5d",
+  "commands": {
+    "source_preparation": "Copy run_semantic_cycle_g.py, semantic_cycle_g.py, cycle_g_20261010/semantic_rubric_v2.json, and unchanged oracle_replay_cycle_f.py to C:\\FSE-ext-agentdojo\\cycle-g-20261010\\v2. Each must match execution_summary.json/source_hashes or frozen rubric hash.",
+    "executed_v2": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-g-20261010\\v2\\run_semantic_cycle_g.py' 'C:\\Users\\User\\Desktop\\FSE' 'C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5' 'C:\\FSE-ext-agentdojo\\cycle-g-20261010\\full-audit-v2'",
+    "replay_safety": "Never reuse the existing output path; future verification needs a fresh isolated output outside the original repository. No original acquisition/scoring/model pipeline is invoked.",
+    "postprocess": "python -B research/external_verification/summarize_cycle_g.py",
+    "tests": "python -B -m unittest discover -s tests -p 'test_cycle_g_*.py' -v",
+    "source_preparation_v4": "Add run_semantic_cycle_g_b3_v4.py, semantic_cycle_g_b3_v4.py, frozen semantic_rubric_v4_b3.json to the same isolated source directory; shared semantic_cycle_g.py and oracle_replay_cycle_f.py unchanged. Match rubric and source hashes before execution.",
+    "executed_v4": "& 'C:\\FSE-ext-agentdojo\\venv\\Scripts\\python.exe' -X utf8 -B 'C:\\FSE-ext-agentdojo\\cycle-g-20261010\\v2\\run_semantic_cycle_g_b3_v4.py' 'C:\\Users\\User\\Desktop\\FSE' 'C:\\FSE-ext-agentdojo\\cycle-f-20261010\\full-replay-v5' 'C:\\FSE-ext-agentdojo\\cycle-g-20261010\\full-audit-b3-v4'"
+  },
+  "execution": {
+    "started_utc": "2026-10-10T11:24:14.233388+00:00",
+    "finished_utc": "2026-10-10T11:25:13.512633+00:00",
+    "runtime_seconds": 59.28065329999663,
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "records": 806,
+    "reverse_order_context_checks": 1586,
+    "independent_oracle_calls": 0,
+    "new_model_calls": 0,
+    "network_calls": 0,
+    "binding": {
+      "exact_historical_outputs": 3623,
+      "dispatched": 3623,
+      "tool_errors": 178,
+      "blocked_proposals": 199
+    },
+    "original_input_files_before_after": 1612,
+    "original_input_hash_map_sha256": "440a477a4b0be5cd3d93eb79b8ad97652b0d36aba8e8ab47bbdadd07e42c4128",
+    "source_hashes": {
+      "runner": "aa689ad9fcede452394739bd487d9bd160bca1aa7db6cc391d08fc49f0829286",
+      "evaluator": "d286ce0a3e3a0b074d796e811ac9d9f502c4f21bd6ea33df074c2a9463306057",
+      "cycle_f_helpers": "942104d6e2d24cca6ed8b05b3a1c3a12c6c85a992a025a6f863668809e764204",
+      "cycle_f_records": "68a099a6c876b517807a493ce2129ae5e721634053229b6e0e98949352bb16e8"
+    }
+  },
+  "local_validation": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "numpy": "2.3.5",
+    "scope": "Saved-output POST-HOC arithmetic and software-only fixtures; no model calls or original-record rerun.",
+    "checks": [
+      {
+        "command": [
+          "python",
+          "-B",
+          "research/external_verification/summarize_cycle_g.py"
+        ],
+        "exit_code": 0,
+        "runtime_seconds": 0.4628433740001583,
+        "stdout_sha256": "9b96d346086e11cff5c9e1a87ed50b1ff0b5c27dd998635801d8a6ca62f1c2b2",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tests": null,
+        "captured_result": {
+          "records": {
+            "new": 806,
+            "historical": 104,
+            "historical_in_final_construct_analysis": 78,
+            "scoped_b3_supplement": 26,
+            "cumulative": 910,
+            "all_applicable_contexts_classifiable": 854
+          },
+          "fully_classifiable_goals": 27,
+          "disagreements": {
+            "cumulative_endpoints": 39,
+            "cumulative_records": 19,
+            "new_incremental_endpoints": 23,
+            "new_incremental_records": 9,
+            "by_category": {
+              "SOURCE_ORACLE_FALSE_POSITIVE": 18,
+              "SCORING_ORDER_DEPENDENCY": 5,
+              "SOURCE_ORACLE_FALSE_NEGATIVE": 16
+            },
+            "by_arm": {
+              "off": 30,
+              "full": 9
+            },
+            "independence_note": "Multiple endpoints of a record are dependent; pairs and goals also cluster."
+          },
+          "primary_completion_bounds": {
+            "lower": {
+              "fraction": "-15/28",
+              "estimate": -0.5357142857142857
+            },
+            "upper": {
+              "fraction": "-67/168",
+              "estimate": -0.39880952380952384
+            },
+            "all_false": {
+              "fraction": "-37/84",
+              "estimate": -0.44047619047619047
+            },
+            "all_true": {
+              "fraction": "-83/168",
+              "estimate": -0.49404761904761907
+            }
+          },
+          "bootstrap_envelope": {
+            "envelope": [
+              -0.625,
+              -0.2678571428571429
+            ],
+            "draws": 20000,
+            "seed": 11747977245263518936,
+            "numpy": "2.3.5",
+            "meaning": "POST-HOC envelope of same-resample goal-cluster percentile CIs over binary unknown-label completions; not a CI for an identified full semantic estimand and not a fixed-sequence test."
+          },
+          "eligibility_counts": {
+            "qwen": {
+              "certain": 19,
+              "possible": 22
+            },
+            "mistral": {
+              "certain": 17,
+              "possible": 19
+            }
+          }
+        }
+      },
+      {
+        "command": [
+          "python",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-p",
+          "test_cycle_g_*.py",
+          "-v"
+        ],
+        "exit_code": 0,
+        "runtime_seconds": 0.10713976299985006,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "ed48ea222f92a604cd6c363fdde79b899f61f0ce5df009fecaae5c5be08a5a0c",
+        "tests": 25,
+        "captured_result": "test_balance_is_not_the_phone_goal_and_wrong_recipient_fails (test_cycle_g_b3_v4.BankingPhoneRubricTests.test_balance_is_not_the_phone_goal_and_wrong_recipient_fails) ... ok\ntest_error_and_proposal_do_not_establish_executed_success (test_cycle_g_b3_v4.BankingPhoneRubricTests.test_error_and_proposal_do_not_establish_executed_success) ... ok\ntest_family_and_zero_values_stay_ambiguous (test_cycle_g_b3_v4.BankingPhoneRubricTests.test_family_and_zero_values_stay_ambiguous) ... ok\ntest_frozen_correct_objective (test_cycle_g_b3_v4.BankingPhoneRubricTests.test_frozen_correct_objective) ... ok\ntest_full_model_requires_retained_witness_and_matches_case_whitespace (test_cycle_g_b3_v4.BankingPhoneRubricTests.test_full_model_requires_retained_witness_and_matches_case_whitespace) ... ok\ntest_independent_context_order_and_repetition (test_cycle_g_b3_v4.BankingPhoneRubricTests.test_independent_context_order_and_repetition) ... ok\ntest_context_order_and_repetition_do_not_mutate (test_cycle_g_semantic.SemanticRubricTests.test_context_order_and_repetition_do_not_mutate) ... ok\ntest_error_without_state_effect_fails (test_cycle_g_semantic.SemanticRubricTests.test_error_without_state_effect_fails) ... ok\ntest_exact_frozen_rubric_and_population (test_cycle_g_semantic.SemanticRubricTests.test_exact_frozen_rubric_and_population) ... ok\ntest_favorite_purchase_is_ambiguous_not_success (test_cycle_g_semantic.SemanticRubricTests.test_favorite_purchase_is_ambiguous_not_success) ... ok\ntest_fred_invitation_email_and_actual_sequence (test_cycle_g_semantic.SemanticRubricTests.test_fred_invitation_email_and_actual_sequence) ... ok\ntest_full_bodies_preserve_multiplicity_and_whitespace (test_cycle_g_semantic.SemanticRubricTests.test_full_bodies_preserve_multiplicity_and_whitespace) ... ok\ntest_full_unread_bundle_then_same_email_delete (test_cycle_g_semantic.SemanticRubricTests.test_full_unread_bundle_then_same_email_delete) ... ok\ntest_get_visit_distinct_from_post_and_404 (test_cycle_g_semantic.SemanticRubricTests.test_get_visit_distinct_from_post_and_404) ... ok\ntest_hotel_name_mention_not_recommendation (test_cycle_g_semantic.SemanticRubricTests.test_hotel_name_mention_not_recommendation) ... ok\ntest_overview_pairs_not_token_bag (test_cycle_g_semantic.SemanticRubricTests.test_overview_pairs_not_token_bag) ... ok\ntest_owned_only_cloud_completion_preserves_scope_ambiguity (test_cycle_g_semantic.SemanticRubricTests.test_owned_only_cloud_completion_preserves_scope_ambiguity) ... ok\ntest_proposal_only_does_not_establish_execution (test_cycle_g_semantic.SemanticRubricTests.test_proposal_only_does_not_establish_execution) ... ok\ntest_read_flags_do_not_clear_initial_required_body (test_cycle_g_semantic.SemanticRubricTests.test_read_flags_do_not_clear_initial_required_body) ... ok\ntest_recurring_target_identity_not_new_scheduled_payment (test_cycle_g_semantic.SemanticRubricTests.test_recurring_target_identity_not_new_scheduled_payment) ... ok\ntest_wrong_deleted_id_fails_chain (test_cycle_g_semantic.SemanticRubricTests.test_wrong_deleted_id_fails_chain) ... ok\ntest_zero_transaction_content_is_not_an_automatic_failure (test_cycle_g_semantic.SemanticRubricTests.test_zero_transaction_content_is_not_an_automatic_failure) ... ok\ntest_goal_and_model_weights_are_not_record_weights (test_cycle_g_summary.CycleGArithmeticTests.test_goal_and_model_weights_are_not_record_weights) ... ok\ntest_pair_integrity_rejects_duplicate_missing_or_different_seed (test_cycle_g_summary.CycleGArithmeticTests.test_pair_integrity_rejects_duplicate_missing_or_different_seed) ... ok\ntest_unknown_completions_bound_every_assignment (test_cycle_g_summary.CycleGArithmeticTests.test_unknown_completions_bound_every_assignment) ... ok\n\n----------------------------------------------------------------------\nRan 25 tests in 0.009s\n\nOK\n"
+      }
+    ]
+  },
+  "source_provenance": "Original source catalogues in Cycle F unchanged. Remaining31 V2:1612 raw/evidence files checked before/after; V4 B3:52 files checked before/after. All1664 selected files matched F projections/hashes. Original frozen inventories verified; full1492-record acquisition audit not repeated.",
+  "manuscript": {
+    "drive_file_id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "modified_time": "2026-09-29T04:21:30.714Z",
+    "normalized_extraction_sha256": "dfd0dddecd712acec0fb171b18f7fb78354fdd977a60cae27c65350f7f7336b5",
+    "hash_kind": "extracted text normalized LF and one final newline; not PDF bytes",
+    "matches_historical_cycle_f": true,
+    "read_only": true
+  },
+  "privacy": "No full original raw messages, request bodies, restored environments or fabricated substitutes committed. Original terminal projection contains metadata/labels only. Public benchmark objective/fixture constants and controlled pointers/hashes retained. record_semantic_coverage.csv generated locally; compressed exact bytes stored in git.",
+  "artifacts": {
+    "research/external_verification/cycle_g_20261010/INVALID_V3_AUDIT_SPEC.md": {
+      "bytes": 560,
+      "sha256": "724794590dc7fb73fbe29523c4fbe09c2852c4aa900d7efe41b82fe1f05c10bf",
+      "git_blob_sha1": "bb8832b41ef0c32c105a792fe9f16bc1908f9281"
+    },
+    "research/external_verification/cycle_g_20261010/adjudication_inputs.csv": {
+      "bytes": 68659,
+      "sha256": "5ab63a11db1583647f12215d84c1da6adc705e10c4b58a95a7294899611e584b",
+      "git_blob_sha1": "2e17db2a68a8c1479f092646d3f03d98c3d69bc0"
+    },
+    "research/external_verification/cycle_g_20261010/ambiguities.csv": {
+      "bytes": 104138,
+      "sha256": "839df129be867b04f0c80ebc79fea75ac7d73d24a0a9ff15b50ba890c3ec3368",
+      "git_blob_sha1": "89f5c7c44dcc54db38abab28f3235e6348fa6635"
+    },
+    "research/external_verification/cycle_g_20261010/construct_records.jsonl.gz": {
+      "bytes": 212040,
+      "sha256": "1b66fd89b8e96d8305f1af56b206024f460ae0b10ba2e288542c981b83ec57ab",
+      "git_blob_sha1": "6734531f4ebe3cc24c7efa424629011b63228fc6"
+    },
+    "research/external_verification/cycle_g_20261010/construct_records_b3_v4.jsonl.gz": {
+      "bytes": 6713,
+      "sha256": "2a0626126477f56d7d3d60213ce48f619eed328c92e969eb02fc538930a3fe19",
+      "git_blob_sha1": "fe461a572a9b8bd5d9f0aab9a4c3d9a64f68577b"
+    },
+    "research/external_verification/cycle_g_20261010/construct_records_v1.jsonl.gz": {
+      "bytes": 211449,
+      "sha256": "0c8e454dfa95c8aa2817980affd9fd863fa9cc5f67a3261e661d90aaa48e6557",
+      "git_blob_sha1": "0f3485a3acca6cfaeca011290f77fe7bb8fb9353"
+    },
+    "research/external_verification/cycle_g_20261010/content_discrepancy_investigation.json": {
+      "bytes": 588,
+      "sha256": "d59715a895990b3985f0953ff7f9e377dbf563580e63ffa6a3a5c090d46a11a9",
+      "git_blob_sha1": "a9ff8832c70e7b75ec2ea6dcec018485e59fb499"
+    },
+    "research/external_verification/cycle_g_20261010/coverage_by_stratum.csv": {
+      "bytes": 8662,
+      "sha256": "a9beb19088392fd320d0b788d890edb94da982a3146096fce7cbc8a1723a520c",
+      "git_blob_sha1": "d00e31009df822e964466cc0b70b9b773f8c00c1"
+    },
+    "research/external_verification/cycle_g_20261010/execution_summary.json": {
+      "bytes": 6389,
+      "sha256": "3f86b10fcada5f57ac2afd757d201d64ca2e0db38739b0d15bac2cc3987b98f4",
+      "git_blob_sha1": "4936610db01f9085ab3f06c761f148fd2b9438b1"
+    },
+    "research/external_verification/cycle_g_20261010/execution_summary_b3_v4.json": {
+      "bytes": 6412,
+      "sha256": "6d88ca7bf3e83608c04a67d5f4260039aa7c51b7f58218e5e92c8e37b481b7b8",
+      "git_blob_sha1": "58c47cac70467a87b2f67576a01c403403c3b1e3"
+    },
+    "research/external_verification/cycle_g_20261010/execution_summary_v1.json": {
+      "bytes": 6389,
+      "sha256": "7afbeddbb251b586f6f1b7b1f81679112c3273993711b84ed0226fd7daca2b70",
+      "git_blob_sha1": "f53a1a1afd31df99dee17eeced96ce9a3d4d35f5"
+    },
+    "research/external_verification/cycle_g_20261010/goal_coverage.csv": {
+      "bytes": 11904,
+      "sha256": "09f987bc87f759fd7002f628ff5e91304ee0701dd88cb5bd453fd725562c9e9f",
+      "git_blob_sha1": "3918b75e46e6e973961acb400ccbdb4413151cdc"
+    },
+    "research/external_verification/cycle_g_20261010/goal_objectives.json": {
+      "bytes": 24050,
+      "sha256": "c1a055231457b153eed56aec4a3a5ba64037fed2c306bd5b700d1cdb47c6693a",
+      "git_blob_sha1": "e46a862dcf65575593e2463acfb65cf21aa4dea2"
+    },
+    "research/external_verification/cycle_g_20261010/hotel_discrepancy_investigation.json": {
+      "bytes": 5405,
+      "sha256": "f530ce92e0e9f004f3442eebae73ab3654e7c584561ad1245a50c119565ac304",
+      "git_blob_sha1": "1470daf027e009602cd43b79e0ecd38199baf060"
+    },
+    "research/external_verification/cycle_g_20261010/invalid_v3_run.json": {
+      "bytes": 8390,
+      "sha256": "929d16e2f02cd10bec04d977425ad77c9d8816a4310621f07c9238d150259f15",
+      "git_blob_sha1": "e1368a8d7532889b9ce97df645442ce4b3272bb0"
+    },
+    "research/external_verification/cycle_g_20261010/legacy_b3_construct_reconciliation.csv": {
+      "bytes": 17137,
+      "sha256": "e551ad40422cdf8fb1ef5de1dde7264da7a60504fb15c3d142073d83abfa1041",
+      "git_blob_sha1": "010452cc6f7a6440015e8ad6b146c7850afb78ca"
+    },
+    "research/external_verification/cycle_g_20261010/local_validation.json": {
+      "bytes": 7049,
+      "sha256": "dd9b93ee16fcbff5395e9c519fbaef3d2f9e14b1437a0829aea1a8177cc31369",
+      "git_blob_sha1": "002a25769ffaee6892af93c60af91dfccfe054c1"
+    },
+    "research/external_verification/cycle_g_20261010/manuscript_claim_matrix.csv": {
+      "bytes": 4013,
+      "sha256": "495b8ffbb8410e0d6f5a31d660f64434307855cda6e73059d854bd4e8af70bdb",
+      "git_blob_sha1": "aae6fd26713706a951518f1e54501406aec3f073"
+    },
+    "research/external_verification/cycle_g_20261010/original_record_metadata.json.gz": {
+      "bytes": 31728,
+      "sha256": "67700d4a783831cf277374085bfeda8ba591e8b1624a8acec3dfe2837c84132f",
+      "git_blob_sha1": "4c3cd0c068b35e5b2588ede36e63974a635e75a2"
+    },
+    "research/external_verification/cycle_g_20261010/record_discrepancies.csv": {
+      "bytes": 32618,
+      "sha256": "f2c13db321beb51041960f65d872f53893d0c19cb6b42448e1e942c547fd1a31",
+      "git_blob_sha1": "de5836ddd9d62a4a8242bb51e8919b67a62fc5e5"
+    },
+    "research/external_verification/cycle_g_20261010/record_semantic_coverage.csv.gz": {
+      "bytes": 128468,
+      "sha256": "d0dc572b7a18c8481bd4cf4181aec2792bf1198503159bf05ccc801629aa63c5",
+      "git_blob_sha1": "0a9859b1f6e900f1bc67c965544e3c0e695ea071"
+    },
+    "research/external_verification/cycle_g_20261010/rubric_revision_outcomes.csv": {
+      "bytes": 6610,
+      "sha256": "a73434d49941b80e6dc470a19644020ba4f1c6e896c9228a4099eaf004d6f6cc",
+      "git_blob_sha1": "f8c02c7d63b89a673b1c626fede9526de180abd5"
+    },
+    "research/external_verification/cycle_g_20261010/semantic_amendment_v2.json": {
+      "bytes": 1245,
+      "sha256": "61d31f575fcf8d69573c0016bf6ad0e9ad8c6b153f42b0ba758e718447e035aa",
+      "git_blob_sha1": "49b3b29673ffe1dd35ad9fa99b712491689cc35c"
+    },
+    "research/external_verification/cycle_g_20261010/semantic_rubric_v1.json": {
+      "bytes": 81011,
+      "sha256": "a70951b3647d3258c3f38bba54afc1e351e5087cced8141e6ca73b6acb7b6e37",
+      "git_blob_sha1": "0a0750eebcc4ec8ea0b810a2002b7141c9e7c721"
+    },
+    "research/external_verification/cycle_g_20261010/semantic_rubric_v2.json": {
+      "bytes": 82721,
+      "sha256": "394bba468fbff2cd5db53335bdba3e0ef4dfa3c03c30cbf54aea6920223af7d8",
+      "git_blob_sha1": "1c79e37b938dffe68aaa1243f9f424e099e0a03e"
+    },
+    "research/external_verification/cycle_g_20261010/semantic_rubric_v3_b3.json": {
+      "bytes": 83924,
+      "sha256": "a7a838dbec62b22e1a78f2bad5a4b9710f4a9635fcee4f70f5e40d727bcf2466",
+      "git_blob_sha1": "2165aed34bec8f28e52f3dbc2f40a68c274959a3"
+    },
+    "research/external_verification/cycle_g_20261010/semantic_rubric_v4_b3.json": {
+      "bytes": 84100,
+      "sha256": "5ada9782e55f69b3f8954ce972bca5dce27c50d1a08d2b54551ec91a2b34bf8a",
+      "git_blob_sha1": "5f3b5277a57e01f0424b96108ee80a469618d508"
+    },
+    "research/external_verification/cycle_g_20261010/source_risk_review.json": {
+      "bytes": 27329,
+      "sha256": "c19d2497cb8d2f4087c95688185817868b92d85061b2fb2c8de6b2b615eaa90c",
+      "git_blob_sha1": "574070b2ce4803742d2c9338ee3658c19b08f831"
+    },
+    "research/external_verification/cycle_g_20261010/statistical_consequences.json": {
+      "bytes": 74324,
+      "sha256": "7d39650befb155e992b9a88b04fb7052d29cf15cbecc01f319a8d708d14629d4",
+      "git_blob_sha1": "a79b33939da0fbf5e62467b9a4879eff8d6073da"
+    },
+    "research/external_verification/cycle_g_20261010/statistical_consequences_v2_before_b3.json": {
+      "bytes": 72061,
+      "sha256": "3dd37e1fca61edafff7d9c3a518c11f024cd868651fb6b76fa4f284212d56a7e",
+      "git_blob_sha1": "4596f92595898d229ac7aa3030ae51c1b2a792db"
+    },
+    "research/external_verification/cycle_g_20261010/superseded_v1_sources.json.gz": {
+      "bytes": 15235,
+      "sha256": "134c375f096223e8bb89fae0007f4be1ed5cc2d4b2080cca3f9a7909adb35e4e",
+      "git_blob_sha1": "802696620a75063b1c0876587edd7d8c27aeb745"
+    },
+    "research/external_verification/CYCLE_G_CONSTRUCT_VALIDATION_2026-10-10.md": {
+      "bytes": 31285,
+      "sha256": "f604918607f7c97c5d64d7ea95de34e3296c992cbc41715ed2bb48abc0d3d569",
+      "git_blob_sha1": "4af427914485aff9b98dfd5f68a7881d984eca86"
+    },
+    "research/external_verification/semantic_cycle_g.py": {
+      "bytes": 36762,
+      "sha256": "d286ce0a3e3a0b074d796e811ac9d9f502c4f21bd6ea33df074c2a9463306057",
+      "git_blob_sha1": "ae00f8b278706e0a54c830ccff4f0431c806d37e"
+    },
+    "research/external_verification/run_semantic_cycle_g.py": {
+      "bytes": 17903,
+      "sha256": "aa689ad9fcede452394739bd487d9bd160bca1aa7db6cc391d08fc49f0829286",
+      "git_blob_sha1": "23fb03c0082ad1095b4195f31848084a9141b1d1"
+    },
+    "research/external_verification/semantic_cycle_g_b3_v4.py": {
+      "bytes": 4485,
+      "sha256": "26696234265f32fe41d33ccd79018e3280e576c27c437d26cb41796ee98eeaac",
+      "git_blob_sha1": "05ac1bae4a00feae2e754a481aad6be407cef646"
+    },
+    "research/external_verification/run_semantic_cycle_g_b3_v4.py": {
+      "bytes": 18007,
+      "sha256": "a9c4c51f32e05d27fa313f010fce81323311fa91196abe95c17a55dd6af03add",
+      "git_blob_sha1": "0bc14bee6e654a41a3056449c120edb2e8689ab0"
+    },
+    "research/external_verification/summarize_cycle_g.py": {
+      "bytes": 24969,
+      "sha256": "c2fa9afd642cce06d9b24a0aa4721efae693a091dc4c33f1b6c660dfc02b5646",
+      "git_blob_sha1": "40b8995c7f3e87cc9f8af762b90dc42104fbcf0f"
+    },
+    "tests/test_cycle_g_semantic.py": {
+      "bytes": 10218,
+      "sha256": "acb0eed1522f94d2e8206c7772f76b450483298211752cd4d884500087c62292",
+      "git_blob_sha1": "ddc84a210055dca0c7c20584313e6bcbd98573d6"
+    },
+    "tests/test_cycle_g_summary.py": {
+      "bytes": 3258,
+      "sha256": "ba166c00ee474767ce95482ba26727dcdb3bd2e63cc8cc27eb7df80a68f4a27c",
+      "git_blob_sha1": "93eb9639a1dea01b0fb4537aed26c8648bfcee9d"
+    },
+    "tests/test_cycle_g_b3_v4.py": {
+      "bytes": 3197,
+      "sha256": "a506a86939a6a5eff00764831e60ad6528eb980fb37ebf942327270796b800ad",
+      "git_blob_sha1": "5c59a93c32a5ba9be73aad2c474d9c3fa8941c9b"
+    }
+  },
+  "publication_boundary": "Manifest excludes itself. Final integration commit and exact-head CI cannot be self-hashed here; verify live PR head, record exact CI in live Research Evidence Ledger/Runs. CI tests software, not empirical semantics.",
+  "independence_limits": "Machine labels; no independent human/blind adjudication. Shared deterministic mock restoration/clock helpers. V1 frozen before new comparisons with prior F aggregate/workspace6 knowledge disclosed. V2 and V4 explicitly outcome-informed. Invalid V3 never counted. No external historical preregistration proof, full provider bodies or real service execution.",
+  "v2_checkpoint_head": "2b157d2af9e92129b049f6d28300fa01f86b5b6b",
+  "v4_freeze_head_and_expected_final_integration_parent": "25d7e696dd1f90f61b15cf8f528f8f20863753e1",
+  "historical_manifest_note": "The v2 manifest and19-test validation remain preserved at the v2 checkpoint commit. This additive final Cycle G manifest includes valid V4; original F and remaining31 V2 raw decisions/sources are unchanged.",
+  "execution_v4": {
+    "started_utc": "2026-10-10T16:43:14.950264+00:00",
+    "finished_utc": "2026-10-10T16:43:19.643836+00:00",
+    "runtime_seconds": 4.693334600073285,
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "records": 26,
+    "reverse_order_context_checks": 52,
+    "independent_oracle_calls": 0,
+    "new_model_calls": 0,
+    "network_calls": 0,
+    "binding": {
+      "exact_historical_outputs": 70,
+      "dispatched": 70,
+      "tool_errors": 1,
+      "blocked_proposals": 8
+    },
+    "original_input_files_before_after": 52,
+    "original_input_hash_map_sha256": "7b71cfd55c8e82af772d9ca64eb5ae13eb50fb53ce3d455961f08a462ac17a6c",
+    "source_hashes": {
+      "runner": "a9c4c51f32e05d27fa313f010fce81323311fa91196abe95c17a55dd6af03add",
+      "evaluator": "26696234265f32fe41d33ccd79018e3280e576c27c437d26cb41796ee98eeaac",
+      "cycle_f_helpers": "942104d6e2d24cca6ed8b05b3a1c3a12c6c85a992a025a6f863668809e764204",
+      "cycle_f_records": "68a099a6c876b517807a493ce2129ae5e721634053229b6e0e98949352bb16e8"
+    },
+    "shared_v2_facts_source_sha256": "d286ce0a3e3a0b074d796e811ac9d9f502c4f21bd6ea33df074c2a9463306057"
+  },
+  "invalid_v3": {
+    "status": "INVALID_AUDIT_SPEC",
+    "excluded_from_findings": true,
+    "provenance": "invalid_v3_run.json",
+    "reason": "Wrong balance-disclosure objective; correct banking3 objective is phone model.52 apparent false-positive endpoints excluded."
+  },
+  "final_scope": {
+    "new_goals_evaluated": 31,
+    "historical_goals_preserved": 4,
+    "goals_all_observed_contexts_classifiable": 27,
+    "goals_with_unresolved_cases": 8,
+    "records": {
+      "new": 806,
+      "historical": 104,
+      "historical_in_final_construct_analysis": 78,
+      "scoped_b3_supplement": 26,
+      "cumulative": 910,
+      "all_applicable_contexts_classifiable": 854
+    },
+    "disagreements": {
+      "cumulative_endpoints": 39,
+      "cumulative_records": 19,
+      "new_incremental_endpoints": 23,
+      "new_incremental_records": 9,
+      "by_category": {
+        "SOURCE_ORACLE_FALSE_POSITIVE": 18,
+        "SCORING_ORDER_DEPENDENCY": 5,
+        "SOURCE_ORACLE_FALSE_NEGATIVE": 16
+      },
+      "by_arm": {
+        "off": 30,
+        "full": 9
+      },
+      "independence_note": "Multiple endpoints of a record are dependent; pairs and goals also cluster."
+    },
+    "b3_consistency_supplement": {
+      "version": "V4",
+      "rubric_sha256": "5ada9782e55f69b3f8954ce972bca5dce27c50d1a08d2b54551ec91a2b34bf8a",
+      "records": 26,
+      "contexts": 52,
+      "historical_family_content_labels_preserved": true,
+      "changed_contexts": 10,
+      "changed_records": 6,
+      "invalid_v3": "INVALID_AUDIT_SPEC: balance objective was erroneous; all V3 decisions/disagreements/statistics excluded. Its 52 apparent false positives are not empirical source failures."
+    },
+    "ambiguous_contexts": 103,
+    "primary_posthoc_completion_bounds": {
+      "lower": {
+        "fraction": "-15/28",
+        "estimate": -0.5357142857142857
+      },
+      "upper": {
+        "fraction": "-67/168",
+        "estimate": -0.39880952380952384
+      }
+    }
+  }
+}

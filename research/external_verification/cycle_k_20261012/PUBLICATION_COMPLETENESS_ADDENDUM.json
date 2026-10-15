@@ -1,0 +1,17 @@
+{
+  "cycle": "K",
+  "type": "ADDITIVE_PUBLICATION_COMPLETENESS_CORRECTION",
+  "identified_utc": "2026-10-12T17:54:55.309244+00:00",
+  "first_publication_commit": "d69199dcb8916283309c9e16cab5e69e874938e3",
+  "first_manifest_sha256": "2e9c71d276a4be570569bd7778276ac086c34e63358c7e2a815c8b0057a4a9b9",
+  "omission": "The filename finalize_read_alias_cycle_k.py was not matched by the publication glob *benign_cycle_k*.py. Its executed bytes are added; no scientific rerun or label/statistical change.",
+  "executed_driver": {
+    "path": "research/external_verification/finalize_read_alias_cycle_k.py",
+    "bytes": 2937,
+    "sha256": "ff777ea47c6cfe05ade086429757c42d076ae3cbd349055a9d324d38fd3bf2be",
+    "git_blob_sha1": "77c7bdcd0b8e9dfb8d32bed71e90f5af35a97568"
+  },
+  "preservation": "All1829 original parent blobs and all46 first-publication blobs remain unchanged. Add only this driver and this addendum.",
+  "final_source_set_files": 48,
+  "self_digest": "Omitted; final Git head/CI/Sheet receipts supplied by PR51 and Runs."
+}

@@ -1,0 +1,36 @@
+{
+  "started_utc": "2026-10-15T10:10:04.118796+00:00",
+  "runtime_seconds": 0.6033781000005547,
+  "records": 96,
+  "targeted_records": 12,
+  "targeted_contexts": 24,
+  "label_changes": 2,
+  "full_reverse_order_and_immutability_checks": 192,
+  "new_tool_calls": 0,
+  "human_reviews": 0,
+  "provider_calls": 0,
+  "actual_counts": {
+    "None": 55,
+    "True": 8,
+    "False": 33
+  },
+  "proposed_counts": {
+    "None": 78,
+    "True": 2,
+    "False": 16
+  },
+  "input_hashes_before_after": {
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\final-l3\\record_audit_principal.jsonl.gz": "96604712d1b4234ae1bd1e42f93f27747caeb7285d2800ab69973a4c60f34872",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1\\private_contexts_DO_NOT_PUBLISH.jsonl.gz": "18f333245e52fef81f6fcd50ea6188d05e624e87f94a6485809eb61303e3e515",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\run-l1\\execution_summary.json": "c12e2e41c60d9a1a42a11c1b280e6ea207b39bfa0c83c836800153dfb649bdbf",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_rules_l1.json": "b26c60986c975356f1272d7ac3e853981f440f0f25bf1098a73e652e14b1e39c",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\frozen_representation_l4.json": "33932d82955acc8792fa2670b786dd4a1f4175dad227281f6769dda90a30fc67",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\complete_benign_cycle_l.py": "42b5803bfed66cb16f873295bd76f4b835373829bcbd6e71623ec3a0ef941aa9",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\benign_construct_cycle_l_v4.py": "224fdcb04577175143c1798a882d3f4836984382d1df10ece9aa7d3e6530cf61",
+    "C:\\FSE-ext-agentdojo\\cycle-l-benign-20261015T100002Z\\code\\benign_construct_cycle_l.py": "f4ab04fe5fbb0121099c0217b1d3e12158a79f4f1bbf5307f8f2ac03a97d0a87"
+  },
+  "artifact_sha256": {
+    "record_audit_principal.jsonl.gz": "fe28c4cce16f128e40ae491afef8d40f698dbff6d087859ef0c5f90b6d7cfd35",
+    "scoring_differential.csv": "f4fae27f60559e94f8be248eaceb64a99ecdc7578a58a35722e7057504aef285"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "checked_utc": "2026-10-11T13:47:56.345764+00:00",
+  "github": {
+    "pr": 51,
+    "head": "2eb5e4e0444cadc9397ebbe840bff1904d201969",
+    "branch": "research/external-agentdojo-audit-20261009",
+    "owner": "Lei-TzuY",
+    "state": "open",
+    "draft": true,
+    "H_ci_run": 38124146393,
+    "H_ci_exact_head": "2eb5e4e0444cadc9397ebbe840bff1904d201969",
+    "H_ci_conclusion": "success",
+    "baseline_blobs": 1708,
+    "qa42_head": "28803400fa761a2b31962b3c3b1b51bc06742a12"
+  },
+  "desktop": {
+    "head": "413f020619fcd1abb68d993820963dd04199cb5d",
+    "status_entries": 46,
+    "iqa_soa_source_tree": {
+      "files": 53,
+      "sha256": "5e39162320c4d05f67cebfdd74758994c5b6102b01905958a0bf63d09b8c0f78"
+    },
+    "agentdojo_tree": {
+      "files": 112,
+      "sha256": "21aa76592bcbf8898c74818a6d1e3d5ab5486505def0db0b5ab9816427559684"
+    },
+    "possible_writer": "Python process45224 has an inaccessible command line; exclusive ownership cannot be proven.",
+    "no_active_RemoteDC_sessions_at_initial_audit": true,
+    "selected_evidence_stability_not_global_desktop_exclusivity": true
+  },
+  "live_spreadsheet": {
+    "id": "1-KB9o2fWrnV6f5zG64cE7NIVvKsR_s5cstV1NG-JED8",
+    "ledger_last_row": 40,
+    "runs_last_row": 11,
+    "new_owner_decisions": 0
+  },
+  "manuscript": {
+    "id": "14uHeRwZ7TT_4vpdwQ4Igpf2fLRej-VTJ",
+    "name": "main_v1.6.3.pdf",
+    "bytes": 878066,
+    "pdf_sha256": "32b1abda3fd48f8cf0dbe11470ac1a59d6a745ddfc4d3806e9dc42eb78a2e35b",
+    "normalized_text_sha256": "dfd0dddecd712acec0fb171b18f7fb78354fdd977a60cae27c65350f7f7336b5",
+    "no_edit_or_venue_status_inferred": true
+  }
+}

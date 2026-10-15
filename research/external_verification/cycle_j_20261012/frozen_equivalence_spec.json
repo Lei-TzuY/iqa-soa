@@ -1,0 +1,9 @@
+{
+  "version": "CYCLE-J-EVIDENCE-EQUIVALENCE-V1",
+  "status": "SEPARATE_POST_HOC_CONSISTENCY_SCENARIO",
+  "rule": "Unknown labels may be constrained equal only when the same frozen task and the complete retained rubric-relevant evidence have identical fingerprints. This is a conditional deterministic-adjudication assumption, not independently supplied labels. Use every matching class; never pick favorable pairs.",
+  "fingerprint": "Exact goal and immutable initial state; complete final state; ordered function/argument/acceptance/error/changed-path facts; exact retained final text for output-requiring tasks; original read-status side-effect facts. Exclude source verdict, model, treatment, seed, record pointer, evidence IDs and diagnostic hashes. Participant order is normalized to sets. Only creation timestamps of new messages and last_modified of newly created/explicitly appended files may be removed where no rule refers to them. Initial email timestamps and substantive content/numbers/identities/explicit event times remain.",
+  "scope": "Only the 144 newly restored records have full retained contexts for this constraint. The prior five-task labels and all 224 unaudited confirmatory labels stay as specified in each separate statistical scenario; no equality is inferred from payload hashes or absent provider request bodies.",
+  "guards": "Known labels in a fingerprint class must not conflict. Reject inconsistent fingerprints. Do not treat equivalent outputs as prospective registration, external authentication, generalized causal equivalence or no utility cost.",
+  "analyses": "Report unrestricted recordwise binary-completion bounds first; report evidence-equivalence-constrained bounds separately under this assumption, for both native-rest-fixed and unaudited-labels-free populations. Retain all 194 pairs and equal model weights. No confidence interval or new hypothesis test."
+}

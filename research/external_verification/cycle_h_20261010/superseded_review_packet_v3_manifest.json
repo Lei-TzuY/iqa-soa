@@ -1,0 +1,27 @@
+{
+  "status": "SUPERSEDED_PACKET_PRESENTATION",
+  "reason": "Calendar participant cards included the account owner without distinguishing self from the five other meeting participants. No empirical labels were changed; controlled raw inputs and prior H replay are unaffected.",
+  "original_extraction_manifest": {
+    "started_utc": "2026-10-11T07:57:35.228771+00:00",
+    "finished_utc": "2026-10-11T07:57:36.907057+00:00",
+    "runtime_seconds": 1.6785745001398027,
+    "contexts": 71,
+    "distinct_records": 38,
+    "goals": 5,
+    "actual_contexts": 33,
+    "hypothetical_contexts": 38,
+    "original_input_files_hash_verified_before_after": 76,
+    "tool_execution_calls": 0,
+    "native_scoring_calls": 0,
+    "provider_calls": 0,
+    "frozen_inventory_before_after_verified": true,
+    "input_sha256": "17789cbeff349a4e286ba802fbc40ab35c6f5cb05e8596c63edba22d5f53d783",
+    "code_sha256": "55da0bc4331b6cfcebc30781428be071d7e0d3d7141d1d2f7b92ddea77f4d4a1",
+    "public_packet_sha256": "d1d3576be55bee55359600636c11358369f920c0481f4a3f57fca26b84c21e3c",
+    "controlled_map_sha256": "a49eea647d9f071d2529017f4736591a0b944117afb5f462d44b331b263b71d5",
+    "controlled_map_location": "C:\\FSE-ext-agentdojo\\cycle-h-20261010\\review-packet-20261011\\controlled_review_map_DO_NOT_PUBLISH.json",
+    "public_packet_contains_original_raw_content": false,
+    "labels_changed": 0,
+    "human_adjudication_status": "ADJUDICATION_PENDING"
+  }
+}

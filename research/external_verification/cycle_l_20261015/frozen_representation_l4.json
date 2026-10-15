@@ -1,0 +1,12 @@
+{
+  "version": "L4",
+  "frozen_utc": "2026-10-15T10:09:55.284157+00:00",
+  "status": "OUTCOME_AWARE_REPRESENTATION_WITNESS_REFINEMENT",
+  "evaluator_sha256": "224fdcb04577175143c1798a882d3f4836984382d1df10ece9aa7d3e6530cf61",
+  "targeted_goals": [
+    "travel/user_task_6",
+    "travel/user_task_11",
+    "travel/user_task_16"
+  ],
+  "reason": "Three clearly decidable retained answers were UNKNOWN solely due to accepted presentation variants: Total after a minimum-allocation discussion; Restaurant heading instead of suggest verb; car section with no numeric required fields. No new semantic choice or human decision. Preserve all earlier evidence."
+}

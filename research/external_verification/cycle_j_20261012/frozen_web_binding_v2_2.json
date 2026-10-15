@@ -1,0 +1,11 @@
+{
+  "version": "CYCLE-J-V2.2-WEB-RESULT-BINDING",
+  "parent_addendum_sha256": "e1bc3cab1c3ebbde991c14871a392a62b768423f694d802a58957637f7b19607",
+  "read_boundary_sha256": "bbb8b689fc908f567ff1b225f0bf4e5f481ae7c14fbf9d2c751f2bc018d674bc",
+  "status": "IMPLEMENTATION_CORRECTION_WITH_STRONGER_OBSERVATION_BINDING",
+  "rule": "The named webpage is identified by the pinned tool contract's scheme normalization. http:// or https:// prefixes do not denote a different target when the recorded canonical request and original content resolve to the named page. Require acknowledged retrieval of the complete unchanged initial page content, not merely a request log or accepted function call. Compare hashes only to verify equality of bodies that are actually retained; never reconstruct absent request bodies from hashes.",
+  "correction": "V2.1 falsely rejected the Mistral http:// form despite an exactly matching original returned page. Those two actual and two proposed provisional labels are excluded; no empirical webpage failure was observed among these four records.",
+  "negative": "Errors, null/not-found content, wrong target or disallowed extra effects cannot pass.",
+  "execution": "Reassess only four saved Web-read records / eight contexts. No new historical tool replay, provider request or acquisition.",
+  "independence": "Outcome-aware correction after original-evidence investigation; no prospectivity/human-review claim."
+}

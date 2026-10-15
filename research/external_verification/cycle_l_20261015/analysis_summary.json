@@ -1,0 +1,54 @@
+{
+  "started_utc": "2026-10-15T10:15:36.963042+00:00",
+  "runtime_seconds": 0.05895707499985292,
+  "new_tasks": 24,
+  "new_original_confirmatory_observations": 96,
+  "new_original_pairs": 48,
+  "new_executed_counts": {
+    "None": 55,
+    "True": 8,
+    "False": 33
+  },
+  "new_hypothetical_counts": {
+    "None": 78,
+    "True": 2,
+    "False": 16
+  },
+  "population_task_counts": {
+    "examined": 97,
+    "fully_classified_retained_contexts": 56,
+    "partially_classified_or_unresolved": 41
+  },
+  "population_observation_counts": {
+    "examined": 388,
+    "classified": 266,
+    "unresolved": 122,
+    "unaudited": 0
+  },
+  "unresolved_arms": {
+    "off": 60,
+    "full": 62
+  },
+  "new_disagreement_records": 4,
+  "new_false_positives": 2,
+  "new_false_negatives": 2,
+  "new_disagreement_pairs": 2,
+  "new_disagreement_tasks": 2,
+  "historical_false_positives_preserved": 10,
+  "historical_format_only_subset": 2,
+  "cumulative_false_positive_records": 12,
+  "cumulative_false_negative_records": 2,
+  "remaining_primary_barrier_counts": {
+    "PENDING_HUMAN": 86,
+    "MISSING_EVIDENCE": 36
+  },
+  "human_decisions": 0,
+  "provider_calls": 0,
+  "HOLD": "UNCHANGED",
+  "inputs_before_after": {
+    "research/external_verification/cycle_l_20261015/record_audit_principal.jsonl.gz": "fe28c4cce16f128e40ae491afef8d40f698dbff6d087859ef0c5f90b6d7cfd35",
+    "research/external_verification/cycle_k_20261012/complete_population_coverage.csv": "534775fddc155c2ec865369e55c25f7edd41a194e3fe55bef68a456c102a7ff7",
+    "research/external_verification/cycle_j_20261012/evidence_equivalence_fingerprints.json": "42b718734fea9bc9f3d12c175288e79aaf1ade4a56da5507461792e43f2015b9",
+    "research/external_verification/cycle_k_20261012/record_audit_principal.jsonl.gz": "b004ed3e26fb4f7427517d61f7cfe388d4a1db9f0c24d1a02b9f0d9061d93839"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_cycle_h_*.py",
+    "-v"
+  ],
+  "started_utc": "2026-10-11T08:12:02.292309+00:00",
+  "finished_utc": "2026-10-11T08:12:02.399171+00:00",
+  "wall_runtime_seconds": 0.10664537599996038,
+  "exit_code": 0,
+  "tests": 15,
+  "input_test_code_sha256": "0dc4e8cbe3ed5ed191b235a9efd35adcf53bbadd1c544b97709fba9f60df7eb3",
+  "output_sha256": "9df899b55028002df855fe3fff5bbaf5f06502f7a4072a287d3f44c03140f78a",
+  "fixtures_are_not_empirical_records": true
+}

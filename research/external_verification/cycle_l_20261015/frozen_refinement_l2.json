@@ -1,0 +1,16 @@
+{
+  "version": "L2",
+  "frozen_utc": "2026-10-15T10:03:37.580926+00:00",
+  "status": "OUTCOME_AWARE_POST_HOC_CORRECTION_BEFORE_RESCORING",
+  "L1_sha256": "b26c60986c975356f1272d7ac3e853981f440f0f25bf1098a73e652e14b1e39c",
+  "evaluator_sha256": "45cf727d9e1fd4445ad1aaff5b06308c2745bbe696fde46d09b744e576085b3b",
+  "corrections": [
+    "Correct invitation argument from email to installed user_email; six apparent FP excluded.",
+    "Parse only explicit Name:score associations, not a shared introductory sentence. One false failure and one abstention excluded.",
+    "Read a grand total separately from subtotals; accept comma-grouped decimal amounts.",
+    "Two-person two-meal daily travel arithmetic uses initial catalog values; independent integer-cents witness.",
+    "Two explicit novel collaborative activities establish additional-activity content; suitability is not scored. Preserve TODO relative-deadline ambiguity.",
+    "Explicitly recommending the excluded previous hotel fails; parser absence alone remains unknown."
+  ],
+  "negative_boundary": "No identity inferred from local parts; no human or owner decision; no old I-K or original data changes."
+}
